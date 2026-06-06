@@ -1,0 +1,11 @@
+category,name,type,tenure_or_horizon,rate_or_return,risk_or_profile,process,notes
+fixed_deposit,State Bank of India,Regular FD,7 days - 10 years,3.50% - 6.75% p.a.,Low risk,"Choose tenure; complete KYC; fund from savings account; download FD receipt","Indicative demo rate; verify live bank rate before booking"
+fixed_deposit,HDFC Bank,Sweep-in / Regular FD,7 days - 10 years,3.00% - 7.00% p.a.,Low risk,"Open FD online or branch; select payout/cumulative option; verify nominee","Check premature withdrawal penalty and TDS"
+fixed_deposit,Indian Bank,IND SECURE / Term Deposit,444 days and standard tenures,Around 6.60% p.a. for 444 days,Low risk,"Select deposit scheme; submit KYC/nominee; fund deposit; track maturity","Special scheme rates can change"
+fixed_deposit,Kotak Mahindra Bank,Regular FD,7 days - 10 years,2.75% - 7.10% p.a.,Low risk,"Book from net banking/app; choose auto-renewal; add nominee","Compare callable vs non-callable FD"
+mutual_fund,Liquid Fund,Debt mutual fund,1 day - 12 months,Market linked,Low to moderate,"Complete KYC; invest lump sum; keep emergency money accessible","Not a bank deposit; returns not guaranteed"
+mutual_fund,Short Duration Debt Fund,Debt mutual fund,1 - 3 years,Market linked,Moderate,"Check portfolio quality; expense ratio; exit load; taxation","Interest-rate and credit risk apply"
+mutual_fund,Hybrid Fund,Hybrid mutual fund,3+ years,Market linked,Moderate to high,"Choose category; start SIP; review annually","Equity and debt allocation both matter"
+mutual_fund,Index / Flexi Cap Equity Fund,Equity mutual fund,5+ years,Market linked,High,"Use SIP; define goal; avoid short-term withdrawals","High volatility; no guaranteed return"
+fraud_detection,KYC mismatch,Risk signal,Application time,+30 to +32 score impact,High risk,"Validate Aadhaar PAN IFSC account pincode and duplicate applicant details","Manual review when combined score is high"
+fraud_detection,Failed attempts,Risk signal,Application time,+18 score impact,Medium to high risk,"Track repeated failed verification attempts and device risk","More attempts increase fraud score"
