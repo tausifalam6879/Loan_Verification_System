@@ -81,7 +81,7 @@ const AiAssistant = ({ balance, totalIncome, totalExpense }) => {
     }
 
     if (text.includes("saved") || text.includes("server") || text.includes("application kaha") || text.includes("applications")) {
-      return "Submit to Server ke baad application Loan Marketplace ke neeche Saved Loan Applications card me dikhegi. Backend endpoint: GET http://localhost:8081/api/loans/applications. UI me View Saved Applications button se direct jump kar sakte ho.";
+      return "Submit to Server ke baad application Saved Loan Applications card me dikhegi. User endpoint: GET http://localhost:8081/api/loans/my-applications. Admin endpoint: GET http://localhost:8081/api/admin/applications.";
     }
 
     if (text.includes("income") || text.includes("expense") || text.includes("balance")) {

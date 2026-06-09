@@ -1,5 +1,5 @@
 package com.loan.VerificationSystem.service;
-
+import com.loan.VerificationSystem.exception.ResourceNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.loan.VerificationSystem.entity.LoanApplication;
 import com.loan.VerificationSystem.entity.LoanOffer;
@@ -7,9 +7,11 @@ import com.loan.VerificationSystem.repository.LoanApplicationRepository;
 import com.loan.VerificationSystem.repository.LoanOfferRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
+import com.loan.VerificationSystem.entity.User;
+import org.springframework.security.core.context.SecurityContextHolder;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -19,11 +21,15 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+
+import com.loan.VerificationSystem.repository.UserRepository;
+
 @Service
 public class LoanService {
 
     private final LoanOfferRepository loanOfferRepository;
     private final LoanApplicationRepository loanApplicationRepository;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
     private final String fraudServiceUrl;
@@ -36,10 +42,13 @@ public class LoanService {
 
     public LoanService(LoanOfferRepository loanOfferRepository,
                        LoanApplicationRepository loanApplicationRepository,
+                       UserRepository userRepository,
                        ObjectMapper objectMapper,
                        @Value("${ai.fraud.service.url:http://localhost:8000/fraud-score}") String fraudServiceUrl) {
+
         this.loanOfferRepository = loanOfferRepository;
         this.loanApplicationRepository = loanApplicationRepository;
+        this.userRepository = userRepository;
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newHttpClient();
         this.fraudServiceUrl = fraudServiceUrl;
@@ -51,7 +60,7 @@ public class LoanService {
 
     public LoanOffer getOffer(Long id) {
         return loanOfferRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Loan offer not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Loan offer not found: " + id));
     }
 
     public List<LoanApplication> getApplications() {
@@ -59,6 +68,14 @@ public class LoanService {
     }
 
     public LoanApplication apply(LoanApplication request) {
+        String email = SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+
+        User user = userRepository.findByEmail(email);
+
+        request.setUser(user);
         LoanOffer offer = getOffer(request.getLoanOffer().getId());
         request.setLoanOffer(offer);
         normalizeApplication(request);
@@ -96,9 +113,21 @@ public class LoanService {
         return loanApplicationRepository.save(request);
     }
 
+    public List<LoanApplication> getMyApplications() {
+
+        String email = SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+
+        User user = userRepository.findByEmail(email);
+
+        return loanApplicationRepository.findByUser(user);
+    }
+
     public LoanApplication markProcessingFeePaid(Long id, PaymentRequest paymentRequest) {
         LoanApplication application = loanApplicationRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Loan application not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Loan application not found: " + id));
         application.setProcessingFeePaid(true);
         application.setPaymentStatus("PAID");
         application.setPaymentReference(

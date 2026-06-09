@@ -32,6 +32,7 @@ import TransactionTable from "../components/TransactionTable";
 import useExpenses from "../hooks/useExpenses";
 import { exportExpensesToCSV } from "../utils/exportCsv";
 import AiAssistant from "../components/AiAssistant";
+import { logout } from "../services/authService";
 
 const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
   const location = useLocation();
@@ -62,6 +63,8 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     severity: "success",
     message: ""
   });
+  const role = localStorage.getItem("role") || "USER";
+  const email = localStorage.getItem("email") || "";
 
   const balance = totalIncome - totalExpense;
   const budgetPercentage =
@@ -197,6 +200,11 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     setDrawerOpen(false);
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
+
   const scrollToLoans = () => {
     openWorkspace("loans");
   };
@@ -210,6 +218,9 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
         balance={balance}
         themeMode={themeMode}
         onThemeModeChange={onThemeModeChange}
+        role={role}
+        email={email}
+        onLogout={handleLogout}
       />
 
       <Sidebar
@@ -227,6 +238,9 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
         onOpenReports={() => openWorkspace("applications")}
         onOpenLoans={scrollToLoans}
         onOpenApplications={() => openWorkspace("applications")}
+        onOpenAdmin={() => navigate("/admin")}
+        onLogout={handleLogout}
+        role={role}
       />
 
       <Box

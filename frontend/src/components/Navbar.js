@@ -14,8 +14,9 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
+import LogoutIcon from "@mui/icons-material/Logout";
 
-const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange }) => {
+const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, email, onLogout }) => {
   const today = new Date().toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -93,6 +94,7 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange }) => {
         </FormControl>
 
         <Avatar
+          title={email || role || "User"}
           sx={{
             width: 34,
             height: 34,
@@ -101,8 +103,12 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange }) => {
             fontWeight: 900
           }}
         >
-          U
+          {(email || role || "U").slice(0, 1).toUpperCase()}
         </Avatar>
+
+        <IconButton onClick={onLogout} sx={{ color: "#ffffff" }} title="Logout">
+          <LogoutIcon />
+        </IconButton>
       </Toolbar>
     </AppBar>
   );

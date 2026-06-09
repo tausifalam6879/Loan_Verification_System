@@ -46,6 +46,11 @@ public class LoanController {
         return loanService.getApplications();
     }
 
+    @GetMapping("/my-applications")
+    public List<LoanApplication> getMyApplications() {
+        return loanService.getMyApplications();
+    }
+
     @PostMapping("/applications/{id}/payment")
     public LoanApplication markProcessingFeePaid(@PathVariable Long id, @Valid @RequestBody PaymentRequest paymentRequest) {
         return loanService.markProcessingFeePaid(id, paymentRequest);

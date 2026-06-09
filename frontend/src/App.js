@@ -2,6 +2,9 @@ import React, { useMemo, useState } from "react";
 import { HashRouter as Router, Route, Routes } from "react-router-dom";
 import { ThemeProvider, createTheme, useMediaQuery } from "@mui/material";
 import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./pages/AdminDashboard";
+import AuthPage from "./pages/AuthPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 import "./App.css";
 
 function App() {
@@ -41,6 +44,24 @@ function App() {
     <ThemeProvider theme={theme}>
       <Router>
         <Routes>
+          <Route path="/login" element={<AuthPage mode="login" />} />
+          <Route path="/register" element={<AuthPage mode="register" />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/applications"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
           {[
             "/",
             "/expense",
@@ -54,11 +75,13 @@ function App() {
               key={path}
               path={path}
               element={
-                <Dashboard
-                  themeMode={themeMode}
-                  activeMode={activeMode}
-                  onThemeModeChange={handleThemeModeChange}
-                />
+                <ProtectedRoute>
+                  <Dashboard
+                    themeMode={themeMode}
+                    activeMode={activeMode}
+                    onThemeModeChange={handleThemeModeChange}
+                  />
+                </ProtectedRoute>
               }
             />
           ))}

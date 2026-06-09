@@ -19,6 +19,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import InsertChartIcon from "@mui/icons-material/InsertChart";
 import LocalAtmIcon from "@mui/icons-material/LocalAtm";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 const drawerWidth = 272;
 
@@ -33,7 +35,10 @@ const Sidebar = ({
   onOpenCategories,
   onOpenReports,
   onOpenLoans,
-  onOpenApplications
+  onOpenApplications,
+  onOpenAdmin,
+  onLogout,
+  role
 }) => {
   const menuItems = [
     {
@@ -72,10 +77,24 @@ const Sidebar = ({
       icon: <AssignmentTurnedInIcon />,
       action: onOpenApplications
     },
+    ...(role === "ADMIN"
+      ? [
+          {
+            label: "Admin Dashboard",
+            icon: <AdminPanelSettingsIcon />,
+            action: onOpenAdmin
+          }
+        ]
+      : []),
     {
       label: "Export CSV",
       icon: <DownloadIcon />,
       action: handleExportCSV
+    },
+    {
+      label: "Logout",
+      icon: <LogoutIcon />,
+      action: onLogout
     }
   ];
 

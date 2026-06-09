@@ -2,19 +2,17 @@ import { render, screen } from '@testing-library/react';
 import App from './App';
 
 beforeEach(() => {
-  jest.spyOn(global, 'fetch').mockResolvedValue({
-    ok: true,
-    json: async () => []
-  });
+  localStorage.clear();
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
+  localStorage.clear();
 });
 
-test('renders dashboard navigation', async () => {
+test('redirects unauthenticated users to login', () => {
   render(<App />);
-  expect(screen.getByText(/FinTech Dashboard/i)).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: /Dashboard/i })).toBeInTheDocument();
-  expect(await screen.findByText(/No records found/i)).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /Login/i })).toBeInTheDocument();
+  expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
 });
