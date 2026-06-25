@@ -11,6 +11,8 @@ import com.loan.VerificationSystem.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
@@ -49,6 +51,11 @@ public class UserController {
     @PostMapping("/verify-otp")
     public OtpResponseDTO verifyOtp(@Valid @RequestBody OtpVerifyRequestDTO request) {
         return userService.verifyOtp(request);
+    }
+
+    @GetMapping("/auth-config")
+    public Map<String, Boolean> getAuthConfig() {
+        return Map.of("otpEnabled", userService.isOtpEnabled());
     }
 
     @GetMapping("/me")

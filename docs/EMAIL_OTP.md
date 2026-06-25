@@ -51,6 +51,8 @@ SMTP_PASSWORD=your-16-character-gmail-app-password
 
 ## Frontend Flow
 
+When OTP is disabled, the frontend hides the OTP input and users can register/login with email and password only.
+
 Register:
 
 1. Open `http://localhost:3000/#/register`.

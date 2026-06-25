@@ -109,6 +109,10 @@ public class UserService {
         return new OtpResponseDTO(message, otpService.isOtpEnabled(), token);
     }
 
+    public boolean isOtpEnabled() {
+        return otpService.isOtpEnabled();
+    }
+
     public UserResponseDTO getCurrentUser() {
         String email = org.springframework.security.core.context.SecurityContextHolder
                 .getContext()

@@ -48,6 +48,7 @@ public class SecurityConfig {
                                 "/api/users/login",
                                 "/api/users/request-otp",
                                 "/api/users/verify-otp",
+                                "/api/users/auth-config",
                                 "/api/users/test",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"

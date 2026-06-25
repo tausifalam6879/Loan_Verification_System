@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Alert,
@@ -16,7 +16,7 @@ import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import LoginIcon from "@mui/icons-material/Login";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
-import { login, register, requestOtp, verifyOtp } from "../services/authService";
+import { getAuthConfig, login, register, requestOtp, verifyOtp } from "../services/authService";
 
 const AuthPage = ({ mode = "login" }) => {
   const navigate = useNavigate();
@@ -35,8 +35,32 @@ const AuthPage = ({ mode = "login" }) => {
   const [warning, setWarning] = useState("");
   const [otpRequired, setOtpRequired] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
+  const [otpEnabled, setOtpEnabled] = useState(false);
 
   const otpPurpose = isRegister ? "REGISTER" : "LOGIN";
+
+  useEffect(() => {
+    let isMounted = true;
+
+    getAuthConfig()
+      .then((config) => {
+        if (isMounted) {
+          const enabled = Boolean(config?.otpEnabled);
+          setOtpEnabled(enabled);
+          setOtpRequired(enabled);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setOtpEnabled(false);
+          setOtpRequired(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const updateForm = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -71,13 +95,18 @@ const AuthPage = ({ mode = "login" }) => {
     setSuccess("");
     setWarning("");
 
+    if (!otpEnabled) {
+      return;
+    }
+
     try {
       const response = await requestOtp({ email: form.email, purpose: otpPurpose });
       setOtpRequired(response.otpRequired);
+      setOtpEnabled(response.otpRequired);
       if (response.otpRequired) {
         setSuccess(response.message);
       } else {
-        setWarning(response.message);
+        setWarning("");
       }
     } catch (error) {
       setError(error.response?.data?.message || "Could not request OTP.");
@@ -92,14 +121,19 @@ const AuthPage = ({ mode = "login" }) => {
     setSuccess("");
     setWarning("");
 
+    if (!otpEnabled) {
+      return;
+    }
+
     try {
       const response = await verifyOtp({ email: form.email, purpose: otpPurpose, otp: form.otp });
       updateForm("otpToken", response.otpToken || "");
       setOtpRequired(response.otpRequired);
+      setOtpEnabled(response.otpRequired);
       if (response.otpRequired) {
         setSuccess(response.message);
       } else {
-        setWarning(response.message);
+        setWarning("");
       }
     } catch (error) {
       setError(error.response?.data?.message || "OTP verification failed.");
@@ -189,36 +223,38 @@ const AuthPage = ({ mode = "login" }) => {
                 fullWidth
               />
 
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                <TextField
-                  label="Email OTP"
-                  value={form.otp}
-                  onChange={(event) => updateForm("otp", event.target.value)}
-                  fullWidth
-                  disabled={!otpRequired}
-                />
-                <Button
-                  type="button"
-                  variant="outlined"
-                  onClick={handleRequestOtp}
-                  disabled={otpLoading || !form.email}
-                  sx={{ minWidth: 120, textTransform: "none", fontWeight: 900 }}
-                >
-                  Send OTP
-                </Button>
-                <Button
-                  type="button"
-                  variant="outlined"
-                  onClick={handleVerifyOtp}
-                  disabled={otpLoading || !otpRequired || !form.otp}
-                  startIcon={<VerifiedUserIcon />}
-                  sx={{ minWidth: 120, textTransform: "none", fontWeight: 900 }}
-                >
-                  Verify
-                </Button>
-              </Stack>
+              {otpEnabled && (
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                  <TextField
+                    label="Email OTP"
+                    value={form.otp}
+                    onChange={(event) => updateForm("otp", event.target.value)}
+                    fullWidth
+                    disabled={!otpRequired}
+                  />
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    onClick={handleRequestOtp}
+                    disabled={otpLoading || !form.email}
+                    sx={{ minWidth: 120, textTransform: "none", fontWeight: 900 }}
+                  >
+                    Send OTP
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    onClick={handleVerifyOtp}
+                    disabled={otpLoading || !otpRequired || !form.otp}
+                    startIcon={<VerifiedUserIcon />}
+                    sx={{ minWidth: 120, textTransform: "none", fontWeight: 900 }}
+                  >
+                    Verify
+                  </Button>
+                </Stack>
+              )}
 
-              {form.otpToken && (
+              {otpEnabled && form.otpToken && (
                 <Chip
                   icon={<VerifiedUserIcon />}
                   label="OTP verified"

@@ -26,6 +26,11 @@ export const verifyOtp = async (payload) => {
   return response.data;
 };
 
+export const getAuthConfig = async () => {
+  const response = await api.get("/users/auth-config");
+  return response.data;
+};
+
 export const logout = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("role");

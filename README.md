@@ -21,6 +21,7 @@ Public registration is locked to the `USER` role. Admin access must be assigned 
 - Admin dashboard with application table, details modal, status timeline, approval/rejection actions, charts, fraud-risk monitoring, and audit logs.
 - Recharts analytics for loan status, risk distribution, and monthly expenses.
 - Optional OTP verification endpoints for account flows.
+- OTP controls are hidden in local mode until backend SMTP/OTP settings are enabled.
 - Optional email notifications for account and loan-status events.
 - Optional Cloudinary document upload support with base64 fallback for local demos.
 - Separate FastAPI fraud detection service for AI-style loan-risk scoring.

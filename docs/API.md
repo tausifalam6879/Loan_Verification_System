@@ -77,6 +77,22 @@ Content-Type: application/json
 
 Verifies an OTP for the given email.
 
+### Auth Config
+
+```http
+GET /api/users/auth-config
+```
+
+Returns whether email OTP is enabled for the current backend environment.
+
+Example response:
+
+```json
+{
+  "otpEnabled": false
+}
+```
+
 ### Current User Profile
 
 ```http
