@@ -21,4 +21,6 @@ public interface LoanApplicationRepository extends JpaRepository<LoanApplication
     List<LoanApplication> findByUser(User user);
 
     long countByStatus(String status);
+
+    long countByFraudLevelIgnoreCase(String fraudLevel);
 }

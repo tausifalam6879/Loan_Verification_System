@@ -16,6 +16,16 @@ export const register = async (payload) => {
   return response.data;
 };
 
+export const requestOtp = async (payload) => {
+  const response = await api.post("/users/request-otp", payload);
+  return response.data;
+};
+
+export const verifyOtp = async (payload) => {
+  const response = await api.post("/users/verify-otp", payload);
+  return response.data;
+};
+
 export const logout = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("role");
@@ -27,3 +37,8 @@ export const getCurrentAuth = () => ({
   role: localStorage.getItem("role"),
   email: localStorage.getItem("email")
 });
+
+export const getProfile = async () => {
+  const response = await api.get("/users/me");
+  return response.data;
+};

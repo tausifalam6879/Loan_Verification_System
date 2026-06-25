@@ -19,3 +19,8 @@ export const rejectApplication = async (id) => {
   const response = await api.put(`/admin/applications/${id}/reject`);
   return response.data;
 };
+
+export const getAuditLogs = async () => {
+  const response = await api.get("/admin/audit-logs");
+  return response.data;
+};

@@ -1,5 +1,6 @@
 package com.loan.VerificationSystem.controller;
 
+import com.loan.VerificationSystem.entity.AuditLog;
 import com.loan.VerificationSystem.entity.LoanApplication;
 import com.loan.VerificationSystem.entity.User;
 import com.loan.VerificationSystem.service.AdminService;
@@ -46,5 +47,10 @@ public class AdminController {
     @GetMapping("/dashboard")
     public Map<String, Object> dashboard() {
         return adminService.getDashboardStats();
+    }
+
+    @GetMapping("/audit-logs")
+    public List<AuditLog> getAuditLogs() {
+        return adminService.getAuditLogs();
     }
 }

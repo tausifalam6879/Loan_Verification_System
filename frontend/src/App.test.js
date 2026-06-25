@@ -13,6 +13,6 @@ afterEach(() => {
 test('redirects unauthenticated users to login', () => {
   render(<App />);
   expect(screen.getByRole('heading', { name: /Login/i })).toBeInTheDocument();
-  expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
+  expect(screen.getAllByLabelText(/Email/i)[0]).toBeInTheDocument();
   expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
 });

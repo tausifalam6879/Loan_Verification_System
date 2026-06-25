@@ -60,6 +60,10 @@ public class LoanApplication {
 
     private String passportPhotoUrl;
 
+    private String aadhaarDocumentUrl;
+
+    private String panDocumentUrl;
+
     private String nomineeName;
 
     private String nomineeRelation;
@@ -83,8 +87,14 @@ public class LoanApplication {
     @Column(length = 1200)
     private String address;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "LONGTEXT")
     private String passportPhotoDataUrl;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String aadhaarDocumentDataUrl;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String panDocumentDataUrl;
 
     private Boolean identityMismatch = false;
 

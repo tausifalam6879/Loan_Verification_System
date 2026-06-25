@@ -9,4 +9,6 @@ public class UserResponseDTO {
     private String fullName;
     private String email;
     private String role;
+    private Long totalApplications;
+    private Integer creditScore;
 }

@@ -11,32 +11,29 @@ import {
   Toolbar,
   Typography
 } from "@mui/material";
-import AnalyticsIcon from "@mui/icons-material/Analytics";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
-import CategoryIcon from "@mui/icons-material/Category";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import DownloadIcon from "@mui/icons-material/Download";
-import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
-import InsertChartIcon from "@mui/icons-material/InsertChart";
 import LocalAtmIcon from "@mui/icons-material/LocalAtm";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import LogoutIcon from "@mui/icons-material/Logout";
+import PersonIcon from "@mui/icons-material/Person";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import SavingsIcon from "@mui/icons-material/Savings";
 
 const drawerWidth = 272;
 
 const Sidebar = ({
   drawerOpen,
   setDrawerOpen,
-  showRecents,
-  setShowRecents,
   handleExportCSV,
   onOpenDashboard,
-  onOpenAnalytics,
-  onOpenCategories,
-  onOpenReports,
+  onOpenExpense,
   onOpenLoans,
   onOpenApplications,
+  onOpenInvestments,
   onOpenAdmin,
+  onOpenProfile,
   onLogout,
   role
 }) => {
@@ -48,24 +45,9 @@ const Sidebar = ({
       action: onOpenDashboard
     },
     {
-      label: showRecents ? "Hide Transactions" : "View Transactions",
-      icon: <FormatListBulletedIcon />,
-      action: () => setShowRecents(!showRecents)
-    },
-    {
-      label: "Analytics",
-      icon: <AnalyticsIcon />,
-      action: onOpenAnalytics
-    },
-    {
-      label: "Categories",
-      icon: <CategoryIcon />,
-      action: onOpenCategories
-    },
-    {
-      label: "Reports",
-      icon: <InsertChartIcon />,
-      action: onOpenReports
+      label: "Expense Page",
+      icon: <ReceiptLongIcon />,
+      action: onOpenExpense
     },
     {
       label: "Loan Marketplace",
@@ -76,6 +58,16 @@ const Sidebar = ({
       label: "Loan Applications",
       icon: <AssignmentTurnedInIcon />,
       action: onOpenApplications
+    },
+    {
+      label: "Profile",
+      icon: <PersonIcon />,
+      action: onOpenProfile
+    },
+    {
+      label: "Investments",
+      icon: <SavingsIcon />,
+      action: onOpenInvestments
     },
     ...(role === "ADMIN"
       ? [

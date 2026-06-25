@@ -5,19 +5,15 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class UserRequestDTO {
-
-    @NotBlank(message = "Full name is required")
-    private String fullName;
+public class OtpVerifyRequestDTO {
 
     @Email(message = "Invalid email format")
     @NotBlank(message = "Email is required")
     private String email;
 
-    @NotBlank(message = "Password is required")
-    private String password;
+    @NotBlank(message = "OTP purpose is required")
+    private String purpose;
 
-    private String role;
-
-    private String otpToken;
+    @NotBlank(message = "OTP is required")
+    private String otp;
 }

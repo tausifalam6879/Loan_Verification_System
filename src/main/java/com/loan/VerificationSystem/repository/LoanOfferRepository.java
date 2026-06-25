@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface LoanOfferRepository extends JpaRepository<LoanOffer, Long> {
+    boolean existsByBank_NameAndLoanType_Name(String bankName, String loanTypeName);
 }

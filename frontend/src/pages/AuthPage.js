@@ -6,11 +6,8 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   CssBaseline,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
   Stack,
   TextField,
   Typography
@@ -18,7 +15,8 @@ import {
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import LoginIcon from "@mui/icons-material/Login";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import { login, register } from "../services/authService";
+import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
+import { login, register, requestOtp, verifyOtp } from "../services/authService";
 
 const AuthPage = ({ mode = "login" }) => {
   const navigate = useNavigate();
@@ -27,11 +25,17 @@ const AuthPage = ({ mode = "login" }) => {
     fullName: "",
     email: "",
     password: "",
-    role: "USER"
+    role: "USER",
+    otp: "",
+    otpToken: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  const otpPurpose = isRegister ? "REGISTER" : "LOGIN";
 
   const updateForm = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -45,17 +49,50 @@ const AuthPage = ({ mode = "login" }) => {
 
     try {
       if (isRegister) {
-        await register(form);
+        await register({ ...form, role: "USER", otpToken: form.otpToken });
         setSuccess("Account created. Login with the same email and password.");
-        setForm((current) => ({ ...current, password: "" }));
+        setForm((current) => ({ ...current, password: "", otp: "", otpToken: "" }));
       } else {
-        await login({ email: form.email, password: form.password });
+        await login({ email: form.email, password: form.password, otpToken: form.otpToken });
         navigate(localStorage.getItem("role") === "ADMIN" ? "/admin" : "/", { replace: true });
       }
     } catch (error) {
       setError(error.response?.data?.message || "Authentication failed. Check email, password and backend.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRequestOtp = async () => {
+    setOtpLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await requestOtp({ email: form.email, purpose: otpPurpose });
+      setOtpRequired(response.otpRequired);
+      setSuccess(response.message);
+    } catch (error) {
+      setError(error.response?.data?.message || "Could not request OTP.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setOtpLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await verifyOtp({ email: form.email, purpose: otpPurpose, otp: form.otp });
+      updateForm("otpToken", response.otpToken || "");
+      setOtpRequired(response.otpRequired);
+      setSuccess(response.message);
+    } catch (error) {
+      setError(error.response?.data?.message || "OTP verification failed.");
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -139,18 +176,42 @@ const AuthPage = ({ mode = "login" }) => {
                 fullWidth
               />
 
-              {isRegister && (
-                <FormControl fullWidth>
-                  <InputLabel>Role</InputLabel>
-                  <Select
-                    label="Role"
-                    value={form.role}
-                    onChange={(event) => updateForm("role", event.target.value)}
-                  >
-                    <MenuItem value="USER">User</MenuItem>
-                    <MenuItem value="ADMIN">Admin</MenuItem>
-                  </Select>
-                </FormControl>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                <TextField
+                  label="Email OTP"
+                  value={form.otp}
+                  onChange={(event) => updateForm("otp", event.target.value)}
+                  fullWidth
+                  disabled={!otpRequired}
+                />
+                <Button
+                  type="button"
+                  variant="outlined"
+                  onClick={handleRequestOtp}
+                  disabled={otpLoading || !form.email}
+                  sx={{ minWidth: 120, textTransform: "none", fontWeight: 900 }}
+                >
+                  Send OTP
+                </Button>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  onClick={handleVerifyOtp}
+                  disabled={otpLoading || !otpRequired || !form.otp}
+                  startIcon={<VerifiedUserIcon />}
+                  sx={{ minWidth: 120, textTransform: "none", fontWeight: 900 }}
+                >
+                  Verify
+                </Button>
+              </Stack>
+
+              {form.otpToken && (
+                <Chip
+                  icon={<VerifiedUserIcon />}
+                  label="OTP verified"
+                  color="success"
+                  sx={{ alignSelf: "flex-start", fontWeight: 900 }}
+                />
               )}
 
               <Button

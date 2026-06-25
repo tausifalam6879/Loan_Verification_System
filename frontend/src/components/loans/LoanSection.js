@@ -46,6 +46,7 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { motion } from "framer-motion";
 import { paymentGatewayOptions } from "../../data/financialKnowledge";
 import { applyForLoan, getLoanApplications, getLoanOffer, getLoanOffers, payProcessingFee } from "../../services/loanService";
+import { uploadLoanDocument } from "../../utils/cloudinaryUpload";
 import { calculateCreditBand, calculateEmi, runFraudRiskCheck } from "../../utils/loanCalculations";
 
 const iconMap = {
@@ -118,6 +119,11 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
   const [panNumber, setPanNumber] = useState("");
   const [passportPhotoUrl, setPassportPhotoUrl] = useState("");
   const [passportPhotoDataUrl, setPassportPhotoDataUrl] = useState("");
+  const [aadhaarDocumentUrl, setAadhaarDocumentUrl] = useState("");
+  const [aadhaarDocumentDataUrl, setAadhaarDocumentDataUrl] = useState("");
+  const [panDocumentUrl, setPanDocumentUrl] = useState("");
+  const [panDocumentDataUrl, setPanDocumentDataUrl] = useState("");
+  const [uploadingDocument, setUploadingDocument] = useState("");
   const [nomineeName, setNomineeName] = useState("");
   const [nomineeRelation, setNomineeRelation] = useState("");
   const [nomineePhone, setNomineePhone] = useState("");
@@ -209,6 +215,13 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     : AccountBalanceIcon;
   const accentColor = selectedLoanType?.color || "#2563eb";
   const selectedPayment = paymentGatewayOptions.find((method) => method.id === paymentMethod) || paymentGatewayOptions[0];
+  const comparisonOffers = ["SBI", "HDFC", "ICICI", "Axis"]
+    .map((bankName) =>
+      offers.find((offer) =>
+        (offer.bank?.shortName || offer.bank?.name || "").toLowerCase().includes(bankName.toLowerCase())
+      )
+    )
+    .filter(Boolean);
   const showLoanMarketplace = view === "loans" || view === "all";
   const showLoanDetails = view === "loans" || view === "all";
   const showPayments = view === "payments" || view === "all";
@@ -381,6 +394,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         panNumber,
         passportPhotoUrl,
         passportPhotoDataUrl,
+        aadhaarDocumentUrl,
+        aadhaarDocumentDataUrl,
+        panDocumentUrl,
+        panDocumentDataUrl,
         nomineeName,
         nomineeRelation,
         nomineePhone,
@@ -407,17 +424,34 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     }
   };
 
-  const handlePhotoChange = (event) => {
+  const handleDocumentChange = async (event, type) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPassportPhotoDataUrl(String(reader.result || ""));
-      setPassportPhotoUrl("");
-    };
-    reader.readAsDataURL(file);
+
+    setUploadingDocument(type);
+    setApiError("");
+
+    try {
+      const uploaded = await uploadLoanDocument(file);
+      if (type === "photo") {
+        setPassportPhotoUrl(uploaded.url);
+        setPassportPhotoDataUrl(uploaded.dataUrl);
+      }
+      if (type === "aadhaar") {
+        setAadhaarDocumentUrl(uploaded.url);
+        setAadhaarDocumentDataUrl(uploaded.dataUrl);
+      }
+      if (type === "pan") {
+        setPanDocumentUrl(uploaded.url);
+        setPanDocumentDataUrl(uploaded.dataUrl);
+      }
+    } catch (error) {
+      setApiError("Document upload failed. Check Cloudinary settings or try again.");
+    } finally {
+      setUploadingDocument("");
+    }
   };
 
   const handlePayProcessingFee = async () => {
@@ -683,6 +717,60 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
       </Paper>
       )}
 
+      {showLoanMarketplace && comparisonOffers.length > 0 && (
+        <Card sx={{ ...panelStyle, mt: 2.5 }}>
+          <CardContent sx={{ p: 2.5 }}>
+            <Typography variant="h6" sx={{ fontWeight: 900 }}>
+              Loan Comparison
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#475569", mb: 2 }}>
+              Compare available bank offers side-by-side before applying.
+            </Typography>
+            <Grid container spacing={1.5}>
+              {comparisonOffers.map((offer) => (
+                <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={`compare-${offer.id}`}>
+                  <Box
+                    sx={{
+                      height: "100%",
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: "#ffffff",
+                      border: "1px solid rgba(15, 23, 42, 0.1)"
+                    }}
+                  >
+                    <Typography sx={{ fontWeight: 900, color: offer.bank.themeColor || "#2563eb" }}>
+                      {offer.bank.name}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "#64748b", mb: 1.5 }}>
+                      {offer.loanType.name}
+                    </Typography>
+                    <ComparisonRow label="Interest" value={`${offer.interestRate}%`} />
+                    <ComparisonRow
+                      label="Maximum"
+                      value={`Rs. ${Number(offer.maxAmount || 0).toLocaleString("en-IN")}`}
+                    />
+                    <ComparisonRow
+                      label="Tenure"
+                      value={`${offer.minTenureMonths}-${offer.maxTenureMonths} months`}
+                    />
+                    <ComparisonRow label="Credit score" value={`${offer.minCreditScore}+`} />
+                    <ComparisonRow label="Fee" value={offer.processingFee || "-"} />
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      onClick={() => handleSelectOffer(offer)}
+                      sx={{ mt: 1.5, textTransform: "none", fontWeight: 900 }}
+                    >
+                      Select Offer
+                    </Button>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
+
       <Dialog
         open={applicationOpen}
         onClose={() => setApplicationOpen(false)}
@@ -799,6 +887,40 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                         <TextField fullWidth required label="PAN number" value={panNumber} onChange={(event) => setPanNumber(event.target.value.toUpperCase())} />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
+                        <Button
+                          component="label"
+                          variant="outlined"
+                          startIcon={uploadingDocument === "aadhaar" ? <CircularProgress size={18} /> : <UploadFileIcon />}
+                          fullWidth
+                          sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
+                        >
+                          Upload Aadhaar
+                          <input hidden accept="image/*,.pdf" type="file" onChange={(event) => handleDocumentChange(event, "aadhaar")} />
+                        </Button>
+                        {(aadhaarDocumentUrl || aadhaarDocumentDataUrl) && (
+                          <Typography variant="caption" sx={{ color: "#0f766e", fontWeight: 900 }}>
+                            Aadhaar document attached
+                          </Typography>
+                        )}
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <Button
+                          component="label"
+                          variant="outlined"
+                          startIcon={uploadingDocument === "pan" ? <CircularProgress size={18} /> : <UploadFileIcon />}
+                          fullWidth
+                          sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
+                        >
+                          Upload PAN
+                          <input hidden accept="image/*,.pdf" type="file" onChange={(event) => handleDocumentChange(event, "pan")} />
+                        </Button>
+                        {(panDocumentUrl || panDocumentDataUrl) && (
+                          <Typography variant="caption" sx={{ color: "#0f766e", fontWeight: 900 }}>
+                            PAN document attached
+                          </Typography>
+                        )}
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <Stack spacing={1}>
                           <Button
                             component="label"
@@ -807,7 +929,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                             sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
                           >
                             Upload passport photo
-                            <input hidden accept="image/*" type="file" onChange={handlePhotoChange} />
+                            <input hidden accept="image/*" type="file" onChange={(event) => handleDocumentChange(event, "photo")} />
                           </Button>
                           <TextField fullWidth label="Photo URL optional" value={passportPhotoUrl} onChange={(event) => {
                             setPassportPhotoUrl(event.target.value);
@@ -1249,6 +1371,8 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
               <SavedFact label="Amount" value={`Rs. ${Number(selectedApplication.requestedAmount || 0).toLocaleString("en-IN")}`} />
               <SavedFact label="Aadhaar" value={selectedApplication.aadhaarNumber} />
               <SavedFact label="PAN" value={selectedApplication.panNumber} />
+              <SavedFact label="Aadhaar Document" value={selectedApplication.aadhaarDocumentUrl || selectedApplication.aadhaarDocumentDataUrl ? "Uploaded" : "-"} />
+              <SavedFact label="PAN Document" value={selectedApplication.panDocumentUrl || selectedApplication.panDocumentDataUrl ? "Uploaded" : "-"} />
               <SavedFact label="Nominee" value={`${selectedApplication.nomineeName || "-"} ${selectedApplication.nomineeRelation ? `(${selectedApplication.nomineeRelation})` : ""}`} />
               <SavedFact label="Nominee Phone" value={selectedApplication.nomineePhone} />
               <SavedFact label="Bank Account" value={selectedApplication.bankAccountNumber} />
@@ -1591,6 +1715,17 @@ const ScoreRow = ({ icon, title, subtitle, color, value }) => (
       </Box>
     </Box>
     <LinearProgress variant="determinate" value={Math.max(0, Math.min(value, 100))} sx={{ height: 8, borderRadius: 8, bgcolor: "#e2e8f0", "& .MuiLinearProgress-bar": { bgcolor: color } }} />
+  </Box>
+);
+
+const ComparisonRow = ({ label, value }) => (
+  <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, py: 0.6 }}>
+    <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 700 }}>
+      {label}
+    </Typography>
+    <Typography variant="caption" sx={{ color: "#0f172a", fontWeight: 900, textAlign: "right" }}>
+      {value}
+    </Typography>
   </Box>
 );
 

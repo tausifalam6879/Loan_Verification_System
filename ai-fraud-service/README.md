@@ -1,8 +1,8 @@
 # AI Fraud Detection Service
 
-This is a standalone Python FastAPI service for the loan aggregator module.
+Standalone Python FastAPI service for AI-style loan application fraud scoring.
 
-It is intentionally separate from the Spring Boot backend so the existing expense tracker and MySQL setup remain unchanged.
+The service is intentionally separate from the Spring Boot backend. It can be run independently during demos or connected from the backend in a later production integration.
 
 ## Run
 
@@ -11,10 +11,32 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-## Endpoint
+## Health Check
+
+```http
+GET /health
+```
+
+## Fraud Score Endpoint
 
 ```http
 POST /fraud-score
 ```
 
-The React loan UI currently mirrors this risk logic locally for demo use. In the next backend step, Spring Boot can call this Python service before saving a real loan application.
+Example request:
+
+```json
+{
+  "applicant_name": "Demo User",
+  "credit_score": 650,
+  "monthly_income": 50000,
+  "requested_amount": 600000,
+  "failed_attempts": 0,
+  "identity_mismatch": false,
+  "device_risk": "low",
+  "ip_country_matches_kyc": true,
+  "new_device": false
+}
+```
+
+The response contains `risk_score`, `risk_level`, `decision`, and human-readable `reasons`.

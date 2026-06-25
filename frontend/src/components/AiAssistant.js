@@ -23,7 +23,10 @@ const quickQuestions = [
   "Payment kaise karu?",
   "Server me saved application kaha milegi?",
   "Best FD kaise choose karu?",
-  "Mutual fund SIP kya hota hai?"
+  "Mutual fund SIP kya hota hai?",
+  "Mere liye kaunsa loan better hai?",
+  "Safe EMI limit kya honi chahiye?",
+  "Expense analysis batao"
 ];
 
 const AiAssistant = ({ balance, totalIncome, totalExpense }) => {
@@ -58,6 +61,26 @@ const AiAssistant = ({ balance, totalIncome, totalExpense }) => {
 
     if (trainedTopic) {
       return trainedTopic.answer;
+    }
+
+    if (text.includes("recommend") || text.includes("kaunsa loan") || text.includes("which loan") || text.includes("better loan")) {
+      const monthlySurplus = Number(totalIncome || 0) - Number(totalExpense || 0);
+      if (monthlySurplus <= 0) {
+        return "Loan recommendation: pehle expenses control karke positive monthly surplus lao. Abhi surplus low hai, isliye new EMI risk badha sakti hai.";
+      }
+      const safeEmi = Math.round(monthlySurplus * 0.35);
+      return `Loan recommendation: agar income stable hai to personal/vehicle loan jaisa shorter tenure option manageable ho sakta hai. Safe EMI approx Rs. ${safeEmi.toLocaleString("en-IN")} tak rakho, aur credit score 700+ ho to HDFC/SBI offers compare karo.`;
+    }
+
+    if (text.includes("safe emi") || text.includes("emi limit") || text.includes("afford")) {
+      const safeEmi = Math.max(0, Math.round((Number(totalIncome || 0) - Number(totalExpense || 0)) * 0.35));
+      return `Safe EMI thumb rule: monthly free cashflow ka 30-35% se upar mat jao. Current dashboard ke hisaab se safe EMI approx Rs. ${safeEmi.toLocaleString("en-IN")} hai.`;
+    }
+
+    if (text.includes("expense analysis") || text.includes("spending analysis") || text.includes("kharcha analysis")) {
+      const expenseRatio = Number(totalIncome || 0) > 0 ? Math.round((Number(totalExpense || 0) / Number(totalIncome || 0)) * 100) : 0;
+      const verdict = expenseRatio > 75 ? "high spending zone" : expenseRatio > 50 ? "moderate spending zone" : "healthy spending zone";
+      return `Expense analysis: income ka ${expenseRatio}% spend ho raha hai, yani ${verdict}. Loan apply karne se pehle emergency buffer aur EMI room check karna smart rahega.`;
     }
 
     if (text.includes("approve") || text.includes("approval")) {

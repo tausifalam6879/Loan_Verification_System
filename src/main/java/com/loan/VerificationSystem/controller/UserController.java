@@ -2,6 +2,9 @@ package com.loan.VerificationSystem.controller;
 
 import com.loan.VerificationSystem.dto.LoginRequestDTO;
 import com.loan.VerificationSystem.dto.LoginResponseDTO;
+import com.loan.VerificationSystem.dto.OtpRequestDTO;
+import com.loan.VerificationSystem.dto.OtpResponseDTO;
+import com.loan.VerificationSystem.dto.OtpVerifyRequestDTO;
 import com.loan.VerificationSystem.dto.UserRequestDTO;
 import com.loan.VerificationSystem.dto.UserResponseDTO;
 import com.loan.VerificationSystem.service.UserService;
@@ -36,5 +39,20 @@ public class UserController {
             @Valid @RequestBody LoginRequestDTO request) {
 
         return userService.loginUser(request);
+    }
+
+    @PostMapping("/request-otp")
+    public OtpResponseDTO requestOtp(@Valid @RequestBody OtpRequestDTO request) {
+        return userService.requestOtp(request);
+    }
+
+    @PostMapping("/verify-otp")
+    public OtpResponseDTO verifyOtp(@Valid @RequestBody OtpVerifyRequestDTO request) {
+        return userService.verifyOtp(request);
+    }
+
+    @GetMapping("/me")
+    public UserResponseDTO getCurrentUser() {
+        return userService.getCurrentUser();
     }
 }

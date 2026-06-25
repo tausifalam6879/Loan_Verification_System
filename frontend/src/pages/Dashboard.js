@@ -16,8 +16,7 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
-import PaymentsIcon from "@mui/icons-material/Payments";
-import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import PersonIcon from "@mui/icons-material/Person";
 import SavingsIcon from "@mui/icons-material/Savings";
 
 import DashboardHeader from "../components/dashboard/DashboardHeader";
@@ -25,6 +24,7 @@ import ExpenseForm from "../components/ExpenseForm";
 import ExpensePieChart from "../components/ExpensePieChart";
 import InvestmentSection from "../components/InvestmentSection";
 import LoanSection from "../components/loans/LoanSection";
+import MonthlyExpenseChart from "../components/MonthlyExpenseChart";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import TopCards from "../components/TopCards";
@@ -72,39 +72,30 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
   const workspaceByPath = {
     "/": "overview",
     "/expense": "expense",
-    "/transactions": "transactions",
+    "/transactions": "expense",
     "/loans": "loans",
-    "/payments": "payments",
+    "/payments": "loans",
     "/applications": "applications",
     "/investments": "investments"
   };
   const pathByWorkspace = {
     overview: "/",
     expense: "/expense",
-    transactions: "/transactions",
     loans: "/loans",
-    payments: "/payments",
     applications: "/applications",
-    investments: "/investments"
+    investments: "/investments",
+    profile: "/profile"
   };
   const activeWorkspace = workspaceByPath[location.pathname] || "overview";
   const isOverview = activeWorkspace === "overview";
   const pageMeta = {
     expense: {
-      title: "Expense Entry and Analytics",
-      subtitle: "Add expenses and review category analytics from backend records."
-    },
-    transactions: {
-      title: "Recent Transactions",
-      subtitle: "Search, filter, sort and delete transaction records."
+      title: "Expense Page",
+      subtitle: "Add expenses, review charts, and manage transaction records together."
     },
     loans: {
       title: "Loan Marketplace",
       subtitle: "Browse backend loan offers and open the application flow."
-    },
-    payments: {
-      title: "Payment Gateway",
-      subtitle: "Use UPI, card or net banking checkout and record the ledger entry."
     },
     applications: {
       title: "Saved Loan Applications",
@@ -226,19 +217,17 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
       <Sidebar
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-        showRecents={showRecents}
-        setShowRecents={setShowRecents}
         handleExportCSV={handleExportCSV}
         onOpenDashboard={() => openWorkspace("overview")}
-        onOpenAnalytics={() => openWorkspace("expense")}
-        onOpenCategories={() => {
-          setShowRecents(true);
-          openWorkspace("transactions");
-        }}
-        onOpenReports={() => openWorkspace("applications")}
+        onOpenExpense={() => openWorkspace("expense")}
         onOpenLoans={scrollToLoans}
         onOpenApplications={() => openWorkspace("applications")}
+        onOpenInvestments={() => openWorkspace("investments")}
         onOpenAdmin={() => navigate("/admin")}
+        onOpenProfile={() => {
+          navigate("/profile");
+          setDrawerOpen(false);
+        }}
         onLogout={handleLogout}
         role={role}
       />
@@ -296,43 +285,46 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
               filteredCount={filteredAndSortedExpenses.length}
               onOpen={openWorkspace}
             />
+            <MonthlyExpenseChart expenses={expenses} />
           </>
         )}
 
         <Box id="workspace-panel" sx={{ mt: 2.5 }}>
           {activeWorkspace === "expense" && (
-            <Grid container spacing={2.5}>
-              <Grid size={{ xs: 12, md: 5 }}>
-                <ExpenseForm onAddExpense={handleAddExpense} loading={loading} />
+            <>
+              <Grid container spacing={2.5}>
+                <Grid size={{ xs: 12, md: 5 }}>
+                  <ExpenseForm onAddExpense={handleAddExpense} loading={loading} />
+                </Grid>
+
+                <Grid size={{ xs: 12, md: 7 }} id="analytics-section">
+                  <ExpensePieChart expenses={expenses} loading={loading} />
+                </Grid>
               </Grid>
 
-              <Grid size={{ xs: 12, md: 7 }} id="analytics-section">
-                <ExpensePieChart expenses={expenses} loading={loading} />
-              </Grid>
-            </Grid>
+              <Box sx={{ mt: 2.5 }}>
+                <TransactionTable
+                  showRecents={showRecents}
+                  tableData={{
+                    expenses: filteredAndSortedExpenses,
+                    categories: uniqueCategories
+                  }}
+                  filters={{
+                    searchQuery,
+                    setSearchQuery,
+                    sortOrder,
+                    setSortOrder,
+                    tabValue,
+                    setTabValue
+                  }}
+                  onDelete={handleDeleteExpense}
+                  loading={loading}
+                />
+              </Box>
+            </>
           )}
 
-          {activeWorkspace === "transactions" && (
-            <TransactionTable
-              showRecents={showRecents}
-              tableData={{
-                expenses: filteredAndSortedExpenses,
-                categories: uniqueCategories
-              }}
-              filters={{
-                searchQuery,
-                setSearchQuery,
-                sortOrder,
-                setSortOrder,
-                tabValue,
-                setTabValue
-              }}
-              onDelete={handleDeleteExpense}
-              loading={loading}
-            />
-          )}
-
-          {["loans", "payments", "applications"].includes(activeWorkspace) && (
+          {["loans", "applications"].includes(activeWorkspace) && (
             <LoanSection
               balance={balance}
               onRecordPayment={handleGatewayPayment}
@@ -444,20 +436,11 @@ const WorkspaceCards = ({
   const cards = [
     {
       id: "expense",
-      title: "Add Expense",
-      subtitle: "Entry form and category analytics",
+      title: "Expense Page",
+      subtitle: "Entry form, category analytics, filters and transaction list",
       icon: <AddCircleIcon />,
       color: "#16a34a",
       surface: "linear-gradient(145deg, #dcfce7, #f7fee7)",
-      meta: "Budget ledger"
-    },
-    {
-      id: "transactions",
-      title: "Recent Transactions",
-      subtitle: "Open the list, filters and delete actions",
-      icon: <ReceiptLongIcon />,
-      color: "#2563eb",
-      surface: "linear-gradient(145deg, #dbeafe, #eff6ff)",
       meta: `${filteredCount}/${expensesCount} records`
     },
     {
@@ -470,15 +453,6 @@ const WorkspaceCards = ({
       meta: "Spring Boot linked"
     },
     {
-      id: "payments",
-      title: "Payment Gateway",
-      subtitle: "UPI, card and net banking checkout",
-      icon: <PaymentsIcon />,
-      color: "#ea580c",
-      surface: "linear-gradient(145deg, #ffedd5, #fff7ed)",
-      meta: "Dynamic checkout"
-    },
-    {
       id: "applications",
       title: "Saved Applications",
       subtitle: "Open saved loan applications and full details",
@@ -486,6 +460,15 @@ const WorkspaceCards = ({
       color: "#0891b2",
       surface: "linear-gradient(145deg, #cffafe, #ecfeff)",
       meta: "Database records"
+    },
+    {
+      id: "profile",
+      title: "Profile",
+      subtitle: "Name, email, role, applications and credit score",
+      icon: <PersonIcon />,
+      color: "#ea580c",
+      surface: "linear-gradient(145deg, #ffedd5, #fff7ed)",
+      meta: "Account"
     },
     {
       id: "investments",
