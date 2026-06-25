@@ -32,6 +32,7 @@ const AuthPage = ({ mode = "login" }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [warning, setWarning] = useState("");
   const [otpRequired, setOtpRequired] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
 
@@ -46,6 +47,7 @@ const AuthPage = ({ mode = "login" }) => {
     setLoading(true);
     setError("");
     setSuccess("");
+    setWarning("");
 
     try {
       if (isRegister) {
@@ -67,11 +69,16 @@ const AuthPage = ({ mode = "login" }) => {
     setOtpLoading(true);
     setError("");
     setSuccess("");
+    setWarning("");
 
     try {
       const response = await requestOtp({ email: form.email, purpose: otpPurpose });
       setOtpRequired(response.otpRequired);
-      setSuccess(response.message);
+      if (response.otpRequired) {
+        setSuccess(response.message);
+      } else {
+        setWarning(response.message);
+      }
     } catch (error) {
       setError(error.response?.data?.message || "Could not request OTP.");
     } finally {
@@ -83,12 +90,17 @@ const AuthPage = ({ mode = "login" }) => {
     setOtpLoading(true);
     setError("");
     setSuccess("");
+    setWarning("");
 
     try {
       const response = await verifyOtp({ email: form.email, purpose: otpPurpose, otp: form.otp });
       updateForm("otpToken", response.otpToken || "");
       setOtpRequired(response.otpRequired);
-      setSuccess(response.message);
+      if (response.otpRequired) {
+        setSuccess(response.message);
+      } else {
+        setWarning(response.message);
+      }
     } catch (error) {
       setError(error.response?.data?.message || "OTP verification failed.");
     } finally {
@@ -146,6 +158,7 @@ const AuthPage = ({ mode = "login" }) => {
 
             <Stack component="form" spacing={2} onSubmit={handleSubmit}>
               {error && <Alert severity="error">{error}</Alert>}
+              {warning && <Alert severity="warning">{warning}</Alert>}
               {success && <Alert severity="success">{success}</Alert>}
 
               {isRegister && (

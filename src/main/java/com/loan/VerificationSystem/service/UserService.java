@@ -97,7 +97,7 @@ public class UserService {
         otpService.sendOtp(request.getEmail(), request.getPurpose());
         String message = otpService.isOtpEnabled()
                 ? "OTP sent to email."
-                : "OTP is disabled. Configure SMTP and app.otp.enabled=true to enforce email OTP.";
+                : "OTP is disabled. Start backend with APP_OTP_ENABLED=true, APP_MAIL_ENABLED=true and SMTP credentials.";
         return new OtpResponseDTO(message, otpService.isOtpEnabled(), null);
     }
 
