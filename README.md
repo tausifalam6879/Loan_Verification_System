@@ -141,8 +141,8 @@ spring.datasource.url=jdbc:mysql://localhost:3306/loan_db?useSSL=false&serverTim
 spring.datasource.username=root
 spring.datasource.password=root123
 jwt.secret=MySuperSecretKeyForLoanVerificationSystem2026JwtToken
-app.otp.enabled=false
-app.mail.enabled=false
+app.otp.enabled=${APP_OTP_ENABLED:false}
+app.mail.enabled=${APP_MAIL_ENABLED:false}
 ```
 
 Optional frontend Cloudinary config can be copied from `frontend/.env.example`:
@@ -159,6 +159,7 @@ When Cloudinary is not configured, the frontend keeps document previews as local
 - [Setup Guide](docs/SETUP.md)
 - [API Reference](docs/API.md)
 - [Feature Documentation](docs/FEATURES.md)
+- [Email OTP Setup](docs/EMAIL_OTP.md)
 - [Fraud Service README](ai-fraud-service/README.md)
 
 ## Verification Commands
@@ -183,7 +184,7 @@ npm run build
 - Public registration always creates `USER` accounts.
 - Admin accounts should be created or promoted manually by an owner/developer.
 - Keep `jwt.secret`, database credentials, SMTP password, and Cloudinary settings out of commits.
-- OTP and email are disabled by default until SMTP configuration is provided.
+- OTP and email are disabled by default until SMTP configuration is provided through environment variables.
 - CORS is open for local development; restrict origins before production deployment.
 
 ## Current Status

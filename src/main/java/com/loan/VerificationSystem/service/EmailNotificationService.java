@@ -5,6 +5,8 @@ import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
+import java.lang.reflect.InvocationTargetException;
+
 @Service
 public class EmailNotificationService {
 
@@ -20,11 +22,30 @@ public class EmailNotificationService {
         this.fromAddress = fromAddress;
     }
 
-    public void send(String to, String subject, String body) {
+    public boolean send(String to, String subject, String body) {
         if (!mailEnabled) {
-            return;
+            return false;
         }
 
+        try {
+            deliver(to, subject, body);
+            return true;
+        } catch (IllegalStateException ignored) {
+            return false;
+        }
+    }
+
+    public void sendRequired(String to, String subject, String body) {
+        if (!mailEnabled) {
+            throw new IllegalStateException(
+                    "Email delivery is disabled. Set APP_MAIL_ENABLED=true and configure SMTP credentials."
+            );
+        }
+
+        deliver(to, subject, body);
+    }
+
+    private void deliver(String to, String subject, String body) {
         try {
             Class<?> mailSenderClass = Class.forName("org.springframework.mail.javamail.JavaMailSender");
             Class<?> messageClass = Class.forName("org.springframework.mail.SimpleMailMessage");
@@ -38,8 +59,14 @@ public class EmailNotificationService {
             messageClass.getMethod("setSubject", String.class).invoke(message, subject);
             messageClass.getMethod("setText", String.class).invoke(message, body);
             mailSenderClass.getMethod("send", messageClass).invoke(mailSender, message);
-        } catch (BeansException | ReflectiveOperationException | IllegalArgumentException ignored) {
-            return;
+        } catch (InvocationTargetException ex) {
+            Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+            throw new IllegalStateException("Email delivery failed: " + cause.getMessage(), cause);
+        } catch (BeansException | ReflectiveOperationException | IllegalArgumentException ex) {
+            throw new IllegalStateException(
+                    "Email sender is not configured. Check spring.mail.* SMTP settings.",
+                    ex
+            );
         }
     }
 }

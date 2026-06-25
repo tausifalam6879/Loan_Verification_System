@@ -37,12 +37,19 @@ public class OtpService {
         String normalizedEmail = normalizeEmail(email);
         String normalizedPurpose = normalizePurpose(purpose);
         String otp = String.valueOf(100000 + secureRandom.nextInt(900000));
-        otpEntries.put(key(normalizedEmail, normalizedPurpose), new OtpEntry(otp, Instant.now().plusSeconds(300)));
-        emailNotificationService.send(
-                normalizedEmail,
-                "FinTrack OTP Verification",
-                "Your " + normalizedPurpose.toLowerCase(Locale.ROOT) + " OTP is " + otp + ". It expires in 5 minutes."
-        );
+        String otpKey = key(normalizedEmail, normalizedPurpose);
+        otpEntries.put(otpKey, new OtpEntry(otp, Instant.now().plusSeconds(300)));
+
+        try {
+            emailNotificationService.sendRequired(
+                    normalizedEmail,
+                    "FinTrack OTP Verification",
+                    "Your " + normalizedPurpose.toLowerCase(Locale.ROOT) + " OTP is " + otp + ". It expires in 5 minutes."
+            );
+        } catch (RuntimeException ex) {
+            otpEntries.remove(otpKey);
+            throw ex;
+        }
     }
 
     public String verifyOtp(String email, String purpose, String otp) {

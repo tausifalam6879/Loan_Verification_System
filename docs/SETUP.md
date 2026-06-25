@@ -88,20 +88,20 @@ http://localhost:8000/health
 
 OTP endpoints exist, but OTP enforcement is disabled by default for local demos.
 
-Enable email and OTP in `application.properties` only after SMTP credentials are ready:
+Enable email and OTP only after SMTP credentials are ready:
 
-```properties
-app.otp.enabled=true
-app.mail.enabled=true
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=your-email@example.com
-spring.mail.password=your-app-password
-spring.mail.properties.mail.smtp.auth=true
-spring.mail.properties.mail.smtp.starttls.enable=true
+```powershell
+$env:APP_OTP_ENABLED="true"
+$env:APP_MAIL_ENABLED="true"
+$env:SMTP_HOST="smtp.gmail.com"
+$env:SMTP_PORT="587"
+$env:SMTP_USERNAME="your-email@gmail.com"
+$env:SMTP_PASSWORD="your-gmail-app-password"
 ```
 
 For Gmail, use an app password instead of your normal account password.
+
+See [Email OTP Setup](EMAIL_OTP.md) for full steps.
 
 ## Optional Cloudinary Setup
 
