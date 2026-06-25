@@ -4,6 +4,8 @@ A full-stack fintech-style loan verification platform built with Spring Boot, Re
 
 Repository: https://github.com/tausifalam6879/Loan_Verification_System
 
+Live demo: https://tausifalam6879.github.io/Loan_Verification_System
+
 ## What This Project Does
 
 Loan Verification System helps users register, manage expenses, compare loan offers, submit loan applications with document data, track application status, and view profile/application metrics. Admin users can review applications, inspect full application details, approve or reject loans, monitor risk levels, view analytics charts, and track admin activity through audit logs.
@@ -26,6 +28,18 @@ Public registration is locked to the `USER` role. Admin access must be assigned 
 - Optional Cloudinary document upload support with base64 fallback for local demos.
 - Separate FastAPI fraud detection service for AI-style loan-risk scoring.
 - API documentation and setup docs included in `docs/`.
+
+## Live Demo
+
+The GitHub Pages live demo runs the React frontend in demo mode with sample data, so recruiters can open the dashboard without a local Spring Boot/MySQL backend.
+
+Demo URL:
+
+```text
+https://tausifalam6879.github.io/Loan_Verification_System
+```
+
+Use any email/password on the login page. Use an email containing `admin`, for example `admin@demo.com`, to open the admin dashboard demo.
 
 ## Tech Stack
 
