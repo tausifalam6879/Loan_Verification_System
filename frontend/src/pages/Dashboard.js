@@ -17,6 +17,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import PersonIcon from "@mui/icons-material/Person";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import SavingsIcon from "@mui/icons-material/Savings";
 
 import DashboardHeader from "../components/dashboard/DashboardHeader";
@@ -74,7 +75,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     "/expense": "expense",
     "/transactions": "expense",
     "/loans": "loans",
-    "/payments": "loans",
+    "/payments": "payments",
     "/applications": "applications",
     "/investments": "investments"
   };
@@ -82,6 +83,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     overview: "/",
     expense: "/expense",
     loans: "/loans",
+    payments: "/payments",
     applications: "/applications",
     investments: "/investments",
     profile: "/profile"
@@ -96,6 +98,10 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     loans: {
       title: "Loan Marketplace",
       subtitle: "Browse backend loan offers and open the application flow."
+    },
+    payments: {
+      title: "Payment Gateway",
+      subtitle: "Pay with UPI, card, or net banking and record the payment in the expense ledger."
     },
     applications: {
       title: "Saved Loan Applications",
@@ -221,6 +227,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
         onOpenDashboard={() => openWorkspace("overview")}
         onOpenExpense={() => openWorkspace("expense")}
         onOpenLoans={scrollToLoans}
+        onOpenPayments={() => openWorkspace("payments")}
         onOpenApplications={() => openWorkspace("applications")}
         onOpenInvestments={() => openWorkspace("investments")}
         onOpenAdmin={() => navigate("/admin")}
@@ -324,7 +331,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
             </>
           )}
 
-          {["loans", "applications"].includes(activeWorkspace) && (
+          {["loans", "payments", "applications"].includes(activeWorkspace) && (
             <LoanSection
               balance={balance}
               onRecordPayment={handleGatewayPayment}
@@ -451,6 +458,15 @@ const WorkspaceCards = ({
       color: "#7c3aed",
       surface: "linear-gradient(145deg, #ede9fe, #f5f3ff)",
       meta: "Spring Boot linked"
+    },
+    {
+      id: "payments",
+      title: "Payment Gateway",
+      subtitle: "UPI, card and net banking checkout with balance deduction",
+      icon: <PaymentsIcon />,
+      color: "#0d9488",
+      surface: "linear-gradient(145deg, #ccfbf1, #ecfeff)",
+      meta: "UPI/Card/Bank"
     },
     {
       id: "applications",

@@ -18,6 +18,7 @@ import LocalAtmIcon from "@mui/icons-material/LocalAtm";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PersonIcon from "@mui/icons-material/Person";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import SavingsIcon from "@mui/icons-material/Savings";
 
@@ -30,6 +31,7 @@ const Sidebar = ({
   onOpenDashboard,
   onOpenExpense,
   onOpenLoans,
+  onOpenPayments,
   onOpenApplications,
   onOpenInvestments,
   onOpenAdmin,
@@ -53,6 +55,11 @@ const Sidebar = ({
       label: "Loan Marketplace",
       icon: <LocalAtmIcon />,
       action: onOpenLoans
+    },
+    {
+      label: "Payment Gateway",
+      icon: <PaymentsIcon />,
+      action: onOpenPayments
     },
     {
       label: "Loan Applications",
