@@ -182,12 +182,20 @@ const demoAdapter = async (config) => {
   }
 
   if (path === "/users/me" && method === "get") {
-    const email = localStorage.getItem("email") || "demo@fintrack.in";
+    const email =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("email") || "demo@fintrack.in"
+        : "demo@fintrack.in";
+    const role =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("role") || "USER"
+        : "USER";
+
     return response(config, {
       id: 101,
       fullName: email.includes("@") ? email.split("@")[0].replace(/[._-]+/g, " ") : "Demo User",
       email,
-      role: localStorage.getItem("role") || "USER",
+      role,
       totalApplications: state.applications.length,
       creditScore: 735
     });

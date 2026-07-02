@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Loan Verification System</title>
+    <script>
+      (function () {
+        var repoBase = "/Loan_Verification_System";
+        var path = window.location.pathname;
+        var route = path.indexOf(repoBase) === 0 ? path.slice(repoBase.length) : path;
+        var normalizedRoute = route && route !== "/" ? route : "/";
+        window.location.replace(
+          repoBase + "/#" + normalizedRoute + window.location.search + window.location.hash
+        );
+      })();
+    </script>
+  </head>
+  <body>
+    Redirecting...
+  </body>
+</html>

@@ -96,6 +96,7 @@ const AuthPage = ({ mode = "login" }) => {
     setWarning("");
 
     if (!otpEnabled) {
+      setOtpLoading(false);
       return;
     }
 
@@ -122,6 +123,7 @@ const AuthPage = ({ mode = "login" }) => {
     setWarning("");
 
     if (!otpEnabled) {
+      setOtpLoading(false);
       return;
     }
 
