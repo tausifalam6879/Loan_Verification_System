@@ -2,6 +2,7 @@ package com.loan.VerificationSystem.service;
 
 import com.loan.VerificationSystem.entity.Expense;
 import com.loan.VerificationSystem.repository.ExpenseRepository;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -26,7 +27,11 @@ public class ExpenseService {
     }
 
     public List<Expense> getAllExpenses() {
-        return expenseRepository.findAll();
+        return expenseRepository.findAll(Sort.by(
+                Sort.Order.desc("createdAt"),
+                Sort.Order.desc("date"),
+                Sort.Order.desc("id")
+        ));
     }
 
     public void deleteExpense(Long id) {

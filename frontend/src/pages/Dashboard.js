@@ -146,6 +146,18 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     setSnackbar({ open: true, message, severity });
   };
 
+  const toLocalExpenseTimestamp = (value = new Date()) => {
+    const date = value instanceof Date ? value : new Date(value);
+    const pad = (number) => String(number).padStart(2, "0");
+    const day = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    const time = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+
+    return {
+      date: day,
+      createdAt: `${day}T${time}`
+    };
+  };
+
   const handleAddExpense = async (expense) => {
     const success = await createExpense(expense);
     showMessage(
@@ -155,11 +167,14 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     return success;
   };
 
-  const handleGatewayPayment = async ({ amount, payee, method }) => {
+  const handleGatewayPayment = async ({ amount, payee, method, paidAt }) => {
+    const paymentTime = toLocalExpenseTimestamp(paidAt);
     const success = await createExpense({
       amount: Number(amount),
       category: "payment",
-      description: `Payment to ${payee} via ${method}`
+      description: `Payment to ${payee} via ${method}`,
+      date: paymentTime.date,
+      createdAt: paymentTime.createdAt
     });
     showMessage(
       success

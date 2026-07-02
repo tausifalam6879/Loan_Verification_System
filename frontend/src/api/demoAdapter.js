@@ -5,12 +5,24 @@ const demoMode =
 const storageKey = "fintrackDemoState";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
+const today = () => new Date().toISOString().slice(0, 10);
+const now = () => new Date().toISOString();
+const normalizeExpenseTimestamps = (expenses = []) =>
+  expenses.map((expense) => {
+    const date = expense.date || today();
+
+    return {
+      ...expense,
+      date,
+      createdAt: expense.createdAt || `${date}T00:00:00`
+    };
+  });
 
 const initialState = {
   expenses: [
-    { id: 1, amount: 4500, category: "rent", description: "Hostel and room expenses" },
-    { id: 2, amount: 1800, category: "food", description: "Monthly food and groceries" },
-    { id: 3, amount: 900, category: "travel", description: "Campus travel and metro" }
+    { id: 1, amount: 4500, category: "rent", description: "Hostel and room expenses", date: today(), createdAt: now() },
+    { id: 2, amount: 1800, category: "food", description: "Monthly food and groceries", date: today(), createdAt: now() },
+    { id: 3, amount: 900, category: "travel", description: "Campus travel and metro", date: today(), createdAt: now() }
   ],
   applications: [
     {
@@ -106,7 +118,9 @@ const readState = () => {
   }
 
   try {
-    return { ...clone(initialState), ...JSON.parse(saved) };
+    const state = { ...clone(initialState), ...JSON.parse(saved) };
+    state.expenses = normalizeExpenseTimestamps(state.expenses);
+    return state;
   } catch (error) {
     window.localStorage.setItem(storageKey, JSON.stringify(initialState));
     return clone(initialState);
@@ -206,7 +220,12 @@ const demoAdapter = async (config) => {
   }
 
   if (path === "/expenses/add" && method === "post") {
-    const expense = { id: Date.now(), ...body };
+    const expense = {
+      id: Date.now(),
+      ...body,
+      date: body.date || today(),
+      createdAt: body.createdAt || now()
+    };
     state.expenses = [expense, ...state.expenses];
     writeState(state);
     return response(config, { success: true, message: "Demo expense added", data: expense });

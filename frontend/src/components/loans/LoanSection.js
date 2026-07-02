@@ -79,6 +79,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
   const [paymentRecipient, setPaymentRecipient] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("gpay");
   const [paying, setPaying] = useState(false);
+  const [lastPaymentAt, setLastPaymentAt] = useState("");
   
   // Card Payment Fields
   const [cardType, setCardType] = useState("debit");
@@ -215,6 +216,16 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     : AccountBalanceIcon;
   const accentColor = selectedLoanType?.color || "#2563eb";
   const selectedPayment = paymentGatewayOptions.find((method) => method.id === paymentMethod) || paymentGatewayOptions[0];
+  const formattedLastPaymentAt = lastPaymentAt
+    ? new Date(lastPaymentAt).toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      })
+    : "";
   const comparisonOffers = ["SBI", "HDFC", "ICICI", "Axis"]
     .map((bankName) =>
       offers.find((offer) =>
@@ -468,6 +479,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         reference: `${paymentMethod.toUpperCase()}-${Date.now()}`
       });
       setApplicationResult(result);
+      setLastPaymentAt(new Date().toISOString());
       setPaymentOpen(false);
       setSnackbarOpen(true);
       loadApplications();
@@ -485,6 +497,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
       current || selectedOffer?.bank?.name || "Loan Processing Fee"
     );
     setGatewayStep("ready");
+    setLastPaymentAt("");
     setGatewayOpen(true);
   };
 
@@ -512,6 +525,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     setApiError("");
 
     try {
+      const paidAt = new Date().toISOString();
       if (applicationResult?.id) {
         const result = await payProcessingFee(applicationResult.id, {
           amount,
@@ -524,12 +538,14 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         const recorded = await onRecordPayment({
           amount,
           payee: paymentRecipient.trim(),
-          method: selectedPayment.label
+          method: selectedPayment.label,
+          paidAt
         });
         if (!recorded) {
           throw new Error("Payment expense save failed");
         }
       }
+      setLastPaymentAt(paidAt);
       setGatewayStep("success");
       setSnackbarOpen(true);
     } catch (error) {
@@ -1622,6 +1638,11 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                     : "Payment saved in expenses, so dashboard balance is deducted."
                   : "Fill amount and recipient, then authorize to record the payment in expense ledger."}
               </Typography>
+              {gatewayStep === "success" && formattedLastPaymentAt && (
+                <Typography variant="caption" sx={{ color: "#047857", fontWeight: 900 }}>
+                  Paid on {formattedLastPaymentAt}
+                </Typography>
+              )}
             </Box>
           </Stack>
         </DialogContent>

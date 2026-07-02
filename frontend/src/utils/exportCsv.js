@@ -1,6 +1,19 @@
 export const exportExpensesToCSV = (expenses, selectedFields = null) => {
-  const availableFields = ["date", "category", "description", "amount"];
+  const availableFields = ["date", "time", "category", "description", "amount"];
   const fieldsToExport = selectedFields && selectedFields.length > 0 ? selectedFields : availableFields;
+  const formatTimestamp = (expense) => {
+    const raw = expense.createdAt || (expense.date ? `${expense.date}T00:00:00` : "");
+    const parsed = raw ? new Date(raw) : null;
+
+    if (!parsed || Number.isNaN(parsed.getTime())) {
+      return { date: expense.date || "", time: "" };
+    }
+
+    return {
+      date: parsed.toLocaleDateString("en-IN"),
+      time: expense.createdAt ? parsed.toLocaleTimeString("en-IN") : ""
+    };
+  };
   
   const headers = fieldsToExport
     .map(field => field.charAt(0).toUpperCase() + field.slice(1))
@@ -10,7 +23,8 @@ export const exportExpensesToCSV = (expenses, selectedFields = null) => {
     .map((expense) =>
       fieldsToExport
         .map(field => {
-          const value = expense[field];
+          const timestamp = formatTimestamp(expense);
+          const value = field === "date" || field === "time" ? timestamp[field] : expense[field];
           return typeof value === "string" && value.includes(",") ? `"${value}"` : value || "";
         })
         .join(",")
@@ -31,6 +45,7 @@ export const exportExpensesToCSV = (expenses, selectedFields = null) => {
 
 export const getAvailableExpenseFields = () => [
   { id: "date", label: "Date" },
+  { id: "time", label: "Time" },
   { id: "category", label: "Category" },
   { id: "description", label: "Description" },
   { id: "amount", label: "Amount" }
