@@ -210,6 +210,23 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     return value;
   };
 
+  const sanitizeMobileInput = (value) => value.replace(/[^\d+\-\s()]/g, "");
+
+  const normalizeIndianMobile = (value) => {
+    const digits = String(value || "").replace(/\D/g, "");
+    if (digits.length === 12 && digits.startsWith("91")) {
+      return digits.slice(2);
+    }
+    if (digits.length === 11 && digits.startsWith("0")) {
+      return digits.slice(1);
+    }
+    return digits;
+  };
+
+  const isValidIndianMobile = (value) => /^[6-9]\d{9}$/.test(normalizeIndianMobile(value));
+
+  const isValidUpiId = (value) => /^[a-zA-Z0-9._-]{2,}@[a-zA-Z0-9]{2,}$/.test(String(value || "").trim());
+
   const selectedLoanType = selectedOffer?.loanType;
   const SelectedIcon = selectedLoanType
     ? iconMap[selectedLoanType.iconName] || AccountBalanceIcon
@@ -306,7 +323,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     aadhaarNumber.trim() &&
     panNumber.trim() &&
     nomineeName.trim() &&
-    nomineePhone.trim() &&
+    isValidIndianMobile(nomineePhone) &&
     bankAccountNumber.trim() &&
     ifscCode.trim() &&
     pincode.trim() &&
@@ -358,6 +375,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     const tenureMonthsNum = Number(tenureMonths);
     const existingEmiNum = Number(existingEmi) || 0;
     const failedAttemptsNum = Number(failedAttempts);
+    const normalizedNomineePhone = normalizeIndianMobile(nomineePhone);
 
     if (creditScoreNum < 300 || creditScoreNum > 900) {
       alert("Credit score must be between 300 and 900");
@@ -389,6 +407,11 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
       return;
     }
 
+    if (!isValidIndianMobile(normalizedNomineePhone)) {
+      setApiError("Enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.");
+      return;
+    }
+
     setSubmitting(true);
     setApiError("");
 
@@ -411,7 +434,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         panDocumentDataUrl,
         nomineeName,
         nomineeRelation,
-        nomineePhone,
+        nomineePhone: normalizedNomineePhone,
         bankAccountNumber,
         ifscCode,
         employmentType,
@@ -512,6 +535,11 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     
     if (!paymentRecipient.trim()) {
       setApiError("Recipient name is required.");
+      return;
+    }
+
+    if (["gpay", "phonepe", "upi"].includes(paymentMethod) && !isValidUpiId(payerUpi)) {
+      setApiError("Enter a valid UPI ID, for example name@upi.");
       return;
     }
     
@@ -979,7 +1007,16 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                         <TextField fullWidth label="Nominee relation" value={nomineeRelation} onChange={(event) => setNomineeRelation(event.target.value)} />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth label="Nominee phone" value={nomineePhone} onChange={(event) => setNomineePhone(event.target.value)} />
+                        <TextField
+                          fullWidth
+                          required
+                          label="Nominee mobile number"
+                          value={nomineePhone}
+                          onChange={(event) => setNomineePhone(sanitizeMobileInput(event.target.value))}
+                          error={Boolean(nomineePhone) && !isValidIndianMobile(nomineePhone)}
+                          helperText="Use a 10-digit Indian mobile number."
+                          inputProps={{ inputMode: "tel", maxLength: 16 }}
+                        />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField fullWidth required label="Bank account number" value={bankAccountNumber} onChange={(event) => setBankAccountNumber(event.target.value)} />
@@ -1558,7 +1595,9 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
               <TextField
                 label="UPI ID"
                 value={payerUpi}
-                onChange={(event) => setPayerUpi(event.target.value)}
+                onChange={(event) => setPayerUpi(event.target.value.trim())}
+                error={Boolean(payerUpi) && !isValidUpiId(payerUpi)}
+                helperText="Example: name@upi"
                 fullWidth
                 sx={gatewayInputStyle}
               />

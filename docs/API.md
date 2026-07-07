@@ -154,6 +154,12 @@ Content-Type: application/json
 
 Creates a loan application with applicant, income, document, and risk details.
 
+Important validation notes:
+
+- `nomineePhone` must be a valid Indian 10-digit mobile number starting with 6, 7, 8, or 9.
+- The backend normalizes common variants such as `+91 98765 43210` and `09876543210` before saving.
+- UPI payment details are validated in the frontend before calling the payment endpoint.
+
 ### All Applications
 
 ```http

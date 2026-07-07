@@ -99,9 +99,10 @@ OTP behavior is controlled by:
 
 ```properties
 app.otp.enabled=false
+app.otp.console-fallback.enabled=true
 ```
 
-Set it to `true` only after SMTP is configured.
+When `app.otp.enabled=true` and mail is disabled, the backend logs a development OTP in the console. For production email delivery, set `app.mail.enabled=true`, configure SMTP credentials, and disable the console fallback.
 
 ## Email Notifications
 
@@ -116,6 +117,10 @@ When enabled with SMTP, the backend can send notifications for events such as:
 - Account-related OTP messages
 - Loan approval
 - Loan rejection
+
+## Mobile Number Validation
+
+Loan applications validate nominee mobile numbers as Indian 10-digit numbers starting with 6, 7, 8, or 9. The backend accepts common input variants such as `+91 98765 43210` or `09876543210` and stores them as `9876543210`.
 
 ## Document Upload
 

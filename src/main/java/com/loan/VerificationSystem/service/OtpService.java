@@ -1,6 +1,8 @@
 package com.loan.VerificationSystem.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -13,25 +15,30 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class OtpService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(OtpService.class);
+
     private final Map<String, OtpEntry> otpEntries = new ConcurrentHashMap<>();
     private final Map<String, TokenEntry> tokenEntries = new ConcurrentHashMap<>();
     private final SecureRandom secureRandom = new SecureRandom();
     private final EmailNotificationService emailNotificationService;
     private final boolean otpEnabled;
+    private final boolean consoleFallbackEnabled;
 
     public OtpService(EmailNotificationService emailNotificationService,
-                      @Value("${app.otp.enabled:false}") boolean otpEnabled) {
+                      @Value("${app.otp.enabled:false}") boolean otpEnabled,
+                      @Value("${app.otp.console-fallback.enabled:true}") boolean consoleFallbackEnabled) {
         this.emailNotificationService = emailNotificationService;
         this.otpEnabled = otpEnabled;
+        this.consoleFallbackEnabled = consoleFallbackEnabled;
     }
 
     public boolean isOtpEnabled() {
         return otpEnabled;
     }
 
-    public void sendOtp(String email, String purpose) {
+    public OtpDeliveryResult sendOtp(String email, String purpose) {
         if (!otpEnabled) {
-            return;
+            return new OtpDeliveryResult(false, "disabled");
         }
 
         String normalizedEmail = normalizeEmail(email);
@@ -40,12 +47,18 @@ public class OtpService {
         String otpKey = key(normalizedEmail, normalizedPurpose);
         otpEntries.put(otpKey, new OtpEntry(otp, Instant.now().plusSeconds(300)));
 
+        if (!emailNotificationService.isMailEnabled() && consoleFallbackEnabled) {
+            LOGGER.warn("Development OTP for {} [{}]: {}", normalizedEmail, normalizedPurpose, otp);
+            return new OtpDeliveryResult(true, "console");
+        }
+
         try {
             emailNotificationService.sendRequired(
                     normalizedEmail,
                     "FinTrack OTP Verification",
                     "Your " + normalizedPurpose.toLowerCase(Locale.ROOT) + " OTP is " + otp + ". It expires in 5 minutes."
             );
+            return new OtpDeliveryResult(true, "email");
         } catch (RuntimeException ex) {
             otpEntries.remove(otpKey);
             throw ex;
@@ -100,5 +113,8 @@ public class OtpService {
     }
 
     private record TokenEntry(String email, String purpose, Instant expiresAt) {
+    }
+
+    public record OtpDeliveryResult(boolean otpRequired, String deliveryChannel) {
     }
 }

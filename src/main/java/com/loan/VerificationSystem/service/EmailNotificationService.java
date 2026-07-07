@@ -35,6 +35,10 @@ public class EmailNotificationService {
         }
     }
 
+    public boolean isMailEnabled() {
+        return mailEnabled;
+    }
+
     public void sendRequired(String to, String subject, String body) {
         if (!mailEnabled) {
             throw new IllegalStateException(

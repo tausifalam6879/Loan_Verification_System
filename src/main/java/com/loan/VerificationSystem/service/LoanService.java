@@ -39,6 +39,7 @@ public class LoanService {
     private static final Pattern IFSC_PATTERN = Pattern.compile("^[A-Z]{4}0[A-Z0-9]{6}$");
     private static final Pattern ACCOUNT_PATTERN = Pattern.compile("^[0-9]{9,18}$");
     private static final Pattern PINCODE_PATTERN = Pattern.compile("^[1-9][0-9]{5}$");
+    private static final Pattern INDIAN_MOBILE_PATTERN = Pattern.compile("^[6-9][0-9]{9}$");
 
     public LoanService(LoanOfferRepository loanOfferRepository,
                        LoanApplicationRepository loanApplicationRepository,
@@ -144,7 +145,7 @@ public class LoanService {
         request.setPanNumber(upperTrim(request.getPanNumber()));
         request.setIfscCode(upperTrim(request.getIfscCode()));
         request.setBankAccountNumber(digitsOnly(request.getBankAccountNumber()));
-        request.setNomineePhone(digitsOnly(request.getNomineePhone()));
+        request.setNomineePhone(normalizeIndianMobile(request.getNomineePhone()));
         request.setPincode(digitsOnly(request.getPincode()));
         request.setEmail(lowerTrim(request.getEmail()));
     }
@@ -157,6 +158,7 @@ public class LoanService {
         result.add(valid(IFSC_PATTERN, request.getIfscCode()), "IFSC format verified.", "Invalid IFSC format.");
         result.add(valid(ACCOUNT_PATTERN, request.getBankAccountNumber()), "Bank account format verified.", "Invalid bank account number.");
         result.add(valid(PINCODE_PATTERN, request.getPincode()), "Pincode format verified.", "Invalid pincode format.");
+        result.add(valid(INDIAN_MOBILE_PATTERN, request.getNomineePhone()), "Nominee mobile number verified.", "Invalid nominee mobile number.");
 
         boolean incomeFit = request.getMonthlyIncome() != null
                 && request.getRequestedAmount() != null
@@ -279,6 +281,20 @@ public class LoanService {
 
     private String digitsOnly(String value) {
         return value == null ? null : value.replaceAll("[^0-9]", "");
+    }
+
+    private String normalizeIndianMobile(String value) {
+        String digits = digitsOnly(value);
+        if (digits == null) {
+            return null;
+        }
+        if (digits.length() == 12 && digits.startsWith("91")) {
+            return digits.substring(2);
+        }
+        if (digits.length() == 11 && digits.startsWith("0")) {
+            return digits.substring(1);
+        }
+        return digits;
     }
 
     private String upperTrim(String value) {

@@ -19,11 +19,12 @@ Public registration is locked to the `USER` role. Admin access must be assigned 
 - Profile page showing name, email, role, total applications, and credit score.
 - User dashboard with expense tracking, transactions, investments, loan marketplace, loan applications, and AI assistant.
 - Loan marketplace with seeded banks and offers, including SBI, HDFC, ICICI, and Axis comparisons.
-- Loan application workflow with Aadhaar, PAN, passport photo/document data, risk signals, status tracking, and payment marker.
+- Loan application workflow with Aadhaar, PAN, nominee mobile validation, passport photo/document data, risk signals, status tracking, and payment marker.
 - Admin dashboard with application table, details modal, status timeline, approval/rejection actions, charts, fraud-risk monitoring, and audit logs.
 - Recharts analytics for loan status, risk distribution, and monthly expenses.
 - Optional OTP verification endpoints for account flows.
-- OTP controls are hidden in local mode until backend SMTP/OTP settings are enabled.
+- OTP controls are hidden in local mode until backend OTP settings are enabled.
+- Local OTP development fallback logs the OTP in the backend console when SMTP is not enabled.
 - Optional email notifications for account and loan-status events.
 - Optional Cloudinary document upload support with base64 fallback for local demos.
 - Separate FastAPI fraud detection service for AI-style loan-risk scoring.
@@ -157,6 +158,7 @@ spring.datasource.username=root
 spring.datasource.password=root123
 jwt.secret=MySuperSecretKeyForLoanVerificationSystem2026JwtToken
 app.otp.enabled=${APP_OTP_ENABLED:false}
+app.otp.console-fallback.enabled=${APP_OTP_CONSOLE_FALLBACK_ENABLED:true}
 app.mail.enabled=${APP_MAIL_ENABLED:false}
 ```
 
@@ -199,7 +201,7 @@ npm run build
 - Public registration always creates `USER` accounts.
 - Admin accounts should be created or promoted manually by an owner/developer.
 - Keep `jwt.secret`, database credentials, SMTP password, and Cloudinary settings out of commits.
-- OTP and email are disabled by default until SMTP configuration is provided through environment variables.
+- OTP is disabled by default. When OTP is enabled without SMTP, the development fallback logs the OTP in the backend console. For real email delivery, enable SMTP through environment variables.
 - CORS is open for local development; restrict origins before production deployment.
 
 ## Current Status

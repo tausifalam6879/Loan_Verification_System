@@ -94,11 +94,16 @@ public class UserService {
     }
 
     public OtpResponseDTO requestOtp(OtpRequestDTO request) {
-        otpService.sendOtp(request.getEmail(), request.getPurpose());
-        String message = otpService.isOtpEnabled()
-                ? "OTP sent to email."
-                : "OTP is disabled. Start backend with APP_OTP_ENABLED=true, APP_MAIL_ENABLED=true and SMTP credentials.";
-        return new OtpResponseDTO(message, otpService.isOtpEnabled(), null);
+        OtpService.OtpDeliveryResult delivery = otpService.sendOtp(request.getEmail(), request.getPurpose());
+        String message;
+        if (!delivery.otpRequired()) {
+            message = "OTP is disabled. Start backend with APP_OTP_ENABLED=true to enable OTP verification.";
+        } else if ("console".equals(delivery.deliveryChannel())) {
+            message = "OTP generated. Email is disabled, so check the backend console for the development OTP.";
+        } else {
+            message = "OTP sent to email.";
+        }
+        return new OtpResponseDTO(message, delivery.otpRequired(), null);
     }
 
     public OtpResponseDTO verifyOtp(OtpVerifyRequestDTO request) {

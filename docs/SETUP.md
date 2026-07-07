@@ -88,10 +88,21 @@ http://localhost:8000/health
 
 OTP endpoints exist, but OTP enforcement is disabled by default for local demos.
 
-Enable email and OTP only after SMTP credentials are ready:
+For local OTP testing without SMTP, enable OTP and keep the console fallback on:
 
 ```powershell
 $env:APP_OTP_ENABLED="true"
+$env:APP_MAIL_ENABLED="false"
+$env:APP_OTP_CONSOLE_FALLBACK_ENABLED="true"
+```
+
+The OTP will be printed in the Spring Boot terminal.
+
+For real email OTP delivery, enable mail and SMTP credentials:
+
+```powershell
+$env:APP_OTP_ENABLED="true"
+$env:APP_OTP_CONSOLE_FALLBACK_ENABLED="false"
 $env:APP_MAIL_ENABLED="true"
 $env:SMTP_HOST="smtp.gmail.com"
 $env:SMTP_PORT="587"
