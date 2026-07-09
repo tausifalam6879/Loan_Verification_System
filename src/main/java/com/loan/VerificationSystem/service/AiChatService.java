@@ -24,14 +24,7 @@ import java.util.Map;
 public class AiChatService {
 
     private static final String SYSTEM_PROMPT = """
-            You are FinTrack AI, a financial assistant inside an expense tracking dashboard.
-            Answer only using the provided user dashboard context and general financial reasoning.
-            Do not invent transactions, balances, categories, or forecasts.
-            If information is missing, say what data is missing.
-            Give short, practical, actionable answers.
-            Use Indian Rupees when amounts are present.
-            For risky financial advice, avoid guarantees and suggest reviewing details.
-            Answer in the user's language. If the user uses Hinglish, answer in Hinglish.
+            You are FinTrack AI, a financial assistant inside an expense tracking dashboard. Answer only using the provided dashboard/expense context and general financial reasoning. Do not invent transactions, balances, categories, or forecasts. If data is missing, clearly say what data is missing. Give short, practical, actionable answers. Use Indian Rupees when amounts are present.
             """;
 
     private final AiDashboardContextService contextService;
@@ -95,14 +88,14 @@ public class AiChatService {
         try {
             if ("openai".equals(provider)) {
                 if (openAiApiKey.isBlank()) {
-                    return missingProvider("LLM service is not configured. Please add OPENAI_API_KEY in backend environment variables.", suggestedQuestions);
+                    return missingProvider("AI service is not configured. Please add API key in backend environment variables.", suggestedQuestions);
                 }
                 return answerWithOpenAi(request, context, suggestedQuestions);
             }
 
             if ("gemini".equals(provider)) {
                 if (geminiApiKey.isBlank()) {
-                    return missingProvider("LLM service is not configured. Please add GEMINI_API_KEY in backend environment variables.", suggestedQuestions);
+                    return missingProvider("AI service is not configured. Please add API key in backend environment variables.", suggestedQuestions);
                 }
                 return answerWithGemini(request, context, suggestedQuestions);
             }
@@ -115,7 +108,18 @@ public class AiChatService {
                 return answerWithOpenAiCompatible(request, context, suggestedQuestions);
             }
         } catch (RestClientException | IllegalStateException ex) {
-            if ("ollama".equals(provider) || "openai-compatible".equals(provider)) {
+            if ("ollama".equals(provider)) {
+                return new AiChatResponseDTO(
+                        "Local LLM service is not running. Please start Ollama and try again.",
+                        true,
+                        suggestedQuestions,
+                        provider,
+                        model,
+                        false
+                );
+            }
+
+            if ("openai-compatible".equals(provider)) {
                 return new AiChatResponseDTO(
                         "Local LLM service is not running. Please start Odysseus/Ollama and try again.",
                         true,
@@ -422,7 +426,7 @@ public class AiChatService {
             return llmModel.trim();
         }
         if ("gemini".equals(provider)) {
-            return "gemini-2.5-flash";
+            return "gemini-1.5-flash";
         }
         if ("ollama".equals(provider)) {
             return "llama3.2:3b";

@@ -142,30 +142,35 @@ $env:APP_OTP_ENABLED="true"
 .\start-backend.ps1
 ```
 
-To connect the dashboard chatbot to a real OpenAI model:
+The React frontend never calls Ollama, Gemini or OpenAI directly. It only calls the backend endpoint `POST /api/ai/chat`; the backend picks the provider from `LLM_PROVIDER`.
+
+For local development with Ollama:
+
+```powershell
+$env:LLM_PROVIDER="ollama"
+$env:OLLAMA_BASE_URL="http://localhost:11434"
+$env:LLM_MODEL="llama3.2:3b"
+$env:LLM_TIMEOUT_MS="15000"
+.\start-backend.ps1
+```
+
+For a public demo/deployment with Gemini:
+
+```powershell
+$env:LLM_PROVIDER="gemini"
+$env:GEMINI_API_KEY="your-gemini-api-key"
+$env:LLM_MODEL="gemini-1.5-flash"
+$env:LLM_TIMEOUT_MS="15000"
+.\start-backend.ps1
+```
+
+For a public demo/deployment with OpenAI:
 
 ```powershell
 $env:LLM_PROVIDER="openai"
 $env:OPENAI_API_KEY="sk-your-openai-key"
 $env:LLM_MODEL="gpt-4o-mini"
-.\start-backend.ps1
-```
-
-To connect the same chatbot to Gemini:
-
-```powershell
-$env:LLM_PROVIDER="gemini"
-$env:GEMINI_API_KEY="your-gemini-api-key"
-$env:LLM_MODEL="gemini-2.5-flash"
-.\start-backend.ps1
-```
-
-To use a local Ollama model:
-
-```powershell
-$env:LLM_PROVIDER="ollama"
-$env:LLM_MODEL="llama3.2:3b"
-$env:OLLAMA_BASE_URL="http://localhost:11434"
+$env:LLM_TIMEOUT_MS="15000"
 .\start-backend.ps1
 ```
 
@@ -179,7 +184,9 @@ $env:LLM_MODEL="your-local-model-name"
 .\start-backend.ps1
 ```
 
-If `LLM_PROVIDER` is left as `local`, the chatbox uses backend analytics only. If `LLM_PROVIDER` is set to OpenAI/Gemini without an API key, the backend returns a clean configuration message.
+If `LLM_PROVIDER` is left as `local`, the chatbox uses backend analytics only. If `LLM_PROVIDER=ollama` and Ollama is not running, the backend returns `Local LLM service is not running. Please start Ollama and try again.` If `LLM_PROVIDER=gemini` or `LLM_PROVIDER=openai` has no API key, the backend returns `AI service is not configured. Please add API key in backend environment variables.`
+
+Public users do not need Ollama when the deployed backend is configured with Gemini or OpenAI. Ollama is only required for local/offline LLM mode.
 
 For real Gmail email OTP delivery, use a Gmail App Password:
 
