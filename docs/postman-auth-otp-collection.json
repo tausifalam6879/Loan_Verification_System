@@ -1,0 +1,253 @@
+{
+  "info": {
+    "name": "Loan Verification Auth and OTP",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "email",
+      "value": "demo.user@gmail.com"
+    },
+    {
+      "key": "password",
+      "value": "password123"
+    },
+    {
+      "key": "mobile",
+      "value": "+919999999999"
+    },
+    {
+      "key": "otp",
+      "value": "123456"
+    },
+    {
+      "key": "otpToken",
+      "value": ""
+    },
+    {
+      "key": "jwt",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Backend Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/users/test"
+      }
+    },
+    {
+      "name": "Auth Config",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/users/auth-config"
+      }
+    },
+    {
+      "name": "Request Register Email OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"channel\": \"EMAIL\",\n  \"purpose\": \"REGISTER\"\n}"
+        },
+        "url": "{{baseUrl}}/api/users/request-otp"
+      }
+    },
+    {
+      "name": "Verify Register Email OTP",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json.otpToken) pm.collectionVariables.set('otpToken', json.otpToken);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"channel\": \"EMAIL\",\n  \"purpose\": \"REGISTER\",\n  \"otp\": \"{{otp}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/users/verify-otp"
+      }
+    },
+    {
+      "name": "Register With Email And Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Demo User\",\n  \"email\": \"{{email}}\",\n  \"mobile\": \"{{mobile}}\",\n  \"password\": \"{{password}}\",\n  \"role\": \"USER\",\n  \"otpToken\": \"{{otpToken}}\",\n  \"otpChannel\": \"EMAIL\"\n}"
+        },
+        "url": "{{baseUrl}}/api/users/register"
+      }
+    },
+    {
+      "name": "Login With Email And Password",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json.token) pm.collectionVariables.set('jwt', json.token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/users/login"
+      }
+    },
+    {
+      "name": "Request Login Email OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"channel\": \"EMAIL\",\n  \"purpose\": \"LOGIN\"\n}"
+        },
+        "url": "{{baseUrl}}/api/users/request-otp"
+      }
+    },
+    {
+      "name": "Verify Login Email OTP",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json.otpToken) pm.collectionVariables.set('otpToken', json.otpToken);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"channel\": \"EMAIL\",\n  \"purpose\": \"LOGIN\",\n  \"otp\": \"{{otp}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/users/verify-otp"
+      }
+    },
+    {
+      "name": "Login With Verified Email OTP",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json.token) pm.collectionVariables.set('jwt', json.token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"channel\": \"EMAIL\",\n  \"otpToken\": \"{{otpToken}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/users/login"
+      }
+    },
+    {
+      "name": "Request Mobile OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mobile\": \"{{mobile}}\",\n  \"channel\": \"MOBILE\",\n  \"purpose\": \"LOGIN\"\n}"
+        },
+        "url": "{{baseUrl}}/api/users/request-otp"
+      }
+    },
+    {
+      "name": "Request WhatsApp OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mobile\": \"{{mobile}}\",\n  \"channel\": \"WHATSAPP\",\n  \"purpose\": \"LOGIN\"\n}"
+        },
+        "url": "{{baseUrl}}/api/users/request-otp"
+      }
+    }
+  ]
+}

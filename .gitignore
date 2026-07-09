@@ -33,6 +33,13 @@ build/
 .vscode/
 node_modules/
 
+### Runtime/generated local files ###
+/data/
+frontend-structure.txt
+frontend/frontend-structure.txt
+*.log
+frontend/*.log
+
 ### Environment files ###
 .env
 .env.*

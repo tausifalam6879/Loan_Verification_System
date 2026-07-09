@@ -1,0 +1,79 @@
+description,category
+zomato dinner,Food
+swiggy order,Food
+restaurant lunch,Food
+tea coffee,Food
+grocery vegetables,Food
+dominos pizza,Food
+canteen meal,Food
+breakfast snacks,Food
+office lunch,Food
+burger king meal,Food
+uber ride,Travel
+ola cab,Travel
+metro recharge,Travel
+train ticket,Travel
+bus pass,Travel
+petrol fuel,Travel
+flight booking,Travel
+parking toll,Travel
+auto fare,Travel
+railway reservation,Travel
+jio recharge,Bills
+electricity bill,Bills
+wifi broadband,Bills
+mobile postpaid,Bills
+water bill,Bills
+gas cylinder,Bills
+credit card payment,Bills
+rent emi insurance,Bills
+dth recharge,Bills
+internet bill,Bills
+amazon order,Shopping
+flipkart shopping,Shopping
+myntra clothes,Shopping
+shoes purchase,Shopping
+electronics mobile,Shopping
+mall purchase,Shopping
+gift purchase,Shopping
+household items,Shopping
+watch purchase,Shopping
+headphones order,Shopping
+doctor visit,Health
+medicine pharmacy,Health
+hospital bill,Health
+health checkup,Health
+clinic consultation,Health
+lab test,Health
+medical insurance,Health
+dental care,Health
+eye checkup,Health
+physiotherapy session,Health
+movie ticket,Entertainment
+netflix subscription,Entertainment
+spotify premium,Entertainment
+game purchase,Entertainment
+concert ticket,Entertainment
+outing,Entertainment
+youtube premium,Entertainment
+hotstar subscription,Entertainment
+bowling night,Entertainment
+theme park ticket,Entertainment
+course fee,Education
+book purchase,Education
+exam fee,Education
+udemy course,Education
+college fee,Education
+tuition,Education
+stationery,Education
+certification,Education
+school fee,Education
+online class,Education
+miscellaneous,Other
+cash withdrawal,Other
+personal expense,Other
+service charge,Other
+maintenance,Other
+unknown payment,Other
+charity donation,Other
+bank charges,Other

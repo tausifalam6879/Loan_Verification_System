@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,6 +15,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 
 @Configuration
@@ -30,11 +32,17 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
+                        )
+                )
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Login required or session expired")
                         )
                 )
 
@@ -50,6 +58,7 @@ public class SecurityConfig {
                                 "/api/users/verify-otp",
                                 "/api/users/auth-config",
                                 "/api/users/test",
+                                "/h2-console/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
                         ).permitAll()
@@ -59,7 +68,8 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 "/api/loans/**",
-                                "/api/expenses/**"
+                                "/api/expenses/**",
+                                "/api/ai/**"
                         )
                         .hasAnyRole("USER", "ADMIN")
 
@@ -87,7 +97,9 @@ public class SecurityConfig {
                 "http://localhost:3000",
                 "http://127.0.0.1:3000",
                 "http://localhost:3001",
-                "http://127.0.0.1:3001"
+                "http://127.0.0.1:3001",
+                "http://192.168.*.*:3000",
+                "http://192.168.*.*:3001"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));

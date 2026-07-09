@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Box,
   Button,
@@ -13,119 +14,88 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import SendIcon from "@mui/icons-material/Send";
-import { aiTrainingTopics, fixedDepositProducts, mutualFundProducts } from "../data/financialKnowledge";
+import { sendAiChatMessage } from "../services/chatService";
 
-const quickQuestions = [
-  "Mera loan approve hoga kya?",
-  "Kaunse documents chahiye?",
-  "EMI kitni banegi?",
-  "Fraud score high kyu aaya?",
-  "Payment kaise karu?",
-  "Server me saved application kaha milegi?",
-  "Best FD kaise choose karu?",
-  "Mutual fund SIP kya hota hai?",
-  "Mere liye kaunsa loan better hai?",
-  "Safe EMI limit kya honi chahiye?",
-  "Expense analysis batao"
+const defaultQuestions = [
+  "Mera sabse zyada kharcha kis category me hua?",
+  "Last 5 transactions batao",
+  "Mujhe saving improve karne ke liye 3 tips do",
+  "Is month total expense kitna hai?",
+  "Kya koi unusual spending hai?"
 ];
 
-const AiAssistant = ({ balance, totalIncome, totalExpense }) => {
+const pageFromPath = (pathname = "") => {
+  if (pathname.includes("expense") || pathname.includes("transactions")) return "expenses";
+  if (pathname.includes("loan")) return "loans";
+  if (pathname.includes("payment")) return "payments";
+  if (pathname.includes("application")) return "applications";
+  if (pathname.includes("investment")) return "investments";
+  return "dashboard";
+};
+
+const AiAssistant = () => {
+  const location = useLocation();
+  const page = useMemo(() => pageFromPath(location.pathname), [location.pathname]);
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [suggestedQuestions, setSuggestedQuestions] = useState(defaultQuestions);
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      text: "Namaste, main FinTrack AI assistant hoon. Loan, documents, EMI, fraud risk aur payment ke questions pooch sakte ho."
+      text: "Hi, main FinTrack AI hoon. Main backend ke actual expense/loan data ko read karke answer karta hoon. Free-form question type karo."
     }
   ]);
 
-  const answerQuestion = (question) => {
-    const text = question.toLowerCase();
-    const trainedTopic = aiTrainingTopics.find((topic) =>
-      topic.keywords.some((keyword) => text.includes(keyword))
-    );
-
-    if (text.includes("fd") || text.includes("fixed deposit") || text.includes("deposit")) {
-      const bankList = fixedDepositProducts
-        .map((item) => `${item.bank}: ${item.rate}, senior ${item.seniorRate}`)
-        .join("; ");
-      return `FD compare karte waqt tenure, rate, senior citizen benefit, premature penalty, TDS aur nominee check karo. Demo data: ${bankList}. Live rate booking se pehle bank site par verify karna zaroori hai.`;
-    }
-
-    if (text.includes("mutual fund") || text.includes("sip") || text.includes("equity") || text.includes("debt")) {
-      const categories = mutualFundProducts
-        .map((item) => `${item.category} (${item.risk}, ${item.horizon})`)
-        .join("; ");
-      return `Mutual funds guaranteed return nahi dete, market linked hote hain. SIP regular investing ka method hai. Categories: ${categories}. Goal, horizon, risk tolerance, expense ratio aur exit load check karo.`;
-    }
-
-    if (trainedTopic) {
-      return trainedTopic.answer;
-    }
-
-    if (text.includes("recommend") || text.includes("kaunsa loan") || text.includes("which loan") || text.includes("better loan")) {
-      const monthlySurplus = Number(totalIncome || 0) - Number(totalExpense || 0);
-      if (monthlySurplus <= 0) {
-        return "Loan recommendation: pehle expenses control karke positive monthly surplus lao. Abhi surplus low hai, isliye new EMI risk badha sakti hai.";
-      }
-      const safeEmi = Math.round(monthlySurplus * 0.35);
-      return `Loan recommendation: agar income stable hai to personal/vehicle loan jaisa shorter tenure option manageable ho sakta hai. Safe EMI approx Rs. ${safeEmi.toLocaleString("en-IN")} tak rakho, aur credit score 700+ ho to HDFC/SBI offers compare karo.`;
-    }
-
-    if (text.includes("safe emi") || text.includes("emi limit") || text.includes("afford")) {
-      const safeEmi = Math.max(0, Math.round((Number(totalIncome || 0) - Number(totalExpense || 0)) * 0.35));
-      return `Safe EMI thumb rule: monthly free cashflow ka 30-35% se upar mat jao. Current dashboard ke hisaab se safe EMI approx Rs. ${safeEmi.toLocaleString("en-IN")} hai.`;
-    }
-
-    if (text.includes("expense analysis") || text.includes("spending analysis") || text.includes("kharcha analysis")) {
-      const expenseRatio = Number(totalIncome || 0) > 0 ? Math.round((Number(totalExpense || 0) / Number(totalIncome || 0)) * 100) : 0;
-      const verdict = expenseRatio > 75 ? "high spending zone" : expenseRatio > 50 ? "moderate spending zone" : "healthy spending zone";
-      return `Expense analysis: income ka ${expenseRatio}% spend ho raha hai, yani ${verdict}. Loan apply karne se pehle emergency buffer aur EMI room check karna smart rahega.`;
-    }
-
-    if (text.includes("approve") || text.includes("approval")) {
-      return `Approval chance income, credit score, existing EMI, fraud score aur documents par depend karta hai. Aapka current dashboard balance Rs. ${Number(balance).toLocaleString("en-IN")} hai; loan form submit karte hi backend automatic verification status dega.`;
-    }
-
-    if (text.includes("document") || text.includes("aadhaar") || text.includes("pan")) {
-      return "Required documents: Aadhaar, PAN, bank account, IFSC, nominee details, address, pincode, income details aur optional passport photo. System ab Aadhaar/PAN/IFSC/pincode format automatically verify karta hai.";
-    }
-
-    if (text.includes("emi")) {
-      return "EMI loan amount, interest rate aur tenure se calculate hoti hai. Loan card select karke amount/tenure change karo, EMI preview turant update ho jayega.";
-    }
-
-    if (text.includes("fraud") || text.includes("risk")) {
-      return "Fraud score high ho sakta hai agar KYC mismatch, duplicate Aadhaar/PAN/email/phone, low credit score, high loan-to-income ratio, repeated failed attempts ya high device/IP risk mile.";
-    }
-
-    if (text.includes("payment") || text.includes("pay") || text.includes("fee")) {
-      return "Application save hone ke baad Pay Processing Fee button dikhega. Demo gateway Google Pay, PhonePe, Any UPI App, Card aur Net Banking se payment status PAID mark karta hai.";
-    }
-
-    if (text.includes("saved") || text.includes("server") || text.includes("application kaha") || text.includes("applications")) {
-      return "Submit to Server ke baad application Saved Loan Applications card me dikhegi. User endpoint: GET http://localhost:8081/api/loans/my-applications. Admin endpoint: GET http://localhost:8081/api/admin/applications.";
-    }
-
-    if (text.includes("income") || text.includes("expense") || text.includes("balance")) {
-      return `Current income Rs. ${Number(totalIncome).toLocaleString("en-IN")}, expense Rs. ${Number(totalExpense).toLocaleString("en-IN")}, balance Rs. ${Number(balance).toLocaleString("en-IN")}.`;
-    }
-
-    return "Main trained demo knowledge se loan eligibility, documents, EMI, fraud risk, payment gateway, FD, mutual funds, SIP aur application status ke jawab de sakta hoon. Live financial rates ke liye final booking se pehle bank/AMC source verify karo.";
-  };
-
-  const sendMessage = (text = message) => {
+  const sendMessage = async (text = message) => {
     const trimmed = text.trim();
-    if (!trimmed) {
-      return;
-    }
-    setMessages((current) => [
-      ...current,
-      { role: "user", text: trimmed },
-      { role: "assistant", text: answerQuestion(trimmed) }
-    ]);
+    if (!trimmed || loading) return;
+
+    const recentMessages = messages
+      .slice(-8)
+      .map((item) => ({ role: item.role, text: item.text }));
+
+    setMessages((current) => [...current, { role: "user", text: trimmed }]);
     setMessage("");
     setOpen(true);
+    setLoading(true);
+
+    try {
+      const response = await sendAiChatMessage({
+        message: trimmed,
+        page,
+        conversationId: "dashboard-session",
+        recentMessages
+      });
+
+      if (response?.suggestedQuestions?.length) {
+        setSuggestedQuestions(response.suggestedQuestions);
+      }
+
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          text: response?.answer || "Mujhe backend se answer nahi mila. Please dobara try karo.",
+          provider: response?.liveProvider
+            ? `${response.provider || "LLM"} + your data`
+            : response?.provider === "local-analytics"
+              ? "Backend analytics + your data"
+              : response?.provider || "Backend AI"
+        }
+      ]);
+    } catch (error) {
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          text: "AI backend response nahi de paaya. Backend running hai ya login session valid hai, ye check karo.",
+          provider: "error"
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -156,51 +126,95 @@ const AiAssistant = ({ balance, totalIncome, totalExpense }) => {
             position: "fixed",
             right: { xs: 12, sm: 24 },
             bottom: { xs: 12, sm: 24 },
-            width: { xs: "calc(100vw - 24px)", sm: 380 },
+            width: { xs: "calc(100vw - 24px)", sm: 420 },
             zIndex: 1300,
             borderRadius: 2,
-            border: "1px solid rgba(13, 148, 136, 0.24)",
-            boxShadow: "0 20px 60px rgba(15, 23, 42, 0.28)"
+            border: "1px solid rgba(45, 212, 191, 0.26)",
+            bgcolor: "#111827",
+            color: "#f8fafc",
+            boxShadow: "0 20px 60px rgba(15, 23, 42, 0.36)"
           }}
         >
           <CardContent sx={{ p: 2 }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.75 }}>
               <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                <PsychologyIcon color="primary" />
-                <Typography sx={{ fontWeight: 900 }}>FinTrack AI</Typography>
+                <PsychologyIcon sx={{ color: "#2dd4bf" }} />
+                <Box>
+                  <Typography sx={{ fontWeight: 900 }}>FinTrack AI</Typography>
+                  <Typography variant="caption" sx={{ color: "#99f6e4" }}>
+                    Powered by LLM + your expense data
+                  </Typography>
+                </Box>
               </Box>
-              <IconButton onClick={() => setOpen(false)} size="small">
+              <IconButton onClick={() => setOpen(false)} size="small" sx={{ color: "#f8fafc" }}>
                 <CloseIcon />
               </IconButton>
             </Box>
 
-            <Stack spacing={1} sx={{ maxHeight: 300, overflowY: "auto", pr: 0.5 }}>
+            <Stack
+              spacing={1}
+              sx={{
+                maxHeight: 330,
+                overflowY: "auto",
+                pr: 0.5,
+                "&::-webkit-scrollbar": { width: 8 },
+                "&::-webkit-scrollbar-thumb": { bgcolor: "rgba(148, 163, 184, 0.55)", borderRadius: 2 }
+              }}
+            >
               {messages.map((item, index) => (
                 <Box
                   key={`${item.role}-${index}`}
                   sx={{
                     alignSelf: item.role === "user" ? "flex-end" : "flex-start",
-                    maxWidth: "88%",
+                    maxWidth: "90%",
                     px: 1.5,
                     py: 1,
                     borderRadius: 2,
-                    bgcolor: item.role === "user" ? "primary.main" : "action.hover",
-                    color: item.role === "user" ? "#ffffff" : "text.primary"
+                    bgcolor: item.role === "user" ? "#0d9488" : "#263244",
+                    color: "#f8fafc",
+                    whiteSpace: "pre-line",
+                    overflowWrap: "anywhere"
                   }}
                 >
                   <Typography variant="body2">{item.text}</Typography>
+                  {item.provider && (
+                    <Typography variant="caption" sx={{ display: "block", mt: 0.5, color: "#99f6e4" }}>
+                      {item.provider}
+                    </Typography>
+                  )}
                 </Box>
               ))}
+              {loading && (
+                <Box
+                  sx={{
+                    alignSelf: "flex-start",
+                    maxWidth: "90%",
+                    px: 1.5,
+                    py: 1,
+                    borderRadius: 2,
+                    bgcolor: "#263244"
+                  }}
+                >
+                  <Typography variant="body2">Thinking with your dashboard data...</Typography>
+                </Box>
+              )}
             </Stack>
 
-            <Stack direction="row" flexWrap="wrap" gap={0.75} sx={{ my: 1.5 }}>
-              {quickQuestions.map((question) => (
+            <Stack direction="row" flexWrap="wrap" gap={0.75} sx={{ my: 1.25 }}>
+              {suggestedQuestions.map((question) => (
                 <Chip
                   key={question}
                   label={question}
                   onClick={() => sendMessage(question)}
                   size="small"
-                  sx={{ fontWeight: 700 }}
+                  sx={{
+                    maxWidth: "100%",
+                    fontWeight: 800,
+                    bgcolor: "rgba(45, 212, 191, 0.12)",
+                    color: "#ccfbf1",
+                    border: "1px solid rgba(45, 212, 191, 0.28)",
+                    "& .MuiChip-label": { overflow: "hidden", textOverflow: "ellipsis" }
+                  }}
                 />
               ))}
             </Stack>
@@ -209,8 +223,17 @@ const AiAssistant = ({ balance, totalIncome, totalExpense }) => {
               <TextField
                 fullWidth
                 size="small"
-                placeholder="Question type karo..."
+                placeholder="Ask about your spending..."
                 value={message}
+                disabled={loading}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    color: "#f8fafc",
+                    bgcolor: "rgba(15, 23, 42, 0.72)",
+                    "& fieldset": { borderColor: "rgba(148, 163, 184, 0.38)" }
+                  },
+                  "& input::placeholder": { color: "#cbd5e1", opacity: 1 }
+                }}
                 onChange={(event) => setMessage(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
@@ -218,7 +241,7 @@ const AiAssistant = ({ balance, totalIncome, totalExpense }) => {
                   }
                 }}
               />
-              <IconButton color="primary" onClick={() => sendMessage()}>
+              <IconButton color="primary" onClick={() => sendMessage()} disabled={loading}>
                 <SendIcon />
               </IconButton>
             </Box>

@@ -8,8 +8,11 @@ import lombok.Data;
 public class OtpVerifyRequestDTO {
 
     @Email(message = "Invalid email format")
-    @NotBlank(message = "Email is required")
     private String email;
+
+    private String mobile;
+
+    private String channel = "EMAIL";
 
     @NotBlank(message = "OTP purpose is required")
     private String purpose;

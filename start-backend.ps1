@@ -1,4 +1,8 @@
-Set-Location "C:\Users\hp\Downloads\VerificationSystem (1)\VerificationSystem"
-$java = "C:\Program Files\Java\jdk-24\bin\java.exe"
-$jar = "C:\Users\hp\Downloads\VerificationSystem (1)\VerificationSystem\target\VerificationSystem-0.0.1-SNAPSHOT.jar"
-& $java -jar $jar *> "target\backend-run.log"
+$projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $projectRoot
+$java = "java"
+if (-not (Get-Command java -ErrorAction SilentlyContinue) -and (Test-Path "$env:USERPROFILE\.jdks\openjdk-25.0.2\bin\java.exe")) {
+    $java = "$env:USERPROFILE\.jdks\openjdk-25.0.2\bin\java.exe"
+}
+$jar = Join-Path $projectRoot "target\VerificationSystem-0.0.1-SNAPSHOT.jar"
+& $java -jar $jar @args *> "target\backend-run.log"

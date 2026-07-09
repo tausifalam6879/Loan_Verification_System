@@ -1,13 +1,18 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
+  Stack,
   TextField,
   Typography
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import { predictExpenseCategoryWithMl } from "../services/aiExpenseService";
+import { predictExpenseCategory } from "../utils/expenseIntelligence";
 
 const initialForm = {
   amount: "",
@@ -17,6 +22,54 @@ const initialForm = {
 
 const ExpenseForm = ({ onAddExpense, loading }) => {
   const [form, setForm] = useState(initialForm);
+  const [categoryTouched, setCategoryTouched] = useState(false);
+  const [mlPrediction, setMlPrediction] = useState(null);
+
+  const fallbackPrediction = useMemo(
+    () => predictExpenseCategory(form.description),
+    [form.description]
+  );
+  const prediction = mlPrediction || fallbackPrediction;
+  const predictionSource = mlPrediction?.source === "python-ml-service" ? "Python ML model" : "Local fallback";
+
+  useEffect(() => {
+    const description = form.description.trim();
+
+    if (description.length < 2) {
+      setMlPrediction(null);
+      return undefined;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const result = await predictExpenseCategoryWithMl(description);
+        if (!result?.category) {
+          setMlPrediction(null);
+          return;
+        }
+
+        const normalized = {
+          category: result.category,
+          confidence: Number(result.confidence || 0),
+          source: result.source || "python-ml-service",
+          modelVersion: result.modelVersion || result.model_version
+        };
+
+        setMlPrediction(normalized);
+
+        if (!categoryTouched && normalized.confidence >= 0.55) {
+          setForm((current) => ({
+            ...current,
+            category: normalized.category
+          }));
+        }
+      } catch (error) {
+        setMlPrediction(null);
+      }
+    }, 450);
+
+    return () => clearTimeout(timeoutId);
+  }, [categoryTouched, form.description]);
 
   const handleChange = (field) => (event) => {
     let value = event.target.value;
@@ -29,9 +82,35 @@ const ExpenseForm = ({ onAddExpense, loading }) => {
       }
     }
     
+    if (field === "category") {
+      setCategoryTouched(true);
+    }
+
+    setForm((current) => {
+      const next = {
+        ...current,
+        [field]: value
+      };
+
+      if (
+        field === "description" &&
+        !categoryTouched
+      ) {
+        const suggested = predictExpenseCategory(value);
+        if (suggested.confidence >= 0.55) {
+          next.category = suggested.category;
+        }
+      }
+
+      return next;
+    });
+  };
+
+  const applyPrediction = () => {
+    setCategoryTouched(true);
     setForm((current) => ({
       ...current,
-      [field]: value
+      category: prediction.category
     }));
   };
 
@@ -60,6 +139,7 @@ const ExpenseForm = ({ onAddExpense, loading }) => {
     const success = await onAddExpense(expense);
     if (success) {
       setForm(initialForm);
+      setCategoryTouched(false);
     }
   };
 
@@ -96,13 +176,40 @@ const ExpenseForm = ({ onAddExpense, loading }) => {
 
           <TextField
             fullWidth
-            required
             label="Category"
             placeholder="Food, Rent, EMI"
             value={form.category}
             onChange={handleChange("category")}
             sx={inputStyle}
           />
+
+          {form.description.trim() && (
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{ mb: 1.5, flexWrap: "wrap", rowGap: 1 }}
+            >
+              <Chip
+                icon={<AutoAwesomeIcon />}
+                label={`AI predicts: ${prediction.category}`}
+                color={prediction.confidence >= 0.55 ? "primary" : "default"}
+                variant="outlined"
+                sx={{ fontWeight: 800, bgcolor: "rgba(255,255,255,0.76)" }}
+              />
+              <Button
+                size="small"
+                onClick={applyPrediction}
+                disabled={prediction.confidence === 0}
+                sx={{ textTransform: "none", fontWeight: 800 }}
+              >
+                Use category
+              </Button>
+              <Typography variant="caption" sx={{ color: "#475569", fontWeight: 700 }}>
+                {predictionSource} - Confidence {Math.round(prediction.confidence * 100)}%
+              </Typography>
+            </Stack>
+          )}
 
           <TextField
             fullWidth

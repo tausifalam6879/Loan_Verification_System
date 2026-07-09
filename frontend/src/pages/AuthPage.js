@@ -8,14 +8,20 @@ import {
   CardContent,
   Chip,
   CssBaseline,
+  Divider,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography
 } from "@mui/material";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+import EmailIcon from "@mui/icons-material/Email";
 import LoginIcon from "@mui/icons-material/Login";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import PhoneAndroidIcon from "@mui/icons-material/PhoneAndroid";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { getAuthConfig, login, register, requestOtp, verifyOtp } from "../services/authService";
 
 const AuthPage = ({ mode = "login" }) => {
@@ -24,6 +30,7 @@ const AuthPage = ({ mode = "login" }) => {
   const [form, setForm] = useState({
     fullName: "",
     email: "",
+    mobile: "",
     password: "",
     role: "USER",
     otp: "",
@@ -35,7 +42,14 @@ const AuthPage = ({ mode = "login" }) => {
   const [warning, setWarning] = useState("");
   const [otpRequired, setOtpRequired] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
-  const [otpEnabled, setOtpEnabled] = useState(false);
+  const [authConfig, setAuthConfig] = useState({
+    otpEnabled: true,
+    emailOtpEnabled: true,
+    mobileOtpEnabled: true,
+    whatsappOtpEnabled: true,
+    passwordLoginEnabled: true
+  });
+  const [authMethod, setAuthMethod] = useState("password");
 
   const otpPurpose = isRegister ? "REGISTER" : "LOGIN";
 
@@ -45,15 +59,21 @@ const AuthPage = ({ mode = "login" }) => {
     getAuthConfig()
       .then((config) => {
         if (isMounted) {
-          const enabled = Boolean(config?.otpEnabled);
-          setOtpEnabled(enabled);
-          setOtpRequired(enabled);
+          setAuthConfig((current) => ({
+            ...current,
+            ...config
+          }));
         }
       })
       .catch(() => {
         if (isMounted) {
-          setOtpEnabled(false);
-          setOtpRequired(false);
+          setAuthConfig((current) => ({
+            ...current,
+            otpEnabled: true,
+            emailOtpEnabled: true,
+            mobileOtpEnabled: true,
+            whatsappOtpEnabled: true
+          }));
         }
       });
 
@@ -66,6 +86,36 @@ const AuthPage = ({ mode = "login" }) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const getErrorMessage = (error) => {
+    if (!error.response) {
+      return "Backend is not reachable on http://localhost:8081. Start Spring Boot backend first.";
+    }
+
+    return error.response?.data?.message || "Authentication failed. Check email, password and backend.";
+  };
+
+  const isOtpMethod = ["emailOtp", "mobileOtp", "whatsappOtp"].includes(authMethod);
+
+  const otpChannel = () => {
+    if (authMethod === "mobileOtp") {
+      return "MOBILE";
+    }
+    if (authMethod === "whatsappOtp") {
+      return "WHATSAPP";
+    }
+    return "EMAIL";
+  };
+
+  const otpLabel = () => {
+    if (authMethod === "mobileOtp") {
+      return "Mobile OTP";
+    }
+    if (authMethod === "whatsappOtp") {
+      return "WhatsApp OTP";
+    }
+    return "Email OTP";
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
@@ -74,16 +124,27 @@ const AuthPage = ({ mode = "login" }) => {
     setWarning("");
 
     try {
+      if (isOtpMethod && !form.otpToken) {
+        setError(`Verify ${otpLabel()} first, then continue.`);
+        return;
+      }
+
       if (isRegister) {
-        await register({ ...form, role: "USER", otpToken: form.otpToken });
+        await register({ ...form, role: "USER", otpToken: form.otpToken, otpChannel: otpChannel() });
         setSuccess("Account created. Login with the same email and password.");
         setForm((current) => ({ ...current, password: "", otp: "", otpToken: "" }));
       } else {
-        await login({ email: form.email, password: form.password, otpToken: form.otpToken });
+        await login({
+          email: form.email,
+          mobile: form.mobile,
+          channel: authMethod === "password" ? "PASSWORD" : otpChannel(),
+          password: authMethod === "password" ? form.password : "",
+          otpToken: isOtpMethod ? form.otpToken : ""
+        });
         navigate(localStorage.getItem("role") === "ADMIN" ? "/admin" : "/", { replace: true });
       }
     } catch (error) {
-      setError(error.response?.data?.message || "Authentication failed. Check email, password and backend.");
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -95,22 +156,21 @@ const AuthPage = ({ mode = "login" }) => {
     setSuccess("");
     setWarning("");
 
-    if (!otpEnabled) {
-      setOtpLoading(false);
-      return;
-    }
-
     try {
-      const response = await requestOtp({ email: form.email, purpose: otpPurpose });
+      const response = await requestOtp({
+        email: form.email,
+        mobile: form.mobile,
+        channel: otpChannel(),
+        purpose: otpPurpose
+      });
       setOtpRequired(response.otpRequired);
-      setOtpEnabled(response.otpRequired);
       if (response.otpRequired) {
         setSuccess(response.message);
       } else {
-        setWarning("");
+        setWarning(response.message || "Email OTP is disabled in backend configuration.");
       }
     } catch (error) {
-      setError(error.response?.data?.message || "Could not request OTP.");
+      setError(getErrorMessage(error));
     } finally {
       setOtpLoading(false);
     }
@@ -122,26 +182,39 @@ const AuthPage = ({ mode = "login" }) => {
     setSuccess("");
     setWarning("");
 
-    if (!otpEnabled) {
-      setOtpLoading(false);
-      return;
-    }
-
     try {
-      const response = await verifyOtp({ email: form.email, purpose: otpPurpose, otp: form.otp });
+      const response = await verifyOtp({
+        email: form.email,
+        mobile: form.mobile,
+        channel: otpChannel(),
+        purpose: otpPurpose,
+        otp: form.otp
+      });
       updateForm("otpToken", response.otpToken || "");
       setOtpRequired(response.otpRequired);
-      setOtpEnabled(response.otpRequired);
       if (response.otpRequired) {
         setSuccess(response.message);
       } else {
-        setWarning("");
+        setWarning(response.message || "Email OTP is disabled in backend configuration.");
       }
     } catch (error) {
       setError(error.response?.data?.message || "OTP verification failed.");
     } finally {
       setOtpLoading(false);
     }
+  };
+
+  const handleAuthMethodChange = (event, value) => {
+    if (!value) {
+      return;
+    }
+
+    setAuthMethod(value);
+    setError("");
+    setSuccess("");
+    setWarning("");
+    setOtpRequired(false);
+    setForm((current) => ({ ...current, otp: "", otpToken: "" }));
   };
 
   return (
@@ -197,6 +270,49 @@ const AuthPage = ({ mode = "login" }) => {
               {warning && <Alert severity="warning">{warning}</Alert>}
               {success && <Alert severity="success">{success}</Alert>}
 
+              <ToggleButtonGroup
+                exclusive
+                fullWidth
+                value={authMethod}
+                onChange={handleAuthMethodChange}
+                size="small"
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(4, 1fr)" },
+                  gap: 1,
+                  "& .MuiToggleButtonGroup-grouped": {
+                    border: "1px solid rgba(148, 163, 184, 0.38)",
+                    borderRadius: "8px !important",
+                    m: 0,
+                    textTransform: "none",
+                    fontWeight: 800
+                  }
+                }}
+              >
+                <ToggleButton value="password" disabled={!authConfig.passwordLoginEnabled}>
+                  <LoginIcon fontSize="small" sx={{ mr: 0.75 }} />
+                  Password
+                </ToggleButton>
+                <ToggleButton value="emailOtp">
+                  <EmailIcon fontSize="small" sx={{ mr: 0.75 }} />
+                  Email OTP
+                </ToggleButton>
+                <ToggleButton value="mobileOtp">
+                  <PhoneAndroidIcon fontSize="small" sx={{ mr: 0.75 }} />
+                  Mobile
+                </ToggleButton>
+                <ToggleButton value="whatsappOtp">
+                  <WhatsAppIcon fontSize="small" sx={{ mr: 0.75 }} />
+                  WhatsApp
+                </ToggleButton>
+              </ToggleButtonGroup>
+
+              {isOtpMethod && !authConfig.otpEnabled && (
+                <Alert severity="info">
+                  OTP is available after starting backend with APP_OTP_ENABLED=true. Password login still works.
+                </Alert>
+              )}
+
               {isRegister && (
                 <TextField
                   label="Full name"
@@ -207,28 +323,44 @@ const AuthPage = ({ mode = "login" }) => {
                 />
               )}
 
-              <TextField
-                label="Email"
-                type="email"
-                value={form.email}
-                onChange={(event) => updateForm("email", event.target.value)}
-                required
-                fullWidth
-              />
+              {(isRegister || !["mobileOtp", "whatsappOtp"].includes(authMethod)) && (
+                <TextField
+                  label="Email"
+                  type="email"
+                  value={form.email}
+                  onChange={(event) => updateForm("email", event.target.value)}
+                  required
+                  fullWidth
+                />
+              )}
 
-              <TextField
-                label="Password"
-                type="password"
-                value={form.password}
-                onChange={(event) => updateForm("password", event.target.value)}
-                required
-                fullWidth
-              />
+              {(isRegister || ["mobileOtp", "whatsappOtp"].includes(authMethod)) && (
+                <TextField
+                  label={authMethod === "whatsappOtp" ? "WhatsApp number" : "Mobile number"}
+                  value={form.mobile}
+                  onChange={(event) => updateForm("mobile", event.target.value)}
+                  fullWidth
+                  required={["mobileOtp", "whatsappOtp"].includes(authMethod)}
+                />
+              )}
 
-              {otpEnabled && (
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+              {(authMethod === "password" || isRegister) && (
+                <TextField
+                  label="Password"
+                  type="password"
+                  value={form.password}
+                  onChange={(event) => updateForm("password", event.target.value)}
+                  required={authMethod === "password" || isRegister}
+                  fullWidth
+                />
+              )}
+
+              {isOtpMethod && (
+                <>
+                  <Divider />
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                   <TextField
-                    label="Email OTP"
+                    label={otpLabel()}
                     value={form.otp}
                     onChange={(event) => updateForm("otp", event.target.value)}
                     fullWidth
@@ -238,7 +370,10 @@ const AuthPage = ({ mode = "login" }) => {
                     type="button"
                     variant="outlined"
                     onClick={handleRequestOtp}
-                    disabled={otpLoading || !form.email}
+                    disabled={
+                      otpLoading ||
+                      (authMethod === "emailOtp" ? !form.email : !form.mobile)
+                    }
                     sx={{ minWidth: 120, textTransform: "none", fontWeight: 900 }}
                   >
                     Send OTP
@@ -253,10 +388,11 @@ const AuthPage = ({ mode = "login" }) => {
                   >
                     Verify
                   </Button>
-                </Stack>
+                  </Stack>
+                </>
               )}
 
-              {otpEnabled && form.otpToken && (
+              {isOtpMethod && form.otpToken && (
                 <Chip
                   icon={<VerifiedUserIcon />}
                   label="OTP verified"

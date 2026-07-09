@@ -36,7 +36,9 @@ public class UserService {
     }
 
     public UserResponseDTO registerUser(UserRequestDTO request) {
-        otpService.validateToken(request.getEmail(), "REGISTER", request.getOtpToken());
+        if (hasText(request.getOtpToken())) {
+            otpService.validateToken(request.getEmail(), request.getMobile(), "REGISTER", request.getOtpToken(), tokenChannel(normalizeChannel(request.getOtpChannel())));
+        }
 
         User existingUser = userRepository.findByEmail(request.getEmail());
 
@@ -44,10 +46,16 @@ public class UserService {
             throw new RuntimeException("Email already registered");
         }
 
+        String normalizedMobile = normalizeMobile(request.getMobile());
+        if (hasText(normalizedMobile) && userRepository.findByMobile(normalizedMobile) != null) {
+            throw new RuntimeException("Mobile number already registered");
+        }
+
         User user = new User();
 
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
+        user.setMobile(hasText(normalizedMobile) ? normalizedMobile : null);
         user.setPassword(
                 passwordEncoder.encode(request.getPassword())
         );
@@ -65,26 +73,33 @@ public class UserService {
     }
 
     public LoginResponseDTO loginUser(LoginRequestDTO request) {
-        otpService.validateToken(request.getEmail(), "LOGIN", request.getOtpToken());
-
-        User user = userRepository.findByEmail(request.getEmail());
+        String channel = normalizeChannel(request.getChannel());
+        User user = findUserForLogin(request, channel);
 
         if (user == null) {
             throw new RuntimeException("Invalid email or password");
         }
 
-        boolean matches = passwordEncoder.matches(
-                request.getPassword(),
-                user.getPassword()
-        );
+        if (hasText(request.getOtpToken())) {
+            otpService.validateToken(request.getEmail(), request.getMobile(), "LOGIN", request.getOtpToken(), tokenChannel(channel));
+            return buildLoginResponse(user);
+        }
+
+        if (!hasText(request.getPassword())) {
+            throw new RuntimeException("Password or verified OTP is required");
+        }
+
+        boolean matches = passwordEncoder.matches(request.getPassword(), user.getPassword());
 
         if (!matches) {
             throw new RuntimeException("Invalid email or password");
         }
 
-        String token = jwtService.generateToken(
-                user.getEmail()
-        );
+        return buildLoginResponse(user);
+    }
+
+    private LoginResponseDTO buildLoginResponse(User user) {
+        String token = jwtService.generateToken(user.getEmail());
 
         return new LoginResponseDTO(
                 token,
@@ -93,25 +108,40 @@ public class UserService {
         );
     }
 
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
     public OtpResponseDTO requestOtp(OtpRequestDTO request) {
-        OtpService.OtpDeliveryResult delivery = otpService.sendOtp(request.getEmail(), request.getPurpose());
+        OtpService.OtpDeliveryResult delivery = otpService.sendOtp(
+                request.getEmail(),
+                request.getMobile(),
+                request.getPurpose(),
+                request.getChannel()
+        );
         String message;
         if (!delivery.otpRequired()) {
             message = "OTP is disabled. Start backend with APP_OTP_ENABLED=true to enable OTP verification.";
-        } else if ("console".equals(delivery.deliveryChannel())) {
-            message = "OTP generated. Email is disabled, so check the backend console for the development OTP.";
+        } else if (delivery.deliveryChannel().startsWith("console")) {
+            message = "OTP generated in development mode. Use OTP " + delivery.developmentOtp() + " or check backend log.";
         } else {
-            message = "OTP sent to email.";
+            message = "OTP sent via " + delivery.deliveryChannel() + ".";
         }
-        return new OtpResponseDTO(message, delivery.otpRequired(), null);
+        return new OtpResponseDTO(message, delivery.otpRequired(), null, delivery.deliveryChannel(), delivery.developmentOtp());
     }
 
     public OtpResponseDTO verifyOtp(OtpVerifyRequestDTO request) {
-        String token = otpService.verifyOtp(request.getEmail(), request.getPurpose(), request.getOtp());
+        String token = otpService.verifyOtp(
+                request.getEmail(),
+                request.getMobile(),
+                request.getPurpose(),
+                request.getOtp(),
+                request.getChannel()
+        );
         String message = otpService.isOtpEnabled()
                 ? "OTP verified."
                 : "OTP is disabled for this environment.";
-        return new OtpResponseDTO(message, otpService.isOtpEnabled(), token);
+        return new OtpResponseDTO(message, otpService.isOtpEnabled(), token, normalizeChannel(request.getChannel()).toLowerCase(), null);
     }
 
     public boolean isOtpEnabled() {
@@ -139,6 +169,7 @@ public class UserService {
         response.setId(user.getId());
         response.setFullName(user.getFullName());
         response.setEmail(user.getEmail());
+        response.setMobile(user.getMobile());
         response.setRole(user.getRole());
         response.setTotalApplications((long) user.getLoanApplications().size());
         response.setCreditScore(user.getLoanApplications().stream()
@@ -148,5 +179,35 @@ public class UserService {
                 .orElse(null));
 
         return response;
+    }
+
+    private User findUserForLogin(LoginRequestDTO request, String channel) {
+        if ("MOBILE".equals(channel) || "WHATSAPP".equals(channel)) {
+            return userRepository.findByMobile(normalizeMobile(request.getMobile()));
+        }
+
+        return userRepository.findByEmail(request.getEmail());
+    }
+
+    private String normalizeChannel(String channel) {
+        String normalized = channel == null ? "PASSWORD" : channel.trim().toUpperCase();
+        if ("EMAILOTP".equals(normalized) || "EMAIL_OTP".equals(normalized)) {
+            return "EMAIL";
+        }
+        return normalized;
+    }
+
+    private String tokenChannel(String channel) {
+        if ("MOBILE".equals(channel)) {
+            return "MOBILE";
+        }
+        if ("WHATSAPP".equals(channel)) {
+            return "WHATSAPP";
+        }
+        return "EMAIL";
+    }
+
+    private String normalizeMobile(String mobile) {
+        return mobile == null ? "" : mobile.replaceAll("[\\s-]", "");
     }
 }

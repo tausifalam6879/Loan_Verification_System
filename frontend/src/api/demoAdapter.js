@@ -1,3 +1,5 @@
+import { predictExpenseCategory } from "../utils/expenseIntelligence";
+
 const demoMode =
   process.env.REACT_APP_DEMO_MODE === "true" ||
   (typeof window !== "undefined" && window.location.hostname.endsWith("github.io"));
@@ -173,7 +175,37 @@ const demoAdapter = async (config) => {
   const body = parseBody(config.data);
 
   if (path === "/users/auth-config" && method === "get") {
-    return response(config, { otpEnabled: false });
+    return response(config, {
+      otpEnabled: true,
+      emailOtpEnabled: true,
+      mobileOtpEnabled: true,
+      whatsappOtpEnabled: true,
+      passwordLoginEnabled: true
+    });
+  }
+
+  if (path === "/users/request-otp" && method === "post") {
+    return response(config, {
+      message: `Demo OTP generated. Use OTP 123456 for ${body.channel || "EMAIL"}.`,
+      otpRequired: true,
+      otpToken: null,
+      deliveryChannel: "demo",
+      developmentOtp: "123456"
+    });
+  }
+
+  if (path === "/users/verify-otp" && method === "post") {
+    if (String(body.otp) !== "123456") {
+      return response(config, { success: false, message: "Invalid or expired OTP" }, 400);
+    }
+
+    return response(config, {
+      message: "OTP verified.",
+      otpRequired: true,
+      otpToken: `demo-otp-token-${Date.now()}`,
+      deliveryChannel: body.channel || "EMAIL",
+      developmentOtp: null
+    });
   }
 
   if (path === "/users/login" && method === "post") {
@@ -189,6 +221,7 @@ const demoAdapter = async (config) => {
       id: 101,
       fullName: body.fullName || "Demo User",
       email: body.email || "demo@fintrack.in",
+      mobile: body.mobile || "",
       role: "USER",
       totalApplications: 0,
       creditScore: null
@@ -236,6 +269,24 @@ const demoAdapter = async (config) => {
     state.expenses = state.expenses.filter((expense) => Number(expense.id) !== id);
     writeState(state);
     return response(config, { success: true, message: "Demo expense deleted", data: null });
+  }
+
+  if (path === "/ai/expenses/category" && method === "post") {
+    const prediction = predictExpenseCategory(body.description || "");
+    return response(config, {
+      success: true,
+      message: "Demo AI category predicted",
+      data: {
+        category: prediction.category,
+        confidence: prediction.confidence,
+        modelVersion: "demo-local-tfidf",
+        source: "demo-fallback",
+        topPredictions: prediction.scores.slice(0, 3).map((item) => ({
+          category: item.category,
+          confidence: item.score
+        }))
+      }
+    });
   }
 
   if (path === "/loans/offers" && method === "get") {

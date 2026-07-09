@@ -19,7 +19,11 @@ const useExpenses = () => {
       setExpenses(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching expenses:", error);
-      setError("Unable to fetch expenses. Please check backend connection.");
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        setError("Session expired. Please login again to fetch expenses.");
+      } else {
+        setError("Unable to fetch expenses. Please check backend connection.");
+      }
     } finally {
       setLoading(false);
     }

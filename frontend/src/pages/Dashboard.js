@@ -22,6 +22,7 @@ import SavingsIcon from "@mui/icons-material/Savings";
 
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import ExpenseForm from "../components/ExpenseForm";
+import ExpenseIntelligencePanel from "../components/ExpenseIntelligencePanel";
 import ExpensePieChart from "../components/ExpensePieChart";
 import InvestmentSection from "../components/InvestmentSection";
 import LoanSection from "../components/loans/LoanSection";
@@ -324,6 +325,11 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
                 </Grid>
               </Grid>
 
+              <ExpenseIntelligencePanel
+                expenses={expenses}
+                totalIncome={totalIncome}
+              />
+
               <Box sx={{ mt: 2.5 }}>
                 <TransactionTable
                   showRecents={showRecents}
@@ -357,11 +363,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
           {activeWorkspace === "investments" && <InvestmentSection />}
         </Box>
 
-        <AiAssistant
-          balance={balance}
-          totalIncome={totalIncome}
-          totalExpense={totalExpense}
-        />
+        <AiAssistant />
 
         {!isOverview && (
           <Button

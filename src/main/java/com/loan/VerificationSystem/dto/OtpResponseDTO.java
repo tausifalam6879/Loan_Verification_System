@@ -9,4 +9,6 @@ public class OtpResponseDTO {
     private String message;
     private boolean otpRequired;
     private String otpToken;
+    private String deliveryChannel;
+    private String developmentOtp;
 }

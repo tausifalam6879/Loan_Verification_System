@@ -38,6 +38,17 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<?> handleRuntime(RuntimeException ex) {
+
+        return ResponseEntity.badRequest()
+                .body(Map.of(
+                        "success", false,
+                        "message", ex.getMessage(),
+                        "timestamp", LocalDateTime.now().toString()
+                ));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGeneric(Exception ex) {
 

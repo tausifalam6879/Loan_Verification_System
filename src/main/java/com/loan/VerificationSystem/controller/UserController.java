@@ -54,8 +54,15 @@ public class UserController {
     }
 
     @GetMapping("/auth-config")
-    public Map<String, Boolean> getAuthConfig() {
-        return Map.of("otpEnabled", userService.isOtpEnabled());
+    public Map<String, Object> getAuthConfig() {
+        boolean otpEnabled = userService.isOtpEnabled();
+        return Map.of(
+                "otpEnabled", otpEnabled,
+                "emailOtpEnabled", otpEnabled,
+                "mobileOtpEnabled", otpEnabled,
+                "whatsappOtpEnabled", otpEnabled,
+                "passwordLoginEnabled", true
+        );
     }
 
     @GetMapping("/me")

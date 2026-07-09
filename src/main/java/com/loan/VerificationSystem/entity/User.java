@@ -1,6 +1,5 @@
 package com.loan.VerificationSystem.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -21,6 +20,9 @@ public class User {
 
     @Column(unique = true, nullable = false)
     private String email;
+
+    @Column(unique = true)
+    private String mobile;
 
     @JsonIgnore
     @Column(nullable = false)

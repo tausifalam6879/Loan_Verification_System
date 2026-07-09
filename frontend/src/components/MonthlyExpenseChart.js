@@ -54,11 +54,20 @@ const MonthlyExpenseChart = ({ expenses }) => {
         <Box sx={{ height: 260 }}>
           {data.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => [`Rs. ${Number(value).toLocaleString("en-IN")}`, "Expenses"]} />
+              <BarChart data={data} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.28)" />
+                <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "#94a3b8", fontSize: 12 }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  formatter={(value) => [`Rs. ${Number(value).toLocaleString("en-IN")}`, "Expenses"]}
+                  contentStyle={{
+                    background: "#0f172a",
+                    border: "1px solid rgba(45, 212, 191, 0.28)",
+                    borderRadius: 8,
+                    color: "#f8fafc"
+                  }}
+                  labelStyle={{ color: "#ccfbf1", fontWeight: 800 }}
+                />
                 <Bar dataKey="amount" fill="#0d9488" radius={[5, 5, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
