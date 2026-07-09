@@ -1,4 +1,4 @@
-import { predictExpenseCategory } from "../utils/expenseIntelligence";
+import { analyzeExpenses, predictExpenseCategory } from "../utils/expenseIntelligence";
 
 const demoMode =
   process.env.REACT_APP_DEMO_MODE === "true" ||
@@ -168,6 +168,84 @@ const dashboardStats = (state) => {
   };
 };
 
+const formatRs = (amount = 0) => `Rs. ${Math.round(Number(amount || 0)).toLocaleString("en-IN")}`;
+
+const getDemoIncome = () => {
+  if (typeof window === "undefined") {
+    return 50000;
+  }
+
+  return Number(window.localStorage.getItem("userIncome") || 50000);
+};
+
+const getDemoAiAnswer = (message = "", state) => {
+  const query = message.toLowerCase();
+  const income = getDemoIncome();
+  const analysis = analyzeExpenses(state.expenses, income);
+  const expenses = [...state.expenses]
+    .map((expense) => ({
+      ...expense,
+      amount: Number(expense.amount || 0),
+      date: expense.date || today()
+    }))
+    .sort((a, b) => String(b.createdAt || b.date).localeCompare(String(a.createdAt || a.date)));
+
+  const topCategory = analysis.summary.topCategory;
+  const latestAmount = analysis.summary.latestAmount || analysis.totalExpense;
+  const currentBalance = Math.max(0, income - latestAmount);
+
+  if (!expenses.length) {
+    return "Abhi demo data me koi expense transaction available nahi hai. Pehle expense add karo, phir main category, forecast aur saving insights bata paunga.";
+  }
+
+  if (query.includes("sabse") || query.includes("zyada") || query.includes("top category") || query.includes("highest")) {
+    return `Sabse zyada kharcha ${topCategory.category} me hua hai: ${formatRs(topCategory.amount)} (${topCategory.percentage}% of total expenses).`;
+  }
+
+  if (query.includes("last 5") || query.includes("recent") || query.includes("transactions") || query.includes("transaction")) {
+    return `Last 5 transactions:\n${expenses
+      .slice(0, 5)
+      .map((expense) => `- ${expense.date}: ${expense.description || "Expense"} (${expense.category || "Other"}) - ${formatRs(expense.amount)}`)
+      .join("\n")}`;
+  }
+
+  if (query.includes("total expense") || query.includes("kitna") || query.includes("this month") || query.includes("is month")) {
+    return `${analysis.summary.latestMonth} ka total expense ${formatRs(latestAmount)} hai. Overall tracked demo expense ${formatRs(analysis.totalExpense)} hai.`;
+  }
+
+  if (query.includes("saving") || query.includes("tips") || query.includes("improve") || query.includes("bachat")) {
+    return `3 smart saving tips:\n${analysis.recommendations
+      .slice(0, 3)
+      .map((tip, index) => `${index + 1}. ${tip}`)
+      .join("\n")}`;
+  }
+
+  if (query.includes("unusual") || query.includes("anomaly") || query.includes("normal")) {
+    if (!analysis.anomalies.length) {
+      return "Abhi demo expense history me koi major unusual spending detect nahi hui. More transactions add karoge to anomaly detection stronger hoga.";
+    }
+
+    return `Unusual spending detected:\n${analysis.anomalies
+      .map((expense) => `- ${expense.category}: ${formatRs(expense.amount)} on ${expense.date}. ${expense.reason}`)
+      .join("\n")}`;
+  }
+
+  if (query.includes("forecast") || query.includes("next month") || query.includes("agle")) {
+    return `Next month forecast ${formatRs(analysis.forecast.amount)} hai, based on ${analysis.forecast.basis}.`;
+  }
+
+  if (query.includes("balance") || query.includes("decreasing") || query.includes("kam")) {
+    return `Balance expenses ki wajah se reduce ho raha hai. Demo monthly income ${formatRs(income)} hai, latest monthly expense ${formatRs(latestAmount)} hai, estimated available balance ${formatRs(currentBalance)} hai. Biggest impact ${topCategory.category} category ka hai.`;
+  }
+
+  if (query.includes("loan") || query.includes("emi") || query.includes("risk")) {
+    const app = state.applications[0];
+    return `Latest demo loan profile: ${app?.bankName || "loan application"} amount ${formatRs(app?.requestedAmount || 0)}, income ${formatRs(app?.monthlyIncome || 0)}, credit score ${app?.creditScore || "not available"}, risk ${app?.fraudLevel || "not available"}. EMI decision se pehle income-to-expense ratio review karo.`;
+  }
+
+  return `Demo AI answer: ${analysis.summary.transactionCount} transactions analyze hue. Top category ${topCategory.category} (${formatRs(topCategory.amount)}), monthly expense ${formatRs(latestAmount)}, forecast ${formatRs(analysis.forecast.amount)}. ${analysis.recommendations[0]}`;
+};
+
 const demoAdapter = async (config) => {
   const state = readState();
   const method = (config.method || "get").toLowerCase();
@@ -285,6 +363,27 @@ const demoAdapter = async (config) => {
           category: item.category,
           confidence: item.score
         }))
+      }
+    });
+  }
+
+  if (path === "/ai/chat" && method === "post") {
+    return response(config, {
+      success: true,
+      message: "Demo AI chat response generated",
+      data: {
+        answer: getDemoAiAnswer(body.message || "", state),
+        usedContext: true,
+        suggestedQuestions: [
+          "Mera sabse zyada kharcha kis category me hua?",
+          "Last 5 transactions batao",
+          "Mujhe saving improve karne ke liye 3 tips do",
+          "Is month total expense kitna hai?",
+          "Kya koi unusual spending hai?"
+        ],
+        provider: "github-pages-demo-analytics",
+        model: "demo-expense-context",
+        liveProvider: false
       }
     });
   }

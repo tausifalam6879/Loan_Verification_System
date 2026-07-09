@@ -224,6 +224,8 @@ If `LLM_PROVIDER` is left as `local`, the chatbox uses backend analytics only. I
 
 Public users do not need Ollama when the deployed backend is configured with Gemini or OpenAI. Ollama is only required for local/offline LLM mode.
 
+GitHub Pages is a static frontend demo. It runs with `REACT_APP_DEMO_MODE=true`, so the chatbot uses browser demo data and local analytics instead of calling your private laptop backend. For real Ollama/Gemini/OpenAI answers, run the backend locally with `.\start-all.ps1` or deploy the backend online and set `REACT_APP_API_BASE_URL` during frontend build.
+
 For real Gmail email OTP delivery, use a Gmail App Password:
 
 ```powershell
