@@ -144,6 +144,31 @@ $env:APP_OTP_ENABLED="true"
 
 The React frontend never calls Ollama, Gemini or OpenAI directly. It only calls the backend endpoint `POST /api/ai/chat`; the backend picks the provider from `LLM_PROVIDER`.
 
+Daily local start with Ollama:
+
+```powershell
+.\start-all.ps1
+```
+
+This starts the Spring Boot backend and React frontend in separate PowerShell windows. It uses:
+
+```text
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+LLM_MODEL=llama3.2:3b
+```
+
+Ollama must already be running. Check it at `http://localhost:11434`.
+
+To avoid setting variables every time, set permanent Windows environment variables once, then open a new PowerShell:
+
+```powershell
+setx LLM_PROVIDER "ollama"
+setx OLLAMA_BASE_URL "http://127.0.0.1:11434"
+setx LLM_MODEL "llama3.2:3b"
+setx LLM_TIMEOUT_MS "30000"
+```
+
 For local development with Ollama:
 
 ```powershell
@@ -164,15 +189,26 @@ $env:LLM_TIMEOUT_MS="15000"
 .\start-backend.ps1
 ```
 
+Or start backend + frontend together:
+
+```powershell
+$env:LLM_PROVIDER="gemini"
+$env:GEMINI_API_KEY="your-gemini-api-key"
+$env:LLM_MODEL="gemini-1.5-flash"
+.\start-all.ps1 -Provider gemini
+```
+
 For a public demo/deployment with OpenAI:
 
 ```powershell
 $env:LLM_PROVIDER="openai"
-$env:OPENAI_API_KEY="sk-your-openai-key"
+$env:OPENAI_API_KEY="your-openai-api-key"
 $env:LLM_MODEL="gpt-4o-mini"
 $env:LLM_TIMEOUT_MS="15000"
 .\start-backend.ps1
 ```
+
+Never put real API keys in React files, README, screenshots, GitHub commits or chat messages. Keep them only in backend/server environment variables.
 
 To use Odysseus or another OpenAI-compatible local `/v1` endpoint:
 
