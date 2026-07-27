@@ -22,13 +22,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    if (error.response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("role");
       localStorage.removeItem("email");
-
-      const currentHash = window.location.hash || "";
-      if (!currentHash.includes("/login") && !currentHash.includes("/register")) {
+      if (typeof window !== "undefined" && !window.location.hash.includes("/login")) {
         window.location.hash = "#/login";
       }
     }

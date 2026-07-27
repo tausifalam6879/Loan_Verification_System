@@ -10,12 +10,15 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
+from market_intelligence import router as market_router
+
 
 app = FastAPI(
     title="FinTrack AI/Data Science Service",
     version="0.2.0",
     description="Python ML service for loan fraud scoring, expense categorization, forecasting, anomaly detection, and saving advice.",
 )
+app.include_router(market_router)
 
 BASE_DIR = Path(__file__).resolve().parent
 DATASET_PATH = BASE_DIR / "data" / "expense_training_data.csv"

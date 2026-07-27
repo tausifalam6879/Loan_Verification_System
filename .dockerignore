@@ -1,0 +1,9 @@
+.git
+.github
+.idea
+.vscode
+frontend
+ai-fraud-service
+target
+*.log
+.env

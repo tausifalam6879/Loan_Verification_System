@@ -21,6 +21,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import SavingsIcon from "@mui/icons-material/Savings";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
 
 const drawerWidth = 272;
 
@@ -34,6 +35,7 @@ const Sidebar = ({
   onOpenPayments,
   onOpenApplications,
   onOpenInvestments,
+  onOpenMarkets,
   onOpenAdmin,
   onOpenProfile,
   onLogout,
@@ -75,6 +77,11 @@ const Sidebar = ({
       label: "Investments",
       icon: <SavingsIcon />,
       action: onOpenInvestments
+    },
+    {
+      label: "Global Markets",
+      icon: <ShowChartIcon />,
+      action: onOpenMarkets
     },
     ...(role === "ADMIN"
       ? [

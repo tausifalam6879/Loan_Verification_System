@@ -41,10 +41,11 @@ jobs:
       - name: Run tests
         run: npm test -- --watchAll=false
 
-      - name: Build demo frontend
+      - name: Build production frontend
         run: npm run build
         env:
-          REACT_APP_DEMO_MODE: "true"
+          REACT_APP_DEMO_MODE: "false"
+          REACT_APP_API_BASE_URL: ${{ vars.REACT_APP_API_BASE_URL || 'https://fintrack-api.onrender.com/api' }}
           CI: "false"
 
       - name: Configure Pages

@@ -78,7 +78,8 @@ function App() {
             "/loans",
             "/payments",
             "/applications",
-            "/investments"
+            "/investments",
+            "/markets"
           ].map((path) => (
             <Route
               key={path}

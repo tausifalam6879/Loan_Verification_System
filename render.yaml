@@ -1,0 +1,71 @@
+services:
+  - type: web
+    name: fintrack-market-ai
+    runtime: python
+    region: singapore
+    plan: free
+    rootDir: ai-fraud-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: MARKET_CACHE_TTL_SECONDS
+        value: "120"
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        value: gemini-3.5-flash
+      - key: LLM_TIMEOUT_MS
+        value: "12000"
+
+  - type: web
+    name: fintrack-api
+    runtime: docker
+    region: singapore
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/users/test
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: AI_SERVICE_URL
+        fromService:
+          type: web
+          name: fintrack-market-ai
+          property: hostport
+      - key: APP_CORS_ALLOWED_ORIGIN_PATTERNS
+        value: https://tausifalam6879.github.io
+      - key: APP_OTP_ENABLED
+        value: "false"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_HOST
+        fromDatabase:
+          name: fintrack-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: fintrack-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: fintrack-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: fintrack-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: fintrack-db
+          property: password
+
+databases:
+  - name: fintrack-db
+    region: singapore
+    plan: free
+    databaseName: fintrack
+    user: fintrack

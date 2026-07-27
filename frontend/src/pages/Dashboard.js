@@ -19,12 +19,13 @@ import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import PersonIcon from "@mui/icons-material/Person";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import SavingsIcon from "@mui/icons-material/Savings";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
 
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import ExpenseForm from "../components/ExpenseForm";
 import ExpenseIntelligencePanel from "../components/ExpenseIntelligencePanel";
 import ExpensePieChart from "../components/ExpensePieChart";
-import InvestmentSection from "../components/InvestmentSection";
+import InvestmentMarketHub from "../components/InvestmentMarketHub";
 import LoanSection from "../components/loans/LoanSection";
 import MonthlyExpenseChart from "../components/MonthlyExpenseChart";
 import Navbar from "../components/Navbar";
@@ -78,7 +79,8 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     "/loans": "loans",
     "/payments": "payments",
     "/applications": "applications",
-    "/investments": "investments"
+    "/investments": "investments",
+    "/markets": "markets"
   };
   const pathByWorkspace = {
     overview: "/",
@@ -87,6 +89,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     payments: "/payments",
     applications: "/applications",
     investments: "/investments",
+    markets: "/markets",
     profile: "/profile"
   };
   const activeWorkspace = workspaceByPath[location.pathname] || "overview";
@@ -111,6 +114,10 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     investments: {
       title: "FD and Investment Comparison",
       subtitle: "Compare FD/SIP options and save selected bookings."
+    },
+    markets: {
+      title: "Investments and Global Markets",
+      subtitle: "Switch between live share-market intelligence and the existing FD/SIP comparison."
     }
   };
 
@@ -246,6 +253,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
         onOpenPayments={() => openWorkspace("payments")}
         onOpenApplications={() => openWorkspace("applications")}
         onOpenInvestments={() => openWorkspace("investments")}
+        onOpenMarkets={() => openWorkspace("markets")}
         onOpenAdmin={() => navigate("/admin")}
         onOpenProfile={() => {
           navigate("/profile");
@@ -275,14 +283,14 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
               onExport={handleExportCSV}
             />
           </Box>
-        ) : (
+        ) : activeWorkspace !== "markets" ? (
           <PageHeader
             title={pageMeta[activeWorkspace]?.title || "Workspace"}
             subtitle={pageMeta[activeWorkspace]?.subtitle || ""}
           />
-        )}
+        ) : null}
 
-        {error && (
+        {error && ["overview", "expense"].includes(activeWorkspace) && (
           <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
             {error}
           </Alert>
@@ -309,10 +317,14 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
               onOpen={openWorkspace}
             />
             <MonthlyExpenseChart expenses={expenses} />
+            <ExpenseIntelligencePanel
+              expenses={expenses}
+              totalIncome={totalIncome}
+            />
           </>
         )}
 
-        <Box id="workspace-panel" sx={{ mt: 2.5 }}>
+        <Box id="workspace-panel" sx={{ mt: activeWorkspace === "markets" ? 0.5 : 2.5 }}>
           {activeWorkspace === "expense" && (
             <>
               <Grid container spacing={2.5}>
@@ -360,35 +372,37 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
             />
           )}
 
-          {activeWorkspace === "investments" && <InvestmentSection />}
+          {activeWorkspace === "investments" && <InvestmentMarketHub initialTab="investments" />}
+          {activeWorkspace === "markets" && <InvestmentMarketHub initialTab="markets" />}
         </Box>
 
-        <AiAssistant />
+        {activeWorkspace !== "markets" && (
+          <AiAssistant
+            balance={balance}
+            totalIncome={totalIncome}
+            totalExpense={totalExpense}
+            expenses={expenses}
+          />
+        )}
 
         {!isOverview && (
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => openWorkspace("overview")}
-            variant="contained"
-            sx={{
-              position: "fixed",
-              right: { xs: 18, md: 34 },
-              bottom: { xs: 86, md: 96 },
-              zIndex: 1250,
-              borderRadius: 2,
-              px: 2.25,
-              py: 1.15,
-              textTransform: "none",
-              fontWeight: 900,
-              background: "linear-gradient(90deg, #0f766e, #2563eb)",
-              boxShadow: "0 14px 30px rgba(15, 23, 42, 0.24)",
-              "&:hover": {
-                background: "linear-gradient(90deg, #0d9488, #1d4ed8)"
-              }
-            }}
-          >
-            Back to dashboard
-          </Button>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2.5 }}>
+            <Button
+              startIcon={<ArrowBackIcon />}
+              onClick={() => openWorkspace("overview")}
+              variant="contained"
+              sx={{
+                borderRadius: 2,
+                px: 2.25,
+                py: 1.15,
+                textTransform: "none",
+                fontWeight: 900,
+                background: "linear-gradient(90deg, #0f766e, #2563eb)"
+              }}
+            >
+              Back to dashboard
+            </Button>
+          </Box>
         )}
       </Box>
 
@@ -511,6 +525,15 @@ const WorkspaceCards = ({
       color: "#ca8a04",
       surface: "linear-gradient(145deg, #fef3c7, #fefce8)",
       meta: "Comparison"
+    },
+    {
+      id: "markets",
+      title: "Global Markets",
+      subtitle: "World indices, ML outlook, news factors and grounded AI agent",
+      icon: <ShowChartIcon />,
+      color: "#2563eb",
+      surface: "linear-gradient(145deg, #dbeafe, #ecfeff)",
+      meta: "Live + Agentic AI"
     }
   ];
 

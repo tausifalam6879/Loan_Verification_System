@@ -28,12 +28,13 @@ Public registration is locked to the `USER` role. Admin access must be assigned 
 - Optional email notifications for account and loan-status events.
 - Optional Cloudinary document upload support with base64 fallback for local demos.
 - Separate FastAPI AI/Data Science service for loan-risk scoring, ML expense categorization, expense forecasting, anomaly detection, and saving recommendations.
-- Optional live AI chat integration through OpenAI, Gemini, or local Ollama, with API keys kept only in backend environment variables.
+- Global market workspace covering major US, European, Indian, and Asian indices plus custom Yahoo Finance symbols.
+- Next-session probabilistic outlook using technical features, Logistic Regression, chronological backtesting, news factors, and an Ollama research agent.
 - API documentation and setup docs included in `docs/`.
 
 ## Live Demo
 
-The GitHub Pages live demo runs the React frontend in demo mode with sample data, so recruiters can open the dashboard without a local Spring Boot/MySQL backend.
+GitHub Pages hosts only the React frontend. The production build calls the deployed Spring Boot API, which uses PostgreSQL and the deployed FastAPI market/ML service. The deployment intentionally fails if the `REACT_APP_API_BASE_URL` repository variable is missing, preventing a broken localhost-only release.
 
 Demo URL:
 
@@ -41,7 +42,7 @@ Demo URL:
 https://tausifalam6879.github.io/Loan_Verification_System
 ```
 
-Use any email/password on the login page. Use an email containing `admin`, for example `admin@demo.com`, to open the admin dashboard demo.
+Register a normal user through the live backend. Admin roles must be assigned from the backend/database; the public build does not enable the local demo adapter.
 
 ## Tech Stack
 
@@ -49,10 +50,11 @@ Use any email/password on the login page. Use an email containing `admin`, for e
 | --- | --- |
 | Frontend | React, React Router, Material UI, Recharts, Axios |
 | Backend | Java, Spring Boot, Spring Security, Spring Data JPA, Validation |
-| Database | MySQL |
+| Database | H2 (local default), MySQL (optional local profile), PostgreSQL (production) |
 | Auth | JWT |
 | AI/Data Science Service | Python, FastAPI, Pandas, Scikit-learn, TF-IDF, Logistic Regression, Joblib |
 | Optional Integrations | SMTP email, Cloudinary unsigned uploads |
+| Market GenAI | yfinance market history, Scikit-learn model, Ollama/Gemini/OpenAI-compatible backend provider |
 | Build/Test | Maven Wrapper, npm, React Testing Library |
 
 ## Architecture
@@ -61,10 +63,11 @@ Use any email/password on the login page. Use an email containing `admin`, for e
 flowchart LR
     user["User/Admin Browser"] --> react["React Frontend"]
     react --> api["Spring Boot REST API"]
-    api --> mysql["MySQL Database"]
+    api --> database["H2 / MySQL / PostgreSQL"]
     api -.optional.-> smtp["SMTP Email"]
     react -.optional.-> cloudinary["Cloudinary Upload API"]
-    api -.optional.-> ai["FastAPI AI/Data Science Service"]
+    api --> ai["FastAPI AI/Data Science Service"]
+    ai -.optional.-> llm["Ollama / Gemini / OpenAI-compatible LLM"]
 ```
 
 ## Project Structure
@@ -94,7 +97,7 @@ VerificationSystem/
 
 ### 1. Database
 
-By default the backend uses a local file-based H2 database in `data/verification_system_local` so the project runs without MySQL password setup and keeps users/expenses after backend restarts.
+By default the backend uses an in-memory H2 database so the project runs without MySQL password setup.
 
 If you want MySQL, create a MySQL database:
 
@@ -141,90 +144,6 @@ To enable email OTP in local mode, start the backend with OTP enabled. If SMTP i
 $env:APP_OTP_ENABLED="true"
 .\start-backend.ps1
 ```
-
-The React frontend never calls Ollama, Gemini or OpenAI directly. It only calls the backend endpoint `POST /api/ai/chat`; the backend picks the provider from `LLM_PROVIDER`.
-
-Daily local start with Ollama:
-
-```powershell
-.\start-all.ps1
-```
-
-This starts the Spring Boot backend and React frontend in separate PowerShell windows. It uses:
-
-```text
-LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-LLM_MODEL=llama3.2:3b
-```
-
-Ollama must already be running. Check it at `http://localhost:11434`.
-
-To avoid setting variables every time, set permanent Windows environment variables once, then open a new PowerShell:
-
-```powershell
-setx LLM_PROVIDER "ollama"
-setx OLLAMA_BASE_URL "http://127.0.0.1:11434"
-setx LLM_MODEL "llama3.2:3b"
-setx LLM_TIMEOUT_MS "30000"
-```
-
-For local development with Ollama:
-
-```powershell
-$env:LLM_PROVIDER="ollama"
-$env:OLLAMA_BASE_URL="http://localhost:11434"
-$env:LLM_MODEL="llama3.2:3b"
-$env:LLM_TIMEOUT_MS="15000"
-.\start-backend.ps1
-```
-
-For a public demo/deployment with Gemini:
-
-```powershell
-$env:LLM_PROVIDER="gemini"
-$env:GEMINI_API_KEY="your-gemini-api-key"
-$env:LLM_MODEL="gemini-1.5-flash"
-$env:LLM_TIMEOUT_MS="15000"
-.\start-backend.ps1
-```
-
-Or start backend + frontend together:
-
-```powershell
-$env:LLM_PROVIDER="gemini"
-$env:GEMINI_API_KEY="your-gemini-api-key"
-$env:LLM_MODEL="gemini-1.5-flash"
-.\start-all.ps1 -Provider gemini
-```
-
-For a public demo/deployment with OpenAI:
-
-```powershell
-$env:LLM_PROVIDER="openai"
-$env:OPENAI_API_KEY="your-openai-api-key"
-$env:LLM_MODEL="gpt-4o-mini"
-$env:LLM_TIMEOUT_MS="15000"
-.\start-backend.ps1
-```
-
-Never put real API keys in React files, README, screenshots, GitHub commits or chat messages. Keep them only in backend/server environment variables.
-
-To use Odysseus or another OpenAI-compatible local `/v1` endpoint:
-
-```powershell
-$env:LLM_PROVIDER="openai-compatible"
-$env:LOCAL_LLM_BASE_URL="http://localhost:7000/v1"
-$env:LOCAL_LLM_API_KEY=""
-$env:LLM_MODEL="your-local-model-name"
-.\start-backend.ps1
-```
-
-If `LLM_PROVIDER` is left as `local`, the chatbox uses backend analytics only. If `LLM_PROVIDER=ollama` and Ollama is not running, the backend returns `Local LLM service is not running. Please start Ollama and try again.` If `LLM_PROVIDER=gemini` or `LLM_PROVIDER=openai` has no API key, the backend returns `AI service is not configured. Please add API key in backend environment variables.`
-
-Public users do not need Ollama when the deployed backend is configured with Gemini or OpenAI. Ollama is only required for local/offline LLM mode.
-
-GitHub Pages is a static frontend demo. It runs with `REACT_APP_DEMO_MODE=true`, so the chatbot uses browser demo data and local analytics instead of calling your private laptop backend. For real Ollama/Gemini/OpenAI answers, run the backend locally with `.\start-all.ps1` or deploy the backend online and set `REACT_APP_API_BASE_URL` during frontend build.
 
 For real Gmail email OTP delivery, use a Gmail App Password:
 
@@ -291,27 +210,115 @@ Spring Boot calls it through:
 POST http://localhost:8081/api/ai/expenses/category
 ```
 
+### 5. Local Ollama Market Agent
+
+Install Ollama, then download the model once:
+
+```powershell
+ollama pull llama3.2:3b
+```
+
+Confirm `http://localhost:11434` reports that Ollama is running, then start the Python service, Spring Boot backend and React frontend. Default values are already applied by `start-ai-service.bat`:
+
+```env
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+LLM_MODEL=llama3.2:3b
+LLM_TIMEOUT_MS=60000
+```
+
+Open:
+
+```text
+http://localhost:3000/Loan_Verification_System#/markets
+```
+
+React calls only `/api/market/*` on Spring Boot. Spring Boot proxies the request to FastAPI, and only FastAPI calls the configured LLM. Local Ollama needs no paid API token.
+
+Market endpoints:
+
+```text
+GET  /api/market/overview
+GET  /api/market/analysis?symbol=^NSEI
+GET  /api/market/news?symbol=AAPL
+GET  /api/market/factors
+GET  /api/market/breadth
+GET  /api/market/company?symbol=RELIANCE.NS
+GET  /api/market/news-feed
+POST /api/market/agent
+```
+
+The market page fetches Yahoo Finance research data through `yfinance` when it opens, refreshes the visible market view every two minutes, and refreshes again when the browser tab becomes active. The Refresh control bypasses the cache immediately. It shows the upstream source and data timestamp on screen. Index, macro-factor, and watchlist-mover rows are clickable and open the selected symbol in Stock Research. This is not an exchange-grade streaming feed; official NSE real-time redistribution requires a licensed data provider.
+
+The market workspace includes compact global index quotes, gold/crude/USD-INR/yield/VIX drivers, representative India-watchlist breadth and movers, multi-asset news, company quote/fundamental research, and a next-session model. The model combines technical features, headline tone and a capped macro overlay. Weak holdout accuracy shrinks probability toward 50% so the UI does not present false confidence. All outputs remain educational probabilities, not guaranteed forecasts or personalized investment advice.
+
+## Public Deployment
+
+The complete public application needs three running layers. GitHub Pages alone cannot execute Java or Python server code.
+
+```text
+GitHub Pages (React)
+        |
+        v
+Render fintrack-api (Spring Boot) ---> Render PostgreSQL
+        |
+        v
+Render fintrack-market-ai (FastAPI + yfinance + ML)
+        |
+        v
+Gemini/OpenAI-compatible LLM (optional explanation layer)
+```
+
+This repository includes `render.yaml`, `Dockerfile`, `application-production.properties`, and a production GitHub Pages workflow.
+
+### Deploy backend services on Render
+
+1. Push the deployment files to GitHub.
+2. In Render, choose **New > Blueprint** and connect this repository.
+3. Render reads `render.yaml` and creates `fintrack-api`, `fintrack-market-ai`, and `fintrack-db`.
+4. Enter `GEMINI_API_KEY` when Render prompts for the secret. It is stored only on the Python backend. Without a key, live quotes, company research, news, ML outlook and verified tool answers still work; only hosted LLM phrasing falls back.
+5. Wait until `/health` on the Python service and `/api/users/test` on Spring Boot are healthy.
+
+The Blueprint defaults the public agent to Gemini because a local laptop Ollama server is not reachable from public hosting. To use hosted Ollama instead, deploy Ollama on a suitable server and set these variables on `fintrack-market-ai`:
+
+```env
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=https://your-ollama-server.example
+LLM_MODEL=llama3.2:3b
+```
+
+### Connect GitHub Pages to Spring Boot
+
+After Render gives the Spring service URL, open GitHub repository **Settings > Secrets and variables > Actions > Variables** and create:
+
+```text
+Name:  REACT_APP_API_BASE_URL
+Value: https://YOUR-SPRING-SERVICE.onrender.com/api
+```
+
+Then run **Actions > Deploy frontend to GitHub Pages > Run workflow**, or push a frontend/workflow change. The production build uses `REACT_APP_DEMO_MODE=false`.
+
+### Expected public behavior
+
+- Market data is fetched from the upstream provider when the page opens and while the page is active; the current cache window is two minutes.
+- Data can be delayed and is not an exchange-licensed tick-by-tick NSE feed.
+- PostgreSQL keeps accounts, expenses and applications across backend restarts.
+- Free hosting can sleep when idle, so the first request may be slower than local development.
+- React never receives an Ollama, Gemini or OpenAI key.
+
 ## Configuration
 
-Important backend settings are in `src/main/resources/application.properties`.
+Local defaults are in `src/main/resources/application.properties`; production database settings are in `application-production.properties` and come from environment variables.
 
-```properties
-server.port=8081
-spring.datasource.url=jdbc:h2:file:./data/verification_system_local;MODE=MySQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE
-spring.datasource.username=sa
-spring.datasource.password=
-jwt.secret=MySuperSecretKeyForLoanVerificationSystem2026JwtToken
-app.otp.enabled=${APP_OTP_ENABLED:true}
-app.otp.console-fallback.enabled=${APP_OTP_CONSOLE_FALLBACK_ENABLED:true}
-app.llm.provider=${LLM_PROVIDER:local}
-app.llm.model=${LLM_MODEL:}
-app.llm.timeout-ms=${LLM_TIMEOUT_MS:15000}
-app.llm.openai-api-key=${OPENAI_API_KEY:}
-app.llm.gemini-api-key=${GEMINI_API_KEY:}
-app.llm.ollama-base-url=${OLLAMA_BASE_URL:http://localhost:11434}
-app.llm.local-base-url=${LOCAL_LLM_BASE_URL:http://localhost:11434/v1}
-app.llm.local-api-key=${LOCAL_LLM_API_KEY:}
-app.mail.enabled=${APP_MAIL_ENABLED:false}
+```env
+PORT=8081
+SPRING_PROFILES_ACTIVE=production
+DB_HOST=database-host
+DB_PORT=5432
+DB_NAME=fintrack
+DB_USER=fintrack
+DB_PASSWORD=secret
+JWT_SECRET=long-random-secret
+APP_CORS_ALLOWED_ORIGIN_PATTERNS=https://tausifalam6879.github.io
 ```
 
 Optional frontend Cloudinary config can be copied from `frontend/.env.example`:

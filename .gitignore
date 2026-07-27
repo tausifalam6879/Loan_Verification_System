@@ -33,12 +33,19 @@ build/
 .vscode/
 node_modules/
 
-### Runtime/generated local files ###
-/data/
+### Python / generated AI artifacts ###
+__pycache__/
+*.py[cod]
+.venv/
+ai-fraud-service/models/
+
+### Runtime logs ###
+*.log
+logs/
+
+### Generated project inventories ###
 frontend-structure.txt
 frontend/frontend-structure.txt
-*.log
-frontend/*.log
 
 ### Environment files ###
 .env
