@@ -5,6 +5,7 @@ const CACHE_PREFIX = "fintrack.market.v3";
 const SNAPSHOT_URL = `${process.env.PUBLIC_URL || ""}/data/market-snapshot.json`;
 
 let snapshotPromise;
+let lastForcedSnapshotAt = 0;
 
 const normaliseSymbol = (symbol) => String(symbol || "").trim().toUpperCase();
 
@@ -36,9 +37,16 @@ const writeCache = (key, data) => {
   }
 };
 
-const loadScheduledSnapshot = async () => {
+const loadScheduledSnapshot = async (force = false) => {
+  const now = Date.now();
+  if (force && now - lastForcedSnapshotAt > 1000) {
+    snapshotPromise = undefined;
+    lastForcedSnapshotAt = now;
+  }
   if (!snapshotPromise) {
-    snapshotPromise = fetch(SNAPSHOT_URL, { cache: "no-store" })
+    const separator = SNAPSHOT_URL.includes("?") ? "&" : "?";
+    const requestUrl = force ? `${SNAPSHOT_URL}${separator}refresh=${now}` : SNAPSHOT_URL;
+    snapshotPromise = fetch(requestUrl, { cache: "no-store" })
       .then((response) => {
         if (!response.ok) throw new Error(`Snapshot request failed (${response.status})`);
         return response.json();
@@ -67,7 +75,7 @@ const fallbackError = (message, originalError) => {
   return error;
 };
 
-const requestWithFallback = async ({ cacheKey, liveRequest, selectSnapshot, isUsable, unavailableMessage }) => {
+const requestWithFallback = async ({ cacheKey, liveRequest, selectSnapshot, isUsable, unavailableMessage, refreshSnapshot = false }) => {
   try {
     const data = await liveRequest();
     if (!isUsable(data)) throw new Error("The live endpoint returned an incomplete market payload.");
@@ -83,7 +91,7 @@ const requestWithFallback = async ({ cacheKey, liveRequest, selectSnapshot, isUs
     let snapshotData;
 
     try {
-      snapshot = await loadScheduledSnapshot();
+      snapshot = await loadScheduledSnapshot(refreshSnapshot);
       snapshotData = selectSnapshot(snapshot);
       if (snapshotData && !isUsable(snapshotData)) snapshotData = null;
     } catch (snapshotError) {
@@ -133,7 +141,8 @@ export const getGlobalMarketOverview = (refresh = false) => requestWithFallback(
   liveRequest: () => getLive("/market/overview", { refresh }),
   selectSnapshot: (snapshot) => snapshot.overview,
   isUsable: validOverview,
-  unavailableMessage: "Market overview is temporarily unavailable from both the live API and the scheduled snapshot."
+  unavailableMessage: "Market overview is temporarily unavailable from both the live API and the scheduled snapshot.",
+  refreshSnapshot: refresh
 });
 
 export const getMarketAnalysis = (symbol, refresh = false) => {
@@ -143,7 +152,8 @@ export const getMarketAnalysis = (symbol, refresh = false) => {
     liveRequest: () => getLive("/market/analysis", { symbol: cleaned, refresh }),
     selectSnapshot: (snapshot) => snapshot.analyses?.[cleaned],
     isUsable: validAnalysis,
-    unavailableMessage: `Live analysis for ${cleaned || "this symbol"} is unavailable and it is not included in the scheduled interview snapshot.`
+    unavailableMessage: `Live analysis for ${cleaned || "this symbol"} is unavailable and it is not included in the scheduled interview snapshot.`,
+    refreshSnapshot: refresh
   });
 };
 
@@ -152,7 +162,8 @@ export const getMarketFactors = (refresh = false) => requestWithFallback({
   liveRequest: () => getLive("/market/factors", { refresh }),
   selectSnapshot: (snapshot) => snapshot.factors,
   isUsable: validFactors,
-  unavailableMessage: "Macro factor data is temporarily unavailable."
+  unavailableMessage: "Macro factor data is temporarily unavailable.",
+  refreshSnapshot: refresh
 });
 
 export const getMarketBreadth = (refresh = false) => requestWithFallback({
@@ -160,7 +171,8 @@ export const getMarketBreadth = (refresh = false) => requestWithFallback({
   liveRequest: () => getLive("/market/breadth", { refresh }),
   selectSnapshot: (snapshot) => snapshot.breadth,
   isUsable: validBreadth,
-  unavailableMessage: "India market breadth is temporarily unavailable."
+  unavailableMessage: "India market breadth is temporarily unavailable.",
+  refreshSnapshot: refresh
 });
 
 export const getCompanyResearch = (symbol, refresh = false) => {
@@ -170,7 +182,8 @@ export const getCompanyResearch = (symbol, refresh = false) => {
     liveRequest: () => getLive("/market/company", { symbol: cleaned, refresh }),
     selectSnapshot: (snapshot) => snapshot.companies?.[cleaned],
     isUsable: validCompany,
-    unavailableMessage: `Live company research for ${cleaned || "this symbol"} is unavailable and it is not included in the scheduled interview snapshot.`
+    unavailableMessage: `Live company research for ${cleaned || "this symbol"} is unavailable and it is not included in the scheduled interview snapshot.`,
+    refreshSnapshot: refresh
   });
 };
 
@@ -179,7 +192,8 @@ export const getMarketNewsFeed = (refresh = false) => requestWithFallback({
   liveRequest: () => getLive("/market/news-feed", { refresh }),
   selectSnapshot: (snapshot) => snapshot.newsFeed,
   isUsable: validNews,
-  unavailableMessage: "Current market headlines are temporarily unavailable."
+  unavailableMessage: "Current market headlines are temporarily unavailable.",
+  refreshSnapshot: refresh
 });
 
 const strongestDrivers = (analysis) => [...(analysis?.macroFactor?.factors || [])]
@@ -240,4 +254,5 @@ export const askMarketAgent = async ({ message, symbol, recentMessages = [] }) =
 
 export const resetMarketFallbackStateForTests = () => {
   snapshotPromise = undefined;
+  lastForcedSnapshotAt = 0;
 };

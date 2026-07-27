@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -17,7 +17,8 @@ import {
   Tabs,
   TextField,
   Tooltip,
-  Typography
+  Typography,
+  useTheme
 } from "@mui/material";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -217,12 +218,12 @@ const GlobalMarketSection = () => {
   const generatedAt = dataMeta?.fetchedAt || overview?.generatedAt || factors?.generatedAt || breadth?.generatedAt;
   const sourceMode = dataMeta?.mode || "loading";
   const sourcePresentation = sourceMode === "loading"
-    ? { label: "Checking data source", color: "default", background: "action.hover", border: "divider" }
+    ? { label: "Checking data source", color: "default", background: "action.hover", border: "divider", action: "Check now", message: "Checking the FinTrack backend and latest published analytics snapshot." }
     : sourceMode === "live"
-    ? { label: "Live backend", color: "success", background: "success.50", border: "success.100" }
+    ? { label: "FinTrack backend feed", color: "success", background: "success.50", border: "success.100", action: "Refresh live feed", message: `Backend data fetched ${formatTime(generatedAt)}. It refreshes while this page is open; exchange delays may still apply.` }
     : sourceMode === "browser-cache"
-      ? { label: "Last successful cache", color: "warning", background: "warning.50", border: "warning.100" }
-      : { label: "Hourly GitHub snapshot", color: "info", background: "info.50", border: "info.100" };
+      ? { label: "Last successful backend cache", color: "warning", background: "warning.50", border: "warning.100", action: "Retry backend", message: `The live backend is unavailable. Showing the last successful response from ${formatTime(generatedAt)} and retrying every 2 minutes.` }
+      : { label: "Hourly analytics snapshot - not live", color: "warning", background: "warning.50", border: "warning.100", action: "Check latest snapshot", message: `The public backend is unavailable. Analytics below were generated ${formatTime(generatedAt)}; the page checks every 2 minutes for a newer published snapshot.` };
   const openCompanyResearch = (nextSymbol) => {
     setView("research");
     researchCompany(nextSymbol);
@@ -259,12 +260,10 @@ const GlobalMarketSection = () => {
         <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", md: "center" }} gap={1}>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "flex-start", sm: "center" }}>
             <Chip size="small" color={sourcePresentation.color} label={sourcePresentation.label} sx={{ flexShrink: 0, fontWeight: 800 }} />
-            <Typography variant="body2" color="text.secondary">
-              Yahoo Finance via yfinance. Quotes may be delayed; licensed exchange streaming is not included. Data generated: {formatTime(generatedAt)}. Live API is retried every 2 minutes.
-            </Typography>
+            <Typography variant="body2" color="text.secondary">{sourcePresentation.message}</Typography>
           </Stack>
           <Button size="small" color={sourcePresentation.color === "default" ? "primary" : sourcePresentation.color} variant="outlined" startIcon={<RefreshIcon />} onClick={refreshCurrentView} disabled={loadingPulse || loadingAnalysis || loadingCompany} sx={{ flexShrink: 0 }}>
-            Refresh now
+            {sourcePresentation.action}
           </Button>
         </Stack>
       </Paper>
@@ -277,6 +276,8 @@ const GlobalMarketSection = () => {
           breadth={breadth}
           newsFeed={newsFeed}
           loading={loadingPulse}
+          sourceMode={sourceMode}
+          generatedAt={generatedAt}
           onOpenAnalysis={openMarketOutlook}
           onOpenCompany={openCompanyResearch}
         />
@@ -310,16 +311,25 @@ const GlobalMarketSection = () => {
   );
 };
 
-const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, onOpenAnalysis, onOpenCompany }) => {
+const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode, generatedAt, onOpenAnalysis, onOpenCompany }) => {
   if (loading && !overview) return <LinearProgress />;
   return (
-    <Stack spacing={1.5}>
-      <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1 }}>
-        <SectionTitle icon={<PublicIcon />} title="Major Global Indices" detail={`${overview?.availableMarkets || 0}/${overview?.totalMarkets || 0} available`} />
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(3, minmax(0, 1fr))" }, borderTop: "1px solid", borderLeft: "1px solid", borderColor: "divider" }}>
+    <Stack spacing={2.5}>
+      <TradingViewTickerTape />
+
+      <Box component="section">
+        <SectionTitle
+          icon={<PublicIcon />}
+          title="Major Global Indices"
+          detail={`${overview?.availableMarkets || 0}/${overview?.totalMarkets || 0} in ${sourceMode === "live" ? "backend feed" : "analytics snapshot"}`}
+        />
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(3, minmax(0, 1fr))" }, gap: 1.5 }}>
           {(overview?.markets || []).map((market) => <IndexTile key={market.symbol} market={market} onClick={() => onOpenAnalysis(market.symbol)} />)}
         </Box>
-      </Paper>
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+          Analytics data as of {formatTime(generatedAt)}. Select an index to open the ML evidence view.
+        </Typography>
+      </Box>
 
       <Grid container spacing={1.5}>
         <Grid size={{ xs: 12, md: 4 }}>
@@ -334,12 +344,12 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, onOpenAnal
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 8 }}>
-          <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1 }}>
-            <SectionTitle title="Global Drivers and Sector Impact" detail="Current feed + explainable impact" compact />
-            <Grid container spacing={1}>
+          <Box component="section" sx={{ height: "100%" }}>
+            <SectionTitle title="Global Drivers and Sector Impact" detail="Snapshot-based explainable impact" compact />
+            <Grid container spacing={1.5}>
               {(factors?.factors || []).map((factor) => <FactorTile key={factor.symbol} factor={factor} onClick={() => onOpenAnalysis(factor.symbol)} />)}
             </Grid>
-          </Paper>
+          </Box>
         </Grid>
       </Grid>
 
@@ -373,6 +383,58 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, onOpenAnal
         </Grid>
       </Grid>
     </Stack>
+  );
+};
+
+const TradingViewTickerTape = () => {
+  const containerRef = useRef(null);
+  const theme = useTheme();
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+    container.replaceChildren();
+
+    const widget = document.createElement("div");
+    widget.className = "tradingview-widget-container__widget";
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
+    script.async = true;
+    script.text = JSON.stringify({
+      symbols: [
+        { proName: "NSE:BHARTIARTL", title: "Bharti Airtel" },
+        { proName: "NSE:RELIANCE", title: "Reliance" },
+        { proName: "NSE:HDFCBANK", title: "HDFC Bank" },
+        { proName: "NSE:INFY", title: "Infosys" },
+        { proName: "NSE:NIFTY", title: "Nifty 50" },
+        { proName: "BSE:SENSEX", title: "Sensex" },
+        { proName: "NASDAQ:AAPL", title: "Apple" },
+        { proName: "NASDAQ:MSFT", title: "Microsoft" },
+        { proName: "TVC:GOLD", title: "Gold" },
+        { proName: "TVC:USOIL", title: "Crude Oil" },
+        { proName: "FX_IDC:USDINR", title: "USD/INR" }
+      ],
+      showSymbolLogo: true,
+      isTransparent: true,
+      displayMode: "adaptive",
+      colorTheme: theme.palette.mode,
+      locale: "en"
+    });
+    container.append(widget, script);
+    return () => container.replaceChildren();
+  }, [theme.palette.mode]);
+
+  return (
+    <Box component="section">
+      <SectionTitle icon={<TrendingUpIcon />} title="Current Market Board" detail="TradingView feed; exchange delays may apply" />
+      <Paper variant="outlined" sx={{ minHeight: 84, p: 1, borderRadius: 1, overflow: "hidden", bgcolor: "background.paper" }}>
+        <Box ref={containerRef} className="tradingview-widget-container" sx={{ minHeight: 62 }} />
+      </Paper>
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
+        This board is loaded directly by the TradingView widget. FinTrack's ML, breadth and factor cards below use the separately timestamped analytics feed.
+      </Typography>
+    </Box>
   );
 };
 
@@ -569,7 +631,21 @@ const IndexTile = ({ market, onClick }) => {
       onClick={available ? onClick : undefined}
       disabled={!available}
       aria-label={`Open ${market.name} research`}
-      sx={{ p: 1.25, minWidth: 0, width: "100%", display: "block", textAlign: "left", borderRight: "1px solid", borderBottom: "1px solid", borderColor: "divider", transition: "background-color 150ms ease", "&:hover": { bgcolor: "action.hover" } }}
+      sx={{
+        p: 1.5,
+        minWidth: 0,
+        minHeight: 124,
+        width: "100%",
+        display: "block",
+        textAlign: "left",
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 1,
+        bgcolor: "background.paper",
+        boxShadow: "0 2px 8px rgba(15, 23, 42, 0.08)",
+        transition: "border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease",
+        "&:hover": { borderColor: "primary.main", boxShadow: "0 6px 16px rgba(15, 23, 42, 0.14)", transform: "translateY(-1px)" }
+      }}
     >
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography variant="body2" sx={{ fontWeight: 900 }}>{market.name}</Typography>
@@ -581,7 +657,11 @@ const IndexTile = ({ market, onClick }) => {
       <Typography variant="caption" color="text.secondary">{market.region} | {market.symbol}</Typography>
       <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "baseline", columnGap: 1, mt: 0.75 }}>
         <Typography sx={{ fontWeight: 900 }}>{available ? formatNumber(market.price) : "Unavailable"}</Typography>
-        {available && <Typography variant="body2" sx={{ color: directionColor(market.changePercent), fontWeight: 900, whiteSpace: "nowrap" }}>{signed(market.changePercent)}%</Typography>}
+        {available && (
+          <Box sx={{ px: 0.8, py: 0.25, borderRadius: 0.75, bgcolor: positive ? "success.50" : "error.50" }}>
+            <Typography variant="body2" sx={{ color: directionColor(market.changePercent), fontWeight: 900, whiteSpace: "nowrap" }}>{signed(market.changePercent)}%</Typography>
+          </Box>
+        )}
       </Box>
     </ButtonBase>
   );
@@ -589,7 +669,7 @@ const IndexTile = ({ market, onClick }) => {
 
 const FactorTile = ({ factor, onClick }) => (
   <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-    <ButtonBase onClick={onClick} aria-label={`Open ${factor.name} chart`} sx={{ p: 1.1, border: "1px solid", borderColor: "divider", borderRadius: 1, height: "100%", width: "100%", display: "block", textAlign: "left", transition: "border-color 150ms ease, background-color 150ms ease", "&:hover": { bgcolor: "action.hover", borderColor: "primary.main" } }}>
+    <ButtonBase onClick={onClick} aria-label={`Open ${factor.name} chart`} sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1, minHeight: 172, height: "100%", width: "100%", display: "block", textAlign: "left", bgcolor: "background.paper", boxShadow: "0 2px 8px rgba(15, 23, 42, 0.08)", transition: "border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease", "&:hover": { borderColor: "primary.main", boxShadow: "0 6px 16px rgba(15, 23, 42, 0.14)", transform: "translateY(-1px)" } }}>
       <Stack direction="row" justifyContent="space-between" gap={1}>
         <Box>
           <Typography variant="body2" sx={{ fontWeight: 900 }}>{factor.name}</Typography>
@@ -603,11 +683,12 @@ const FactorTile = ({ factor, onClick }) => (
           <Typography variant="caption" sx={{ color: directionColor(factor.changePercent), fontWeight: 900 }}>{signed(factor.changePercent)}%</Typography>
         </Box>
       </Stack>
-      <Stack spacing={0.55} sx={{ mt: 1 }}>
-        <Typography variant="caption" component="p" sx={{ m: 0, lineHeight: 1.45 }}>
+      <Divider sx={{ my: 1.15 }} />
+      <Stack spacing={0.8}>
+        <Typography variant="caption" component="p" sx={{ m: 0, lineHeight: 1.5, color: "text.primary" }}>
           <strong>May help:</strong> {factor.positiveImpact}
         </Typography>
-        <Typography variant="caption" component="p" color="text.secondary" sx={{ m: 0, lineHeight: 1.45 }}>
+        <Typography variant="caption" component="p" color="text.secondary" sx={{ m: 0, lineHeight: 1.5 }}>
           <strong>May hurt:</strong> {factor.negativeImpact}
         </Typography>
       </Stack>

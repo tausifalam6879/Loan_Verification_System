@@ -78,6 +78,28 @@ test("uses the scheduled market snapshot when the cloud backend is unavailable",
   expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining("/data/market-snapshot.json"), { cache: "no-store" });
 });
 
+test("downloads a newer scheduled snapshot when refresh is requested", async () => {
+  const newerSnapshot = {
+    ...snapshot,
+    generatedAt: "2026-07-27T17:00:00Z",
+    overview: {
+      ...snapshot.overview,
+      markets: [{ ...snapshot.overview.markets[0], price: 24025.5 }]
+    }
+  };
+  global.fetch
+    .mockResolvedValueOnce({ ok: true, json: async () => snapshot })
+    .mockResolvedValueOnce({ ok: true, json: async () => newerSnapshot });
+
+  const first = await getGlobalMarketOverview();
+  const refreshed = await getGlobalMarketOverview(true);
+
+  expect(first.markets[0].price).toBe(23995.95);
+  expect(refreshed.markets[0].price).toBe(24025.5);
+  expect(global.fetch).toHaveBeenCalledTimes(2);
+  expect(global.fetch.mock.calls[1][0]).toContain("refresh=");
+});
+
 test("returns scheduled ML evidence instead of an empty analysis", async () => {
   const result = await getMarketAnalysis("^nsei");
 
