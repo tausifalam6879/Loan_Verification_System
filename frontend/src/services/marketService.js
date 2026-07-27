@@ -1,7 +1,7 @@
 import api from "../api/axiosConfig";
 
 const REQUEST_TIMEOUT_MS = 8000;
-const CACHE_PREFIX = "fintrack.market.v2";
+const CACHE_PREFIX = "fintrack.market.v3";
 const SNAPSHOT_URL = `${process.env.PUBLIC_URL || ""}/data/market-snapshot.json`;
 
 let snapshotPromise;
@@ -67,9 +67,10 @@ const fallbackError = (message, originalError) => {
   return error;
 };
 
-const requestWithFallback = async ({ cacheKey, liveRequest, selectSnapshot, unavailableMessage }) => {
+const requestWithFallback = async ({ cacheKey, liveRequest, selectSnapshot, isUsable, unavailableMessage }) => {
   try {
     const data = await liveRequest();
+    if (!isUsable(data)) throw new Error("The live endpoint returned an incomplete market payload.");
     writeCache(cacheKey, data);
     return withMeta(data, {
       mode: "live",
@@ -84,13 +85,14 @@ const requestWithFallback = async ({ cacheKey, liveRequest, selectSnapshot, unav
     try {
       snapshot = await loadScheduledSnapshot();
       snapshotData = selectSnapshot(snapshot);
+      if (snapshotData && !isUsable(snapshotData)) snapshotData = null;
     } catch (snapshotError) {
       snapshot = null;
     }
 
     const cacheTimestamp = timestampValue(cached?.savedAt);
     const snapshotTimestamp = timestampValue(snapshot?.generatedAt);
-    if (cached?.data && (!snapshotData || cacheTimestamp >= snapshotTimestamp)) {
+    if (cached?.data && isUsable(cached.data) && (!snapshotData || cacheTimestamp >= snapshotTimestamp)) {
       return withMeta(cached.data, {
         mode: "browser-cache",
         source: cached.data.source || "Last successful backend response",
@@ -117,10 +119,20 @@ const getLive = async (url, params) => {
   return response.data;
 };
 
+const isFiniteNumber = (value) => value !== null && value !== undefined && Number.isFinite(Number(value));
+const hasAvailableQuotes = (items) => Array.isArray(items) && items.some((item) => item?.status === "available" && isFiniteNumber(item.price));
+const validOverview = (data) => hasAvailableQuotes(data?.markets) && Number(data?.availableMarkets) > 0;
+const validFactors = (data) => hasAvailableQuotes(data?.factors);
+const validBreadth = (data) => Number(data?.coverageCount) > 0 && Array.isArray(data?.topGainers) && Array.isArray(data?.topLosers);
+const validAnalysis = (data) => Boolean(data?.symbol && data?.name && data?.outlook && isFiniteNumber(data?.probabilityUp) && data?.history?.length);
+const validCompany = (data) => Boolean(data?.symbol && data?.name && isFiniteNumber(data?.quote?.price) && data?.history?.length);
+const validNews = (data) => Array.isArray(data?.articles) && Boolean(data?.generatedAt);
+
 export const getGlobalMarketOverview = (refresh = false) => requestWithFallback({
   cacheKey: "overview",
   liveRequest: () => getLive("/market/overview", { refresh }),
   selectSnapshot: (snapshot) => snapshot.overview,
+  isUsable: validOverview,
   unavailableMessage: "Market overview is temporarily unavailable from both the live API and the scheduled snapshot."
 });
 
@@ -130,6 +142,7 @@ export const getMarketAnalysis = (symbol, refresh = false) => {
     cacheKey: `analysis.${cleaned}`,
     liveRequest: () => getLive("/market/analysis", { symbol: cleaned, refresh }),
     selectSnapshot: (snapshot) => snapshot.analyses?.[cleaned],
+    isUsable: validAnalysis,
     unavailableMessage: `Live analysis for ${cleaned || "this symbol"} is unavailable and it is not included in the scheduled interview snapshot.`
   });
 };
@@ -138,6 +151,7 @@ export const getMarketFactors = (refresh = false) => requestWithFallback({
   cacheKey: "factors",
   liveRequest: () => getLive("/market/factors", { refresh }),
   selectSnapshot: (snapshot) => snapshot.factors,
+  isUsable: validFactors,
   unavailableMessage: "Macro factor data is temporarily unavailable."
 });
 
@@ -145,6 +159,7 @@ export const getMarketBreadth = (refresh = false) => requestWithFallback({
   cacheKey: "breadth",
   liveRequest: () => getLive("/market/breadth", { refresh }),
   selectSnapshot: (snapshot) => snapshot.breadth,
+  isUsable: validBreadth,
   unavailableMessage: "India market breadth is temporarily unavailable."
 });
 
@@ -154,6 +169,7 @@ export const getCompanyResearch = (symbol, refresh = false) => {
     cacheKey: `company.${cleaned}`,
     liveRequest: () => getLive("/market/company", { symbol: cleaned, refresh }),
     selectSnapshot: (snapshot) => snapshot.companies?.[cleaned],
+    isUsable: validCompany,
     unavailableMessage: `Live company research for ${cleaned || "this symbol"} is unavailable and it is not included in the scheduled interview snapshot.`
   });
 };
@@ -162,6 +178,7 @@ export const getMarketNewsFeed = (refresh = false) => requestWithFallback({
   cacheKey: "news-feed",
   liveRequest: () => getLive("/market/news-feed", { refresh }),
   selectSnapshot: (snapshot) => snapshot.newsFeed,
+  isUsable: validNews,
   unavailableMessage: "Current market headlines are temporarily unavailable."
 });
 

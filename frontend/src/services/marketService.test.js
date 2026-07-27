@@ -1,6 +1,7 @@
 import api from "../api/axiosConfig";
 import {
   askMarketAgent,
+  getCompanyResearch,
   getGlobalMarketOverview,
   getMarketAnalysis,
   resetMarketFallbackStateForTests
@@ -37,9 +38,18 @@ const snapshot = {
       probabilityUp: 51.8,
       dataAsOf: "2026-07-27T00:00:00+05:30",
       model: { backtestAccuracy: 50.5, quality: "weak" },
+      history: [{ date: "2026-07-27", close: 23995.95 }],
       macroFactor: {
         factors: [{ factor: "Crude Oil", changePercent: -7.36, scoreContribution: 1.3, reason: "Lower crude can ease India's import pressure." }]
       }
+    }
+  },
+  companies: {
+    "RELIANCE.NS": {
+      symbol: "RELIANCE.NS",
+      name: "Reliance Industries Limited",
+      quote: { price: 1280 },
+      history: [{ date: "2026-07-27", close: 1280 }]
     }
   }
 };
@@ -73,6 +83,16 @@ test("returns scheduled ML evidence instead of an empty analysis", async () => {
 
   expect(result.outlook).toBe("NEUTRAL");
   expect(result.model.backtestAccuracy).toBe(50.5);
+  expect(result.__dataMeta.mode).toBe("scheduled-snapshot");
+});
+
+test("rejects an incomplete HTTP 200 company payload and uses the valid snapshot", async () => {
+  api.get.mockResolvedValueOnce({ data: { symbol: "RELIANCE.NS", quote: {} } });
+
+  const result = await getCompanyResearch("RELIANCE.NS");
+
+  expect(result.name).toBe("Reliance Industries Limited");
+  expect(result.quote.price).toBe(1280);
   expect(result.__dataMeta.mode).toBe("scheduled-snapshot");
 });
 

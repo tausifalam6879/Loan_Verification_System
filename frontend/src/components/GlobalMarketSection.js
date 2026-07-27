@@ -217,12 +217,12 @@ const GlobalMarketSection = () => {
   const generatedAt = dataMeta?.fetchedAt || overview?.generatedAt || factors?.generatedAt || breadth?.generatedAt;
   const sourceMode = dataMeta?.mode || "loading";
   const sourcePresentation = sourceMode === "loading"
-    ? { label: "Checking data source", color: "default", background: "action.hover", border: "divider", retry: "Loading market data" }
+    ? { label: "Checking data source", color: "default", background: "action.hover", border: "divider" }
     : sourceMode === "live"
-    ? { label: "Live backend", color: "success", background: "success.50", border: "success.100", retry: "Auto-refresh every 2 min" }
+    ? { label: "Live backend", color: "success", background: "success.50", border: "success.100" }
     : sourceMode === "browser-cache"
-      ? { label: "Last successful cache", color: "warning", background: "warning.50", border: "warning.100", retry: "Retries live API every 2 min" }
-      : { label: "Hourly GitHub snapshot", color: "info", background: "info.50", border: "info.100", retry: "Retries live API every 2 min" };
+      ? { label: "Last successful cache", color: "warning", background: "warning.50", border: "warning.100" }
+      : { label: "Hourly GitHub snapshot", color: "info", background: "info.50", border: "info.100" };
   const openCompanyResearch = (nextSymbol) => {
     setView("research");
     researchCompany(nextSymbol);
@@ -260,10 +260,12 @@ const GlobalMarketSection = () => {
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "flex-start", sm: "center" }}>
             <Chip size="small" color={sourcePresentation.color} label={sourcePresentation.label} sx={{ flexShrink: 0, fontWeight: 800 }} />
             <Typography variant="body2" color="text.secondary">
-              Yahoo Finance via yfinance. Quotes may be delayed; licensed exchange streaming is not included. Data generated: {formatTime(generatedAt)}.
+              Yahoo Finance via yfinance. Quotes may be delayed; licensed exchange streaming is not included. Data generated: {formatTime(generatedAt)}. Live API is retried every 2 minutes.
             </Typography>
           </Stack>
-          <Chip size="small" color={sourcePresentation.color} variant="outlined" icon={<RefreshIcon />} label={sourcePresentation.retry} sx={{ flexShrink: 0 }} />
+          <Button size="small" color={sourcePresentation.color === "default" ? "primary" : sourcePresentation.color} variant="outlined" startIcon={<RefreshIcon />} onClick={refreshCurrentView} disabled={loadingPulse || loadingAnalysis || loadingCompany} sx={{ flexShrink: 0 }}>
+            Refresh now
+          </Button>
         </Stack>
       </Paper>
       {error && <Alert severity="warning" sx={{ mb: 1.5, borderRadius: 1 }}>{error}</Alert>}
