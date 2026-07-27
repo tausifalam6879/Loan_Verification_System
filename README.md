@@ -34,7 +34,7 @@ Public registration is locked to the `USER` role. Admin access must be assigned 
 
 ## Live Demo
 
-GitHub Pages hosts only the React frontend. The production build calls the deployed Spring Boot API, which uses PostgreSQL and the deployed FastAPI market/ML service. The deployment intentionally fails if the `REACT_APP_API_BASE_URL` repository variable is missing, preventing a broken localhost-only release.
+GitHub Pages hosts the React frontend. The production build first calls the configured Spring Boot API, which uses PostgreSQL and the deployed FastAPI market/ML service. Market screens also include a checked-in, hourly refreshed Yahoo Finance snapshot and browser last-known-good cache, so a sleeping or unavailable cloud backend does not leave the interview demo blank.
 
 Demo URL:
 
@@ -247,7 +247,9 @@ GET  /api/market/news-feed
 POST /api/market/agent
 ```
 
-The market page fetches Yahoo Finance research data through `yfinance` when it opens, refreshes the visible market view every two minutes, and refreshes again when the browser tab becomes active. The Refresh control bypasses the cache immediately. It shows the upstream source and data timestamp on screen. Index, macro-factor, and watchlist-mover rows are clickable and open the selected symbol in Stock Research. This is not an exchange-grade streaming feed; official NSE real-time redistribution requires a licensed data provider.
+The market page fetches Yahoo Finance research data through `yfinance` when it opens, refreshes the visible market view every two minutes, and refreshes again when the browser tab becomes active. The Refresh control retries the live source immediately. It shows whether the displayed data came from the live backend, browser cache, or hourly GitHub snapshot, together with its timestamp. Index and macro-factor rows open the selected symbol's ML outlook; watchlist movers open company research. This is not an exchange-grade streaming feed; official NSE real-time redistribution requires a licensed data provider.
+
+For interview reliability, `.github/workflows/deploy-frontend.yml` runs `scripts/generate_market_snapshot.py` every hour and publishes `frontend/public/data/market-snapshot.json` with the Pages artifact. The frontend preference order is live backend, newest successful browser cache/scheduled snapshot, then a clear unavailable message. A provider timeout cannot silently produce fake zeroes or `N/A` cards. Popular indices, macro factors, displayed movers, company research and deterministic market-agent evidence are included in the snapshot. Arbitrary tickers and a real LLM response still require the cloud backend.
 
 The market workspace includes compact global index quotes, gold/crude/USD-INR/yield/VIX drivers, representative India-watchlist breadth and movers, multi-asset news, company quote/fundamental research, and a next-session model. The model combines technical features, headline tone and a capped macro overlay. Weak holdout accuracy shrinks probability toward 50% so the UI does not present false confidence. All outputs remain educational probabilities, not guaranteed forecasts or personalized investment advice.
 
@@ -299,7 +301,9 @@ Then run **Actions > Deploy frontend to GitHub Pages > Run workflow**, or push a
 
 ### Expected public behavior
 
-- Market data is fetched from the upstream provider when the page opens and while the page is active; the current cache window is two minutes.
+- Market data is fetched from the live backend when available. If it sleeps or fails, the newest browser cache or hourly GitHub snapshot is displayed instead of an empty page.
+- A source badge identifies `Live backend`, `Last successful cache`, or `Hourly GitHub snapshot`; every mode shows its generation timestamp.
+- GitHub Actions refreshes and redeploys the snapshot hourly. If Yahoo Finance has a transient symbol failure, the generator retains the previous successful value for that symbol.
 - Data can be delayed and is not an exchange-licensed tick-by-tick NSE feed.
 - PostgreSQL keeps accounts, expenses and applications across backend restarts.
 - Free hosting can sleep when idle, so the first request may be slower than local development.

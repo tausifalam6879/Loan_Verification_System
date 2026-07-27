@@ -1,0 +1,178 @@
+"""Generate the static market fallback used by the GitHub Pages demo."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Callable
+
+
+ROOT = Path(__file__).resolve().parents[1]
+AI_SERVICE_DIR = ROOT / "ai-fraud-service"
+sys.path.insert(0, str(AI_SERVICE_DIR))
+
+from market_intelligence import (  # noqa: E402
+    company_research,
+    global_overview,
+    macro_factors,
+    market_breadth,
+    market_news_feed,
+    market_prediction,
+)
+
+
+ANALYSIS_SYMBOLS = [
+    "^NSEI",
+    "^BSESN",
+    "RELIANCE.NS",
+    "HDFCBANK.NS",
+    "INFY.NS",
+    "AAPL",
+    "MSFT",
+]
+
+COMPANY_SYMBOLS = [
+    "RELIANCE.NS",
+    "HDFCBANK.NS",
+    "INFY.NS",
+    "AAPL",
+    "MSFT",
+]
+
+
+def merge_symbol_list(current: list[dict[str, Any]], previous: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    previous_by_symbol = {item.get("symbol"): item for item in previous if item.get("symbol")}
+    merged: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in current:
+        symbol = item.get("symbol")
+        if symbol and item.get("status") != "available" and previous_by_symbol.get(symbol, {}).get("status") == "available":
+            merged.append(previous_by_symbol[symbol])
+        else:
+            merged.append(item)
+        if symbol:
+            seen.add(symbol)
+    merged.extend(item for symbol, item in previous_by_symbol.items() if symbol not in seen)
+    return merged
+
+
+def merge_with_previous(snapshot: dict[str, Any], output: Path) -> dict[str, Any]:
+    if not output.exists():
+        return snapshot
+    try:
+        previous = json.loads(output.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return snapshot
+
+    snapshot["overview"]["markets"] = merge_symbol_list(
+        snapshot["overview"].get("markets", []), previous.get("overview", {}).get("markets", [])
+    )
+    snapshot["overview"]["availableMarkets"] = sum(
+        item.get("status") == "available" for item in snapshot["overview"]["markets"]
+    )
+    snapshot["overview"]["totalMarkets"] = len(snapshot["overview"]["markets"])
+    snapshot["factors"]["factors"] = merge_symbol_list(
+        snapshot["factors"].get("factors", []), previous.get("factors", {}).get("factors", [])
+    )
+    if int(snapshot.get("breadth", {}).get("coverageCount") or 0) < 5:
+        snapshot["breadth"] = previous.get("breadth") or snapshot["breadth"]
+    if not snapshot.get("newsFeed", {}).get("articles"):
+        snapshot["newsFeed"] = previous.get("newsFeed") or snapshot["newsFeed"]
+    snapshot["analyses"] = {**previous.get("analyses", {}), **snapshot.get("analyses", {})}
+    snapshot["companies"] = {**previous.get("companies", {}), **snapshot.get("companies", {})}
+    snapshot["health"] = {
+        "availableMarkets": snapshot["overview"]["availableMarkets"],
+        "totalMarkets": snapshot["overview"]["totalMarkets"],
+        "analysisSymbols": len(snapshot["analyses"]),
+        "companySymbols": len(snapshot["companies"]),
+    }
+    return snapshot
+
+
+def collect_by_symbol(symbols: list[str], loader: Callable[[str], dict[str, Any]]) -> dict[str, Any]:
+    results: dict[str, Any] = {}
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        jobs = {executor.submit(loader, symbol): symbol for symbol in symbols}
+        for job in as_completed(jobs):
+            symbol = jobs[job]
+            try:
+                results[symbol] = job.result()
+                print(f"Loaded {symbol}")
+            except Exception as error:  # The previous snapshot remains the final safety net.
+                print(f"Skipped {symbol}: {error}", file=sys.stderr)
+    return results
+
+
+def generate_snapshot() -> dict[str, Any]:
+    generated_at = datetime.now(timezone.utc).isoformat()
+    overview = global_overview()
+    factors = macro_factors()
+    breadth = market_breadth()
+    news_feed = market_news_feed(12)
+    analysis_symbols = list(dict.fromkeys([
+        *ANALYSIS_SYMBOLS,
+        *[item["symbol"] for item in overview.get("markets", []) if item.get("status") == "available"],
+        *[item["symbol"] for item in factors.get("factors", []) if item.get("status") == "available"],
+    ]))
+    company_symbols = list(dict.fromkeys([
+        *COMPANY_SYMBOLS,
+        *[item["symbol"] for item in breadth.get("topGainers", [])],
+        *[item["symbol"] for item in breadth.get("topLosers", [])],
+    ]))
+    analyses = collect_by_symbol(analysis_symbols, market_prediction)
+    companies = collect_by_symbol(company_symbols, company_research)
+    available_markets = int(overview.get("availableMarkets") or 0)
+
+    return {
+        "schemaVersion": 1,
+        "generatedAt": generated_at,
+        "source": "Yahoo Finance via yfinance; generated by GitHub Actions",
+        "refreshPolicy": "Hourly scheduled snapshot with browser last-known-good cache",
+        "health": {
+            "availableMarkets": available_markets,
+            "totalMarkets": int(overview.get("totalMarkets") or 0),
+            "analysisSymbols": len(analyses),
+            "companySymbols": len(companies),
+        },
+        "overview": overview,
+        "factors": factors,
+        "breadth": breadth,
+        "newsFeed": news_feed,
+        "analyses": analyses,
+        "companies": companies,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=ROOT / "frontend" / "public" / "data" / "market-snapshot.json",
+    )
+    args = parser.parse_args()
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        snapshot = merge_with_previous(generate_snapshot(), args.output)
+        if int(snapshot["health"]["availableMarkets"]) == 0:
+            raise RuntimeError("Upstream provider returned zero available global markets.")
+        temporary = args.output.with_suffix(".tmp")
+        temporary.write_text(json.dumps(snapshot, ensure_ascii=True, indent=2), encoding="utf-8")
+        temporary.replace(args.output)
+        print(f"Market snapshot written to {args.output}")
+        return 0
+    except Exception as error:
+        if args.output.exists() and args.output.stat().st_size > 100:
+            print(f"Snapshot refresh failed; preserving checked-in fallback: {error}", file=sys.stderr)
+            return 0
+        print(f"Snapshot generation failed and no fallback exists: {error}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

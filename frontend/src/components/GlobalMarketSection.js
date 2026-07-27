@@ -99,7 +99,7 @@ const GlobalMarketSection = () => {
   const loadPulse = async (refresh = false) => {
     setLoadingPulse(true);
     const results = await Promise.allSettled([
-      getGlobalMarketOverview(refresh), getMarketFactors(false), getMarketBreadth(false), getMarketNewsFeed(false)
+      getGlobalMarketOverview(refresh), getMarketFactors(refresh), getMarketBreadth(refresh), getMarketNewsFeed(refresh)
     ]);
     if (results[0].status === "fulfilled") setOverview(results[0].value);
     if (results[1].status === "fulfilled") setFactors(results[1].value);
@@ -115,6 +115,7 @@ const GlobalMarketSection = () => {
     if (!cleaned) return;
     setSymbol(cleaned);
     setLoadingAnalysis(true);
+    setAnalysis(null);
     try {
       setAnalysis(await getMarketAnalysis(cleaned, refresh));
       setError("");
@@ -130,6 +131,7 @@ const GlobalMarketSection = () => {
     if (!cleaned) return;
     setCompanySymbol(cleaned);
     setLoadingCompany(true);
+    setCompany(null);
     try {
       setCompany(await getCompanyResearch(cleaned, refresh));
       setError("");
@@ -207,10 +209,27 @@ const GlobalMarketSection = () => {
     }
   };
 
-  const generatedAt = overview?.generatedAt || factors?.generatedAt || breadth?.generatedAt;
-  const openResearch = (nextSymbol) => {
+  const dataMeta = useMemo(() => {
+    if (view === "research") return company?.__dataMeta;
+    if (view === "outlook") return analysis?.__dataMeta;
+    return overview?.__dataMeta || factors?.__dataMeta || breadth?.__dataMeta || newsFeed?.__dataMeta;
+  }, [view, overview, factors, breadth, newsFeed, company, analysis]);
+  const generatedAt = dataMeta?.fetchedAt || overview?.generatedAt || factors?.generatedAt || breadth?.generatedAt;
+  const sourceMode = dataMeta?.mode || "loading";
+  const sourcePresentation = sourceMode === "loading"
+    ? { label: "Checking data source", color: "default", background: "action.hover", border: "divider", retry: "Loading market data" }
+    : sourceMode === "live"
+    ? { label: "Live backend", color: "success", background: "success.50", border: "success.100", retry: "Auto-refresh every 2 min" }
+    : sourceMode === "browser-cache"
+      ? { label: "Last successful cache", color: "warning", background: "warning.50", border: "warning.100", retry: "Retries live API every 2 min" }
+      : { label: "Hourly GitHub snapshot", color: "info", background: "info.50", border: "info.100", retry: "Retries live API every 2 min" };
+  const openCompanyResearch = (nextSymbol) => {
     setView("research");
     researchCompany(nextSymbol);
+  };
+  const openMarketOutlook = (nextSymbol) => {
+    setView("outlook");
+    analyzeSymbol(nextSymbol);
   };
 
   return (
@@ -236,17 +255,30 @@ const GlobalMarketSection = () => {
         </Tabs>
       </Paper>
 
-      <Paper variant="outlined" sx={{ mb: 1.5, px: 1.5, py: 1, borderRadius: 1, bgcolor: "info.50", borderColor: "info.100" }}>
+      <Paper variant="outlined" sx={{ mb: 1.5, px: 1.5, py: 1, borderRadius: 1, bgcolor: sourcePresentation.background, borderColor: sourcePresentation.border }}>
         <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", md: "center" }} gap={1}>
-          <Typography variant="body2" color="text.secondary">
-            Yahoo Finance via yfinance. Quotes may be delayed; licensed exchange streaming is not included. Last fetch: {formatTime(generatedAt)}.
-          </Typography>
-          <Chip size="small" color="success" variant="outlined" icon={<RefreshIcon />} label="Auto-refresh every 2 min" sx={{ flexShrink: 0 }} />
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "flex-start", sm: "center" }}>
+            <Chip size="small" color={sourcePresentation.color} label={sourcePresentation.label} sx={{ flexShrink: 0, fontWeight: 800 }} />
+            <Typography variant="body2" color="text.secondary">
+              Yahoo Finance via yfinance. Quotes may be delayed; licensed exchange streaming is not included. Data generated: {formatTime(generatedAt)}.
+            </Typography>
+          </Stack>
+          <Chip size="small" color={sourcePresentation.color} variant="outlined" icon={<RefreshIcon />} label={sourcePresentation.retry} sx={{ flexShrink: 0 }} />
         </Stack>
       </Paper>
       {error && <Alert severity="warning" sx={{ mb: 1.5, borderRadius: 1 }}>{error}</Alert>}
 
-      {view === "overview" && <MarketPulse overview={overview} factors={factors} breadth={breadth} newsFeed={newsFeed} loading={loadingPulse} onOpenSymbol={openResearch} />}
+      {view === "overview" && (
+        <MarketPulse
+          overview={overview}
+          factors={factors}
+          breadth={breadth}
+          newsFeed={newsFeed}
+          loading={loadingPulse}
+          onOpenAnalysis={openMarketOutlook}
+          onOpenCompany={openCompanyResearch}
+        />
+      )}
       {view === "research" && (
         <StockResearch
           company={company}
@@ -276,14 +308,14 @@ const GlobalMarketSection = () => {
   );
 };
 
-const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, onOpenSymbol }) => {
+const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, onOpenAnalysis, onOpenCompany }) => {
   if (loading && !overview) return <LinearProgress />;
   return (
     <Stack spacing={1.5}>
       <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1 }}>
         <SectionTitle icon={<PublicIcon />} title="Major Global Indices" detail={`${overview?.availableMarkets || 0}/${overview?.totalMarkets || 0} available`} />
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(3, minmax(0, 1fr))" }, borderTop: "1px solid", borderLeft: "1px solid", borderColor: "divider" }}>
-          {(overview?.markets || []).map((market) => <IndexTile key={market.symbol} market={market} onClick={() => onOpenSymbol(market.symbol)} />)}
+          {(overview?.markets || []).map((market) => <IndexTile key={market.symbol} market={market} onClick={() => onOpenAnalysis(market.symbol)} />)}
         </Box>
       </Paper>
 
@@ -301,9 +333,9 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, onOpenSymb
         </Grid>
         <Grid size={{ xs: 12, md: 8 }}>
           <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1 }}>
-            <SectionTitle title="Global Drivers and Sector Impact" detail="Live moves + explainable impact" compact />
+            <SectionTitle title="Global Drivers and Sector Impact" detail="Current feed + explainable impact" compact />
             <Grid container spacing={1}>
-              {(factors?.factors || []).map((factor) => <FactorTile key={factor.symbol} factor={factor} onClick={() => onOpenSymbol(factor.symbol)} />)}
+              {(factors?.factors || []).map((factor) => <FactorTile key={factor.symbol} factor={factor} onClick={() => onOpenAnalysis(factor.symbol)} />)}
             </Grid>
           </Paper>
         </Grid>
@@ -314,8 +346,8 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, onOpenSymb
           <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1, height: "100%" }}>
             <SectionTitle title="Watchlist Movers" detail={breadth?.coverage || "Representative watchlist"} compact />
             <Grid container spacing={2}>
-              <MoverList title="Top gainers" items={breadth?.topGainers || []} onOpenSymbol={onOpenSymbol} />
-              <MoverList title="Top losers" items={breadth?.topLosers || []} onOpenSymbol={onOpenSymbol} />
+              <MoverList title="Top gainers" items={breadth?.topGainers || []} onOpenSymbol={onOpenCompany} />
+              <MoverList title="Top losers" items={breadth?.topLosers || []} onOpenSymbol={onOpenCompany} />
             </Grid>
           </Paper>
         </Grid>
@@ -507,7 +539,7 @@ const ModelWorkspace = ({ analysis, symbol, setSymbol, loading, onAnalyze, onQui
           {agentLoading && <CircularProgress size={24} />}
         </Box>
         <Box component="form" onSubmit={onSubmit} sx={{ display: "flex", gap: 1 }}>
-          <TextField fullWidth size="small" label="Ask using live market evidence" value={question} onChange={(event) => setQuestion(event.target.value)} />
+          <TextField fullWidth size="small" label="Ask using available market evidence" value={question} onChange={(event) => setQuestion(event.target.value)} />
           <Button type="submit" variant="contained" disabled={agentLoading || !question.trim()} aria-label="Send market question"><SendIcon /></Button>
         </Box>
       </Paper>
