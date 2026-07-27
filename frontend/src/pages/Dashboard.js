@@ -482,6 +482,15 @@ const WorkspaceCards = ({
       meta: `${filteredCount}/${expensesCount} records`
     },
     {
+      id: "markets",
+      title: "Global Markets",
+      subtitle: "World indices, ML outlook, news factors and grounded AI agent",
+      icon: <ShowChartIcon />,
+      color: "#2563eb",
+      surface: "linear-gradient(145deg, #dbeafe, #ecfeff)",
+      meta: "Live + Agentic AI"
+    },
+    {
       id: "loans",
       title: "Loan Marketplace",
       subtitle: "Backend offers, EMI and application form",
@@ -525,15 +534,6 @@ const WorkspaceCards = ({
       color: "#ca8a04",
       surface: "linear-gradient(145deg, #fef3c7, #fefce8)",
       meta: "Comparison"
-    },
-    {
-      id: "markets",
-      title: "Global Markets",
-      subtitle: "World indices, ML outlook, news factors and grounded AI agent",
-      icon: <ShowChartIcon />,
-      color: "#2563eb",
-      surface: "linear-gradient(145deg, #dbeafe, #ecfeff)",
-      meta: "Live + Agentic AI"
     }
   ];
 
