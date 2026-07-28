@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import App from './App';
 import { validateSession } from './services/authService';
 
@@ -53,8 +53,10 @@ const authenticateDemoUser = () => {
   localStorage.setItem("email", email);
 };
 
-test('redirects unauthenticated users to login', () => {
-  render(<App />);
+test('redirects unauthenticated users to login', async () => {
+  await act(async () => {
+    render(<App />);
+  });
   expect(screen.getByRole('heading', { name: /Login/i })).toBeInTheDocument();
   expect(screen.getAllByLabelText(/Email/i)[0]).toBeInTheDocument();
   expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();

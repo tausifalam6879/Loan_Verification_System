@@ -33,7 +33,6 @@ import SendIcon from "@mui/icons-material/Send";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
-import TrendingFlatIcon from "@mui/icons-material/TrendingFlat";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import {
   CartesianGrid,

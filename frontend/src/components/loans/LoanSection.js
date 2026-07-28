@@ -1676,6 +1676,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                   const statusStyle = applicationStatusStyle(application.status);
                   return (
                     <Card
+                      key={application.id}
                       sx={{
                         borderRadius: 2,
                         background: "linear-gradient(145deg, #e0f2fe, #f0fdfa)",
