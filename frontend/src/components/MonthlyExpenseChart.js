@@ -53,7 +53,7 @@ const MonthlyExpenseChart = ({ expenses }) => {
         </Box>
         <Box sx={{ height: 260 }}>
           {data.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height: 300 }}>
               <BarChart data={data} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.28)" />
                 <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 12 }} axisLine={false} tickLine={false} />

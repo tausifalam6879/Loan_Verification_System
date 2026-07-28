@@ -84,7 +84,7 @@ const ExpenseIntelligencePanel = ({ expenses, totalIncome }) => {
             </Box>
           </Box>
 
-          <Stack direction="row" flexWrap="wrap" gap={1}>
+          <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
             <Chip
               icon={<AutoGraphIcon />}
               label={`${summary.transactionCount} transactions analyzed`}
@@ -169,7 +169,7 @@ const ExpenseIntelligencePanel = ({ expenses, totalIncome }) => {
               }}
             >
               {categoryTrends.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height: 300 }}>
                   <BarChart data={categoryTrends} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.32)" />
                     <XAxis dataKey="category" tick={{ fill: "#94a3b8", fontSize: 12 }} axisLine={false} tickLine={false} />
@@ -228,7 +228,7 @@ const ExpenseIntelligencePanel = ({ expenses, totalIncome }) => {
               </List>
 
               {categoryTotals.length > 0 && (
-                <Stack direction="row" flexWrap="wrap" gap={0.75} sx={{ mt: 1.5 }}>
+                <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75, mt: 1.5 }}>
                   {categoryTotals.slice(0, 4).map((item) => (
                     <Chip
                       key={item.category}

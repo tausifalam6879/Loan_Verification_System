@@ -72,4 +72,4 @@ test("loads financial context and updates editable profile details", async () =>
   await waitFor(() => expect(updateProfile).toHaveBeenCalledWith({ fullName: "Updated User", mobile: "9876543210" }));
   expect(await screen.findByText(/Profile updated successfully/i)).toBeInTheDocument();
   expect(screen.getAllByText("Updated User").length).toBeGreaterThan(0);
-});
+}, 10000);

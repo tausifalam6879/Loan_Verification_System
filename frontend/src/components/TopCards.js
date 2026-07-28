@@ -70,7 +70,7 @@ const TopCards = ({
                               bgcolor: "rgba(255,255,255,0.72)"
                             }
                           }}
-                          inputProps={{ min: 0, step: 0.01 }}
+                          slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
                         />
                         <Button
                           variant="contained"

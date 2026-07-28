@@ -32,6 +32,16 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
+## Tests
+
+From the project root:
+
+```bash
+python -m pytest ai-fraud-service/tests -q
+```
+
+The deterministic test suite covers service health, low- and high-risk fraud decisions, empty expense history, and expense insight generation without calling an external market or LLM provider.
+
 ## Health Check
 
 ```http

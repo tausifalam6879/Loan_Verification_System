@@ -91,25 +91,25 @@ const ExpenseOverviewCards = ({ expenses = [], totalIncome = 0, onIncomeChange, 
   return (
     <Card elevation={0} sx={{ mb: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider", boxShadow: "0 14px 34px rgba(15, 23, 42, 0.08)" }}>
       <CardContent sx={{ p: 2.5 }}>
-        <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={1.5} sx={{ mb: 2 }}>
+        <Stack direction={{ xs: "column", md: "row" }} sx={{ justifyContent: "space-between", gap: 1.5, mb: 2 }}>
           <Box>
             <Typography variant="overline" sx={{ color: "#0f766e", fontWeight: 900 }}>Monthly command center</Typography>
             <Typography variant="h5" sx={{ fontWeight: 900 }}>Know where this month is heading</Typography>
           </Box>
           {editingIncome ? (
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
               <TextField
                 size="small"
                 type="number"
                 label="Monthly income"
                 value={incomeDraft}
                 onChange={(event) => setIncomeDraft(event.target.value)}
-                inputProps={{ min: 0 }}
+                slotProps={{ htmlInput: { min: 0 } }}
               />
               <Button variant="contained" onClick={saveIncome} sx={{ textTransform: "none", fontWeight: 800 }}>Save</Button>
             </Stack>
           ) : (
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ alignItems: { xs: "stretch", sm: "center" } }}>
               {isDemoMode && (
                 <Button startIcon={<RestartAltIcon />} onClick={onResetDemo} sx={{ textTransform: "none", fontWeight: 800 }}>
                   Reset demo
@@ -145,7 +145,7 @@ const ExpenseOverviewCards = ({ expenses = [], totalIncome = 0, onIncomeChange, 
 
 const MetricCard = ({ label, value, helper, icon, color }) => (
   <Box sx={{ height: "100%", p: 2, borderRadius: 2, bgcolor: `${color}0d`, border: `1px solid ${color}24` }}>
-    <Stack direction="row" justifyContent="space-between" alignItems="center">
+    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
       <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 800 }}>{label}</Typography>
       <Box sx={{ color, display: "grid", placeItems: "center" }}>{icon}</Box>
     </Stack>

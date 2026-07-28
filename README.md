@@ -34,7 +34,7 @@ Public registration is locked to the `USER` role. Admin access must be assigned 
 
 ## Live Demo
 
-GitHub Pages hosts the React frontend. The production build first calls the configured Spring Boot API, which uses PostgreSQL and the deployed FastAPI market/ML service. Market screens also include a scheduled Yahoo Finance snapshot targeted every 15 minutes plus a browser last-known-good cache, so a sleeping or unavailable cloud backend does not leave the interview demo blank.
+GitHub Pages hosts the React frontend in one of two explicit modes. If the repository variable `REACT_APP_API_BASE_URL` is not configured, the workflow publishes the account-scoped browser demo. If a valid Spring Boot API URL is configured, the workflow validates its health endpoint before publishing a full-stack build. Market screens also include a scheduled Yahoo Finance snapshot targeted every 15 minutes plus a browser last-known-good cache, so a sleeping or unavailable cloud backend does not leave the interview demo blank.
 
 Demo URL:
 
@@ -42,7 +42,7 @@ Demo URL:
 https://tausifalam6879.github.io/Loan_Verification_System
 ```
 
-On GitHub Pages, register a browser-demo account and then sign in with the same email/mobile and password or verified demo OTP. Private routes validate a short-lived browser session before rendering, and saved demo data is isolated by registered account. The market workspace still uses the timestamped public snapshot without requiring Java, Python or a database. A separately deployed backend is required for persistent multi-user production accounts and arbitrary live research requests.
+In the default GitHub Pages browser-demo mode, register an account and then sign in with the same email/mobile and password or verified demo OTP. Private routes validate a short-lived browser session before rendering, and saved demo data is isolated by registered account. The market workspace still uses the timestamped public snapshot without requiring Java, Python or a database. Browser storage is for portfolio demonstrations, not production identity storage. A separately deployed backend is required for persistent multi-user accounts and arbitrary live research requests.
 
 ## Tech Stack
 
@@ -299,7 +299,7 @@ Name:  REACT_APP_API_BASE_URL
 Value: https://YOUR-SPRING-SERVICE.onrender.com/api
 ```
 
-Then run **Actions > Deploy frontend to GitHub Pages > Run workflow**, or push a frontend/workflow change. The production build uses `REACT_APP_DEMO_MODE=false`.
+Then run **Actions > Deploy frontend to GitHub Pages > Run workflow**, or push a frontend/workflow change. The workflow checks `${REACT_APP_API_BASE_URL}/users/test` before it publishes full-stack mode. If the variable is absent, it intentionally publishes the self-contained browser demo instead of silently calling an unrelated or unavailable service.
 
 ### Expected public behavior
 
@@ -310,6 +310,7 @@ Then run **Actions > Deploy frontend to GitHub Pages > Run workflow**, or push a
 - PostgreSQL keeps accounts, expenses and applications across backend restarts.
 - Free hosting can sleep when idle, so the first request may be slower than local development.
 - React never receives an Ollama, Gemini or OpenAI key.
+- Browser-demo accounts stay inside that browser and are not a substitute for server-side production accounts.
 
 ## Configuration
 
@@ -362,6 +363,12 @@ npm test -- --watchAll=false
 npm run build
 ```
 
+AI/Data Science service:
+
+```powershell
+python -m pytest ai-fraud-service/tests -q
+```
+
 ## Security Notes
 
 - Public registration always creates `USER` accounts.
@@ -372,4 +379,4 @@ npm run build
 
 ## Current Status
 
-Core application flow is implemented: authentication, user dashboard, profile, loan marketplace, application submission, admin review, charts, audit logs, OTP/email-ready backend, document upload helper, and optional fraud service. External production setup still requires real SMTP, Cloudinary, deployment hosting, and production database credentials.
+Core application flow is implemented: authentication, user dashboard, profile, loan marketplace, application submission, admin review, charts, audit logs, OTP/email-ready backend, document upload helper, fraud scoring and market intelligence. GitHub Pages remains interview-ready in browser-demo mode without a backend. A complete public multi-user deployment still requires healthy Spring Boot, PostgreSQL and FastAPI services plus a configured `REACT_APP_API_BASE_URL`; optional SMTP, SMS/WhatsApp, Cloudinary and hosted LLM features require their own credentials.

@@ -6,5 +6,6 @@ import '@testing-library/jest-dom';
 
 const { TextDecoder, TextEncoder } = require('util');
 
+process.env.REACT_APP_DEMO_MODE = 'true';
 global.TextDecoder = TextDecoder;
 global.TextEncoder = TextEncoder;

@@ -180,3 +180,46 @@ test("keeps Copilot account-scoped and returns contextual demo analytics after l
   expect(chatResponse.data.data.provider).toBe("demo-analytics");
   expect(chatResponse.data.data.answer).toMatch(/signed-in account/i);
 });
+
+test("isolates saved financial data between registered browser-demo accounts", async () => {
+  await call("/api/users/register", "post", {
+    fullName: "First User",
+    email: "first@example.com",
+    mobile: "9000000001",
+    password: "first-password"
+  });
+  await call("/api/users/register", "post", {
+    fullName: "Second User",
+    email: "second@example.com",
+    mobile: "9000000002",
+    password: "second-password"
+  });
+
+  const firstLogin = await call("/api/users/login", "post", {
+    email: "first@example.com",
+    channel: "PASSWORD",
+    password: "first-password"
+  });
+  const secondLogin = await call("/api/users/login", "post", {
+    email: "second@example.com",
+    channel: "PASSWORD",
+    password: "second-password"
+  });
+
+  await call(
+    "/api/expenses/add",
+    "post",
+    { amount: 321, category: "Other", description: "First account only" },
+    firstLogin.data.token
+  );
+
+  const firstExpenses = await call("/api/expenses/all", "get", undefined, firstLogin.data.token);
+  const secondExpenses = await call("/api/expenses/all", "get", undefined, secondLogin.data.token);
+
+  expect(firstExpenses.data.data).toEqual(
+    expect.arrayContaining([expect.objectContaining({ description: "First account only" })])
+  );
+  expect(secondExpenses.data.data).not.toEqual(
+    expect.arrayContaining([expect.objectContaining({ description: "First account only" })])
+  );
+});

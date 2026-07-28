@@ -94,19 +94,19 @@ const TransactionTable = ({
           }}
         >
           <CardContent sx={{ p: 2.5 }}>
-            <Stack direction={{ xs: "column", lg: "row" }} justifyContent="space-between" gap={2} sx={{ mb: 2 }}>
+            <Stack direction={{ xs: "column", lg: "row" }} sx={{ justifyContent: "space-between", gap: 2, mb: 2 }}>
               <Box>
                 <Typography variant="h6" sx={{ color: "#0f172a", fontWeight: 900 }}>Transactions</Typography>
                 <Typography variant="body2" sx={{ color: "#64748b" }}>{expenses.length} matching records · search, filter, edit and export</Typography>
               </Box>
 
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1} flexWrap="wrap" useFlexGap>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
                 <TextField
                   size="small"
                   placeholder="Search merchant or expense"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment> }}
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment> } }}
                   sx={fieldStyle}
                 />
                 <TextField select size="small" label="Sort by" value={sortKey} onChange={(event) => setSortKey(event.target.value)} sx={{ ...fieldStyle, minWidth: 120 }}>

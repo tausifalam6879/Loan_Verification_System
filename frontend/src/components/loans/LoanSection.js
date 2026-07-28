@@ -833,7 +833,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
             background: "linear-gradient(145deg, #ffffff, #ecfeff)"
           }}
         >
-          <Stack direction={{ xs: "column", lg: "row" }} justifyContent="space-between" gap={1.5} sx={{ mb: 2 }}>
+          <Stack direction={{ xs: "column", lg: "row" }} sx={{ justifyContent: "space-between", gap: 1.5, mb: 2 }}>
             <Box>
               <Typography variant="h6" sx={{ color: "#0f172a", fontWeight: 900 }}>Find your best-fit offer</Typography>
               <Typography variant="body2" sx={{ color: "#475569" }}>Change your profile once; EMI, eligibility and total cost update across every lender.</Typography>
@@ -854,13 +854,13 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
               </TextField>
             </Grid>
             <Grid size={{ xs: 12, sm: 6, lg: 2.4 }}>
-              <TextField fullWidth size="small" type="number" label="Required amount" value={requestedAmount} onChange={(event) => setRequestedAmount(validateLoanAmount(event.target.value))} inputProps={{ min: 1 }} sx={marketplaceFilterStyle} />
+              <TextField fullWidth size="small" type="number" label="Required amount" value={requestedAmount} onChange={(event) => setRequestedAmount(validateLoanAmount(event.target.value))} slotProps={{ htmlInput: { min: 1 } }} sx={marketplaceFilterStyle} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6, lg: 2.4 }}>
-              <TextField fullWidth size="small" type="number" label="Tenure months" value={tenureMonths} onChange={(event) => setTenureMonths(validateTenure(event.target.value))} inputProps={{ min: 1 }} sx={marketplaceFilterStyle} />
+              <TextField fullWidth size="small" type="number" label="Tenure months" value={tenureMonths} onChange={(event) => setTenureMonths(validateTenure(event.target.value))} slotProps={{ htmlInput: { min: 1 } }} sx={marketplaceFilterStyle} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6, lg: 2.4 }}>
-              <TextField fullWidth size="small" type="number" label="Credit score" value={creditScore} onChange={(event) => setCreditScore(validateCreditScore(event.target.value))} inputProps={{ min: 300, max: 900 }} sx={marketplaceFilterStyle} />
+              <TextField fullWidth size="small" type="number" label="Credit score" value={creditScore} onChange={(event) => setCreditScore(validateCreditScore(event.target.value))} slotProps={{ htmlInput: { min: 300, max: 900 } }} sx={marketplaceFilterStyle} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6, lg: 2.4 }}>
               <TextField select fullWidth size="small" label="Sort offers" value={offerSort} onChange={(event) => setOfferSort(event.target.value)} sx={marketplaceFilterStyle}>
@@ -933,7 +933,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                           <Box sx={iconBoxStyle(color)}>
                             <LoanIcon />
                           </Box>
-                          <Stack spacing={0.5} alignItems="flex-end">
+                          <Stack spacing={0.5} sx={{ alignItems: "flex-end" }}>
                             <Chip size="small" label={`${offer.interestRate}%`} sx={{ bgcolor: "#0f172a", color: "#ffffff", fontWeight: 900 }} />
                             <Chip size="small" label={eligibility.eligible ? "Eligible" : "Review"} color={eligibility.eligible ? "success" : "warning"} sx={{ fontWeight: 900 }} />
                           </Stack>
@@ -1140,7 +1140,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                         <TextField fullWidth required label="Applicant name" value={applicantName} onChange={(event) => setApplicantName(event.target.value)} />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth required label="Authenticated email" value={email} InputProps={{ readOnly: true }} helperText="Applications are always linked to the signed-in account." />
+                        <TextField fullWidth required label="Authenticated email" value={email} slotProps={{ input: { readOnly: true } }} helperText="Applications are always linked to the signed-in account." />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField fullWidth required label="Credit score" type="number" value={creditScore} onChange={(event) => setCreditScore(validateCreditScore(event.target.value))} />
@@ -1245,7 +1245,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                           onChange={(event) => setNomineePhone(sanitizeMobileInput(event.target.value))}
                           error={Boolean(nomineePhone) && !isValidIndianMobile(nomineePhone)}
                           helperText="Use a 10-digit Indian mobile number."
-                          inputProps={{ inputMode: "tel", maxLength: 16 }}
+                          slotProps={{ htmlInput: { inputMode: "tel", maxLength: 16 } }}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
@@ -1255,7 +1255,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                         <TextField fullWidth required label="IFSC code" value={ifscCode} onChange={(event) => setIfscCode(event.target.value.toUpperCase())} />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth label="Existing EMI" type="number" value={existingEmi} onChange={(event) => setExistingEmi(validateMonthlyIncome(event.target.value))} inputProps={{ min: 0, step: 0.01 }} />
+                        <TextField fullWidth label="Existing EMI" type="number" value={existingEmi} onChange={(event) => setExistingEmi(validateMonthlyIncome(event.target.value))} slotProps={{ htmlInput: { min: 0, step: 0.01 } }} />
                       </Grid>
                       <Grid size={{ xs: 12 }}>
                         <TextField fullWidth label="Loan purpose" value={loanPurpose} onChange={(event) => setLoanPurpose(event.target.value)} />
@@ -1442,19 +1442,19 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                     <TextField fullWidth label="Applicant name" value={applicantName} onChange={(event) => setApplicantName(event.target.value)} />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField fullWidth label="Authenticated email" value={email} InputProps={{ readOnly: true }} />
+                    <TextField fullWidth label="Authenticated email" value={email} slotProps={{ input: { readOnly: true } }} />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField fullWidth label="Credit score" type="number" value={creditScore} onChange={(event) => setCreditScore(validateCreditScore(event.target.value))} inputProps={{ min: 300, max: 900 }} />
+                    <TextField fullWidth label="Credit score" type="number" value={creditScore} onChange={(event) => setCreditScore(validateCreditScore(event.target.value))} slotProps={{ htmlInput: { min: 300, max: 900 } }} />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField fullWidth label="Monthly income" type="number" value={monthlyIncome} onChange={(event) => setMonthlyIncome(validateMonthlyIncome(event.target.value))} inputProps={{ min: 0, step: 0.01 }} />
+                    <TextField fullWidth label="Monthly income" type="number" value={monthlyIncome} onChange={(event) => setMonthlyIncome(validateMonthlyIncome(event.target.value))} slotProps={{ htmlInput: { min: 0, step: 0.01 } }} />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField fullWidth label="Loan amount" type="number" value={requestedAmount} onChange={(event) => setRequestedAmount(validateLoanAmount(event.target.value))} inputProps={{ min: 0, step: 0.01 }} />
+                    <TextField fullWidth label="Loan amount" type="number" value={requestedAmount} onChange={(event) => setRequestedAmount(validateLoanAmount(event.target.value))} slotProps={{ htmlInput: { min: 0, step: 0.01 } }} />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField fullWidth label="Tenure months" type="number" value={tenureMonths} onChange={(event) => setTenureMonths(validateTenure(event.target.value))} inputProps={{ min: 1, step: 1 }} />
+                    <TextField fullWidth label="Tenure months" type="number" value={tenureMonths} onChange={(event) => setTenureMonths(validateTenure(event.target.value))} slotProps={{ htmlInput: { min: 1, step: 1 } }} />
                   </Grid>
                 </Grid>
 
@@ -1904,8 +1904,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                   fullWidth
                   required
                   sx={gatewayInputStyle}
-                  InputProps={{ readOnly: isLoanFeeCheckout }}
-                  inputProps={{ min: 0.01, step: 0.01 }}
+                  slotProps={{
+                    input: { readOnly: isLoanFeeCheckout },
+                    htmlInput: { min: 0.01, step: 0.01 }
+                  }}
                   helperText={isLoanFeeCheckout ? "Locked to the backend-calculated processing fee." : "Enter the demo payment amount."}
                 />
               </Grid>
@@ -1917,7 +1919,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                   fullWidth
                   required
                   sx={gatewayInputStyle}
-                  InputProps={{ readOnly: isLoanFeeCheckout }}
+                  slotProps={{ input: { readOnly: isLoanFeeCheckout } }}
                   helperText={isLoanFeeCheckout ? "Locked to the selected lender application." : "Enter a demo recipient."}
                 />
               </Grid>
@@ -1953,7 +1955,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                     fullWidth 
                     sx={gatewayInputStyle}
                     placeholder="Enter 16-digit card number"
-                    inputProps={{ maxLength: 16 }}
+                    slotProps={{ htmlInput: { maxLength: 16 } }}
                   />
                 </Grid>
                 <Grid size={{ xs: 6 }}>
@@ -1964,7 +1966,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                     fullWidth 
                     sx={gatewayInputStyle}
                     placeholder="MM/YY"
-                    inputProps={{ maxLength: 5 }}
+                    slotProps={{ htmlInput: { maxLength: 5 } }}
                   />
                 </Grid>
                 <Grid size={{ xs: 6 }}>
@@ -1975,7 +1977,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                     fullWidth 
                     sx={gatewayInputStyle}
                     placeholder="123"
-                    inputProps={{ maxLength: 4 }}
+                    slotProps={{ htmlInput: { maxLength: 4 } }}
                     type="password"
                   />
                 </Grid>

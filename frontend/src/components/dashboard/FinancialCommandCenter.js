@@ -186,7 +186,7 @@ const FinancialCommandCenter = ({
                         type="number"
                         value={incomeInput}
                         onChange={(event) => setIncomeInput(event.target.value)}
-                        inputProps={{ min: 1 }}
+                        slotProps={{ htmlInput: { min: 1 } }}
                         sx={{ maxWidth: 150 }}
                       />
                       <Button variant="contained" onClick={onSaveIncome} sx={actionButtonStyle}>Save</Button>
@@ -310,7 +310,7 @@ const FinancialCommandCenter = ({
                 Income uses your current monthly setting; expenses come from saved transactions.
               </Typography>
               <Box sx={{ height: 300, mt: 2 }}>
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height: 300 }}>
                   <ComposedChart data={intelligence.flow} margin={{ top: 8, right: 8, left: -4, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.25)" />
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />

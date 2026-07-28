@@ -212,7 +212,7 @@ const AdminDashboard = () => {
                 </Box>
                 <Box sx={{ height: 270 }}>
                   {hasStatusData ? (
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height: 300 }}>
                       <PieChart>
                         <Pie
                           data={statusData}
@@ -254,7 +254,7 @@ const AdminDashboard = () => {
                 </Box>
                 <Box sx={{ height: 270 }}>
                   {riskData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height: 300 }}>
                       <BarChart data={riskData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="name" />
@@ -352,7 +352,7 @@ const AdminDashboard = () => {
                           <Chip size="small" label={application.status || "SAVED"} sx={{ fontWeight: 900 }} />
                         </TableCell>
                         <TableCell align="right">
-                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
                             <Button
                               size="small"
                               startIcon={<VisibilityIcon />}

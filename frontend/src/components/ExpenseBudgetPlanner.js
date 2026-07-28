@@ -112,7 +112,7 @@ const ExpenseBudgetPlanner = ({ expenses = [], budgets = {}, onBudgetsChange }) 
   return (
     <Card elevation={0} sx={{ mt: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider", boxShadow: "0 14px 34px rgba(15, 23, 42, 0.08)" }}>
       <CardContent sx={{ p: 2.5 }}>
-        <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={1.5} sx={{ mb: 2 }}>
+        <Stack direction={{ xs: "column", md: "row" }} sx={{ justifyContent: "space-between", gap: 1.5, mb: 2 }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 900 }}>Budgets, alerts and subscriptions</Typography>
             <Typography variant="body2" color="text.secondary">Set category limits and get notified before spending crosses them.</Typography>
@@ -139,7 +139,7 @@ const ExpenseBudgetPlanner = ({ expenses = [], budgets = {}, onBudgetsChange }) 
               <TextField select size="small" label="Category" value={category} onChange={(event) => setCategory(event.target.value)} sx={{ minWidth: 170 }}>
                 {categories.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}
               </TextField>
-              <TextField size="small" type="number" label="Monthly limit (Rs.)" value={amount} onChange={(event) => setAmount(event.target.value)} inputProps={{ min: 1 }} />
+              <TextField size="small" type="number" label="Monthly limit (Rs.)" value={amount} onChange={(event) => setAmount(event.target.value)} slotProps={{ htmlInput: { min: 1 } }} />
               <Button variant="contained" onClick={saveBudget} startIcon={<SavingsIcon />} sx={{ textTransform: "none", fontWeight: 800 }}>Save budget</Button>
             </Stack>
 
@@ -149,12 +149,12 @@ const ExpenseBudgetPlanner = ({ expenses = [], budgets = {}, onBudgetsChange }) 
               <Stack spacing={1.5}>
                 {budgetRows.map((item) => (
                   <Box key={item.key} sx={{ p: 1.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+                    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", gap: 1 }}>
                       <Box>
                         <Typography sx={{ fontWeight: 900 }}>{title(item.key)}</Typography>
                         <Typography variant="caption" color="text.secondary">{currency(item.spent)} of {currency(item.limit)}</Typography>
                       </Box>
-                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
                         <Chip size="small" label={`${item.percentage}%`} color={item.percentage >= 100 ? "error" : item.percentage >= 80 ? "warning" : "success"} />
         <Button color="error" size="small" onClick={() => removeBudget(item.key)} aria-label={`Remove ${item.key} budget`}><DeleteIcon fontSize="small" /></Button>
                       </Stack>
@@ -173,7 +173,7 @@ const ExpenseBudgetPlanner = ({ expenses = [], budgets = {}, onBudgetsChange }) 
 
           <Grid size={{ xs: 12, lg: 4 }}>
             <Box sx={{ height: "100%", p: 2, borderRadius: 2, bgcolor: "rgba(37, 99, 235, 0.06)", border: "1px solid rgba(37, 99, 235, 0.16)" }}>
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                 <AutorenewIcon color="primary" />
                 <Typography sx={{ fontWeight: 900 }}>Recurring commitments</Typography>
               </Stack>
@@ -181,7 +181,7 @@ const ExpenseBudgetPlanner = ({ expenses = [], budgets = {}, onBudgetsChange }) 
               <Typography variant="body2" color="text.secondary">estimated monthly total across {recurring.length} commitments</Typography>
               <Stack spacing={0.75} sx={{ mt: 2 }}>
                 {recurring.slice(0, 5).map((expense) => (
-                  <Stack key={expense.id} direction="row" justifyContent="space-between" gap={1}>
+                  <Stack key={expense.id} direction="row" sx={{ justifyContent: "space-between", gap: 1 }}>
                     <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>{expense.merchant || expense.description || expense.category}</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 900 }}>{currency(expense.amount)}</Typography>
                   </Stack>

@@ -51,19 +51,25 @@ jobs:
         working-directory: .
         run: |
           pip install -r ai-fraud-service/requirements.txt
+          python -m pytest ai-fraud-service/tests -q
           python scripts/generate_market_snapshot.py
 
       - name: Install dependencies
         run: npm ci
 
       - name: Run tests
-        run: npm test -- --watchAll=false
+        run: npm test -- --watchAll=false --runInBand
+
+      - name: Validate configured Spring Boot API
+        if: ${{ vars.REACT_APP_API_BASE_URL != '' }}
+        working-directory: .
+        run: curl --fail --retry 3 --retry-delay 10 --max-time 90 "${{ vars.REACT_APP_API_BASE_URL }}/users/test"
 
       - name: Build production frontend
         run: npm run build
         env:
-          REACT_APP_DEMO_MODE: "false"
-          REACT_APP_API_BASE_URL: ${{ vars.REACT_APP_API_BASE_URL || 'https://fintrack-api.onrender.com/api' }}
+          REACT_APP_DEMO_MODE: ${{ vars.REACT_APP_API_BASE_URL == '' && 'true' || 'false' }}
+          REACT_APP_API_BASE_URL: ${{ vars.REACT_APP_API_BASE_URL || 'http://localhost:8081/api' }}
           CI: "false"
 
       - name: Configure Pages

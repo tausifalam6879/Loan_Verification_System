@@ -1,9 +1,10 @@
 import { predictExpenseCategory } from "../utils/expenseIntelligence";
 import { buildCopilotFallbackAnswer, getCopilotPrompts } from "../utils/copilot";
 
+const configuredDemoMode = process.env.REACT_APP_DEMO_MODE;
 const demoMode =
-  process.env.REACT_APP_DEMO_MODE === "true" ||
-  (typeof window !== "undefined" && window.location.hostname.endsWith("github.io"));
+  configuredDemoMode === "true" ||
+  (!configuredDemoMode && typeof window !== "undefined" && window.location.hostname.endsWith("github.io"));
 
 const ACCOUNT_STORAGE_KEY = "fintrackDemoAccountsV1";
 const STATE_STORAGE_PREFIX = "fintrackDemoStateV3";

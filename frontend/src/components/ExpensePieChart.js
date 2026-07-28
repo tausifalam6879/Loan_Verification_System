@@ -106,7 +106,7 @@ const ExpensePieChart = ({ expenses, loading }) => {
               transition={{ duration: 0.35 }}
               style={{ width: "100%", height: "100%" }}
             >
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 480, height: 300 }}>
                 <PieChart>
                   <Pie
                     data={data}

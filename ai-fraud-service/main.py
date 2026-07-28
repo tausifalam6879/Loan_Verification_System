@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 from statistics import mean
 from typing import Dict, List, Literal, Optional
@@ -11,14 +12,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 from market_intelligence import router as market_router
-
-
-app = FastAPI(
-    title="FinTrack AI/Data Science Service",
-    version="0.2.0",
-    description="Python ML service for loan fraud scoring, expense categorization, forecasting, anomaly detection, and saving advice.",
-)
-app.include_router(market_router)
 
 BASE_DIR = Path(__file__).resolve().parent
 DATASET_PATH = BASE_DIR / "data" / "expense_training_data.csv"
@@ -112,10 +105,20 @@ def train_or_load_expense_model() -> Pipeline:
     return pipeline
 
 
-@app.on_event("startup")
-def load_models():
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     global expense_category_model
     expense_category_model = train_or_load_expense_model()
+    yield
+
+
+app = FastAPI(
+    title="FinTrack AI/Data Science Service",
+    version="0.2.0",
+    description="Python ML service for loan fraud scoring, expense categorization, forecasting, anomaly detection, and saving advice.",
+    lifespan=lifespan,
+)
+app.include_router(market_router)
 
 
 @app.get("/health")

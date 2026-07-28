@@ -15,6 +15,7 @@ jest.mock('./services/authService', () => {
 
 beforeEach(() => {
   localStorage.clear();
+  sessionStorage.clear();
   validateSession.mockImplementation(async () => ({
     email: localStorage.getItem('email'),
     role: localStorage.getItem('role') || 'USER'
@@ -24,8 +25,33 @@ beforeEach(() => {
 afterEach(() => {
   jest.restoreAllMocks();
   localStorage.clear();
+  sessionStorage.clear();
   window.location.hash = "#/";
 });
+
+const authenticateDemoUser = () => {
+  const token = "demo-session-app-test";
+  const email = "user@example.com";
+  localStorage.setItem("fintrackDemoAccountsV1", JSON.stringify([
+    {
+      id: 1,
+      fullName: "Demo User",
+      email,
+      mobile: "9876543210",
+      role: "USER",
+      creditScore: 735
+    }
+  ]));
+  sessionStorage.setItem(`fintrackDemoSessionV1:${token}`, JSON.stringify({
+    token,
+    email,
+    role: "USER",
+    expiresAt: Date.now() + 30 * 60 * 1000
+  }));
+  localStorage.setItem("token", token);
+  localStorage.setItem("role", "USER");
+  localStorage.setItem("email", email);
+};
 
 test('redirects unauthenticated users to login', () => {
   render(<App />);
@@ -35,9 +61,7 @@ test('redirects unauthenticated users to login', () => {
 });
 
 test('renders the authenticated financial command center overview', async () => {
-  localStorage.setItem("token", "test-token");
-  localStorage.setItem("role", "USER");
-  localStorage.setItem("email", "user@example.com");
+  authenticateDemoUser();
   window.location.hash = "#/";
 
   render(<App />);
@@ -50,9 +74,7 @@ test('renders the authenticated financial command center overview', async () => 
 });
 
 test('renders the authenticated loan marketplace route', async () => {
-  localStorage.setItem("token", "test-token");
-  localStorage.setItem("role", "USER");
-  localStorage.setItem("email", "user@example.com");
+  authenticateDemoUser();
   window.location.hash = "#/loans";
 
   render(<App />);
@@ -61,9 +83,7 @@ test('renders the authenticated loan marketplace route', async () => {
 });
 
 test('renders the authenticated payment command center route', async () => {
-  localStorage.setItem("token", "test-token");
-  localStorage.setItem("role", "USER");
-  localStorage.setItem("email", "user@example.com");
+  authenticateDemoUser();
   window.location.hash = "#/payments";
 
   render(<App />);
@@ -73,9 +93,7 @@ test('renders the authenticated payment command center route', async () => {
 });
 
 test('renders the authenticated loan application center route', async () => {
-  localStorage.setItem("token", "test-token");
-  localStorage.setItem("role", "USER");
-  localStorage.setItem("email", "user@example.com");
+  authenticateDemoUser();
   window.location.hash = "#/applications";
 
   render(<App />);
@@ -85,9 +103,7 @@ test('renders the authenticated loan application center route', async () => {
 });
 
 test('opens saved applications from the loan marketplace', async () => {
-  localStorage.setItem("token", "test-token");
-  localStorage.setItem("role", "USER");
-  localStorage.setItem("email", "user@example.com");
+  authenticateDemoUser();
   window.location.hash = "#/loans";
 
   render(<App />);
@@ -99,9 +115,7 @@ test('opens saved applications from the loan marketplace', async () => {
 });
 
 test('renders the authenticated profile command center route', async () => {
-  localStorage.setItem("token", "test-token");
-  localStorage.setItem("role", "USER");
-  localStorage.setItem("email", "user@example.com");
+  authenticateDemoUser();
   window.location.hash = "#/profile";
 
   render(<App />);
@@ -111,9 +125,7 @@ test('renders the authenticated profile command center route', async () => {
 });
 
 test('renders the authenticated savings planner without mixing the market workspace', async () => {
-  localStorage.setItem("token", "test-token");
-  localStorage.setItem("role", "USER");
-  localStorage.setItem("email", "user@example.com");
+  authenticateDemoUser();
   window.location.hash = "#/investments";
 
   render(<App />);

@@ -190,7 +190,7 @@ const ExpenseForm = ({
       }}
     >
       <CardContent sx={{ p: 2.5 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
+        <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2.5 }}>
           <Box>
             <Typography variant="h6" sx={{ color: "#0f172a", fontWeight: 900 }}>
               {isEditing ? "Edit Expense" : "Add New Expense"}
@@ -212,7 +212,7 @@ const ExpenseForm = ({
               value={form.amount}
               onChange={handleChange("amount")}
               sx={inputStyle}
-              inputProps={{ min: 0.01, step: 0.01 }}
+              slotProps={{ htmlInput: { min: 0.01, step: 0.01 } }}
             />
             <TextField
               fullWidth
@@ -233,12 +233,12 @@ const ExpenseForm = ({
             placeholder="Example: Swiggy dinner order"
             value={form.description}
             onChange={handleChange("description")}
-            inputProps={{ maxLength: 240 }}
+            slotProps={{ htmlInput: { maxLength: 240 } }}
             sx={inputStyle}
           />
 
           {form.description.trim() && (
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap", rowGap: 1 }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1.5, flexWrap: "wrap", rowGap: 1 }}>
               <Chip
                 icon={<AutoAwesomeIcon />}
                 label={`AI predicts: ${prediction.category}`}
@@ -263,7 +263,7 @@ const ExpenseForm = ({
               placeholder="Food, Rent, EMI"
               value={form.category}
               onChange={handleChange("category")}
-              inputProps={{ maxLength: 60 }}
+              slotProps={{ htmlInput: { maxLength: 60 } }}
               sx={inputStyle}
             />
             <TextField
@@ -272,7 +272,7 @@ const ExpenseForm = ({
               placeholder="Swiggy, Amazon, Landlord"
               value={form.merchant}
               onChange={handleChange("merchant")}
-              inputProps={{ maxLength: 100 }}
+              slotProps={{ htmlInput: { maxLength: 100 } }}
               sx={inputStyle}
             />
           </Stack>

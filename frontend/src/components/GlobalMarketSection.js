@@ -321,8 +321,8 @@ const GlobalMarketSection = () => {
       </Paper>
 
       <Paper variant="outlined" sx={{ mb: 1.5, px: 1.5, py: 1, borderRadius: 1, bgcolor: sourcePresentation.background, borderColor: sourcePresentation.border }}>
-        <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", md: "center" }} gap={1}>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "flex-start", sm: "center" }}>
+        <Stack direction={{ xs: "column", md: "row" }} sx={{ justifyContent: "space-between", alignItems: { xs: "flex-start", md: "center" }, gap: 1 }}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ alignItems: { xs: "flex-start", sm: "center" } }}>
             <Chip size="small" color={sourcePresentation.color} label={sourcePresentation.label} sx={{ flexShrink: 0, fontWeight: 800 }} />
             <Typography variant="body2" color="text.secondary">{sourcePresentation.message}</Typography>
           </Stack>
@@ -619,9 +619,9 @@ const MarketAlertCenter = ({ quotes, sourceMode, onOpenQuote }) => {
 
   return (
     <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1 }}>
-      <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", md: "center" }} gap={1.25}>
+      <Stack direction={{ xs: "column", md: "row" }} sx={{ justifyContent: "space-between", alignItems: { xs: "flex-start", md: "center" }, gap: 1.25 }}>
         <Box>
-          <Stack direction="row" spacing={0.75} alignItems="center">
+          <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
             <NotificationsActiveIcon sx={{ color: alerts.length ? "warning.main" : "text.secondary" }} />
             <Typography variant="h6" sx={{ fontWeight: 900 }}>Market Risk Alerts</Typography>
             <Chip size="small" label={`${alerts.length} active`} color={hasCriticalAlert ? "error" : alerts.length ? "warning" : "default"} />
@@ -655,7 +655,7 @@ const MarketAlertCenter = ({ quotes, sourceMode, onOpenQuote }) => {
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
                   {alert.quote.sector || alert.quote.region || "Market"} | Quote {formatTime(alert.quote.dataAsOf)}
                 </Typography>
-                <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mt: 0.8 }}>
+                <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", mt: 0.8 }}>
                   <Button size="small" variant="text" onClick={() => onOpenQuote(alert.quote)} sx={{ minWidth: 0, p: 0 }}>Open research</Button>
                   <Link href={quoteSourceUrl(alert.quote.symbol)} target="_blank" rel="noreferrer" underline="hover" sx={{ display: "inline-flex", alignItems: "center", gap: 0.25, fontSize: 12, fontWeight: 800 }}>
                     Verify source <OpenInNewIcon sx={{ fontSize: 13 }} />
@@ -719,12 +719,12 @@ const LiveQuoteButton = ({ quote, onClick, tabIndex = 0 }) => {
         "&:hover": { bgcolor: "action.hover" }
       }}
     >
-      <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="space-between">
+      <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", justifyContent: "space-between" }}>
         <Typography variant="body2" noWrap sx={{ fontWeight: 900 }}>{quote.name}</Typography>
         {sourceModeDot(quote.quoteMode)}
       </Stack>
       {available ? (
-        <Stack direction="row" spacing={0.8} alignItems="baseline" sx={{ mt: 0.5 }}>
+        <Stack direction="row" spacing={0.8} sx={{ alignItems: "baseline", mt: 0.5 }}>
           <Typography sx={{ fontWeight: 900, whiteSpace: "nowrap" }}>{formatNumber(price)}</Typography>
           <Typography variant="body2" sx={{ color: directionColor(quote.changePercent), fontWeight: 900, whiteSpace: "nowrap" }}>
             {signed(quote.changePercent)}%
@@ -750,11 +750,11 @@ const StockResearch = ({ company, symbol, setSymbol, loading, onSearch, onQuickS
     {loading ? <Box sx={{ py: 8, textAlign: "center" }}><CircularProgress /></Box> : company && (
       <>
         <Paper component="section" variant="outlined" sx={{ p: 2, borderRadius: 1 }}>
-          <Grid container spacing={2} alignItems="flex-start">
+          <Grid container spacing={2} sx={{ alignItems: "flex-start" }}>
             <Grid size={{ xs: 12, md: 7 }}>
               <Typography variant="overline" color="text.secondary">{company.symbol} | {company.sector}</Typography>
               <Typography variant="h5" sx={{ fontWeight: 900 }}>{company.name}</Typography>
-              <Stack direction="row" spacing={1.5} alignItems="baseline" sx={{ mt: 0.75 }}>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: "baseline", mt: 0.75 }}>
                 <Typography variant="h4" sx={{ fontWeight: 900 }}>{formatNumber(company.quote?.price)}</Typography>
                 <Typography sx={{ color: directionColor(company.quote?.changePercent), fontWeight: 900 }}>
                   {Number(company.quote?.changePercent) >= 0 ? "+" : ""}{formatNumber(company.quote?.changePercent)}%
@@ -953,9 +953,9 @@ const IndexTile = ({ market, onClick }) => {
         "&:hover": { borderColor: "primary.main", boxShadow: "0 6px 16px rgba(15, 23, 42, 0.14)", transform: "translateY(-1px)" }
       }}
     >
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
         <Typography variant="body2" sx={{ fontWeight: 900 }}>{market.name}</Typography>
-        <Stack direction="row" spacing={0.25} alignItems="center">
+        <Stack direction="row" spacing={0.25} sx={{ alignItems: "center" }}>
           {available && (positive ? <TrendingUpIcon fontSize="small" color="success" /> : <TrendingDownIcon fontSize="small" color="error" />)}
           {available && <ChevronRightIcon fontSize="small" color="action" />}
         </Stack>
@@ -981,13 +981,13 @@ const IndexTile = ({ market, onClick }) => {
 const FactorTile = ({ factor, onClick }) => (
   <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
     <ButtonBase onClick={onClick} aria-label={`Open ${factor.name} chart`} sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1, minHeight: 172, height: "100%", width: "100%", display: "block", textAlign: "left", bgcolor: "background.paper", boxShadow: "0 2px 8px rgba(15, 23, 42, 0.08)", transition: "border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease", "&:hover": { borderColor: "primary.main", boxShadow: "0 6px 16px rgba(15, 23, 42, 0.14)", transform: "translateY(-1px)" } }}>
-      <Stack direction="row" justifyContent="space-between" gap={1}>
+      <Stack direction="row" sx={{ justifyContent: "space-between", gap: 1 }}>
         <Box>
           <Typography variant="body2" sx={{ fontWeight: 900 }}>{factor.name}</Typography>
           <Typography variant="caption" color="text.secondary">{factor.theme}</Typography>
         </Box>
         <Box sx={{ textAlign: "right", flexShrink: 0 }}>
-          <Stack direction="row" alignItems="center" justifyContent="flex-end">
+          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "flex-end" }}>
             <Typography variant="body2" sx={{ fontWeight: 900 }}>{formatNumber(factor.price)}</Typography>
             <ChevronRightIcon fontSize="small" color="action" />
           </Stack>
@@ -1019,7 +1019,7 @@ const MoverList = ({ title, items, onOpenSymbol }) => (
           </Box>
           <Box sx={{ textAlign: "right", minWidth: 88 }}>
             <Typography variant="body2" sx={{ fontWeight: 800 }}>{formatNumber(item.price)}</Typography>
-            <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={0.25}>
+            <Stack direction="row" spacing={0.25} sx={{ alignItems: "center", justifyContent: "flex-end" }}>
               <Typography variant="caption" sx={{ display: "block", mt: 0.25, color: directionColor(item.changePercent), fontWeight: 900 }}>{signed(item.changePercent)}%</Typography>
               <ChevronRightIcon sx={{ fontSize: 16 }} color="action" />
             </Stack>
@@ -1058,7 +1058,7 @@ const QuoteFact = ({ label, value }) => (
 
 const SectionTitle = ({ icon, title, detail, compact = false }) => (
   <Box sx={{ display: "grid", gridTemplateColumns: detail ? "minmax(0, 1fr) auto" : "1fr", alignItems: "center", columnGap: 1.5, mb: compact ? 1 : 1.25 }}>
-    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0, overflow: "hidden" }}>
+    <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", minWidth: 0, overflow: "hidden" }}>
       {icon && <Box sx={{ color: "#0d9488", display: "flex" }}>{icon}</Box>}
       <Typography variant={compact ? "subtitle1" : "h6"} sx={{ fontWeight: 900, lineHeight: 1.25 }}>{title}</Typography>
     </Stack>
@@ -1075,7 +1075,7 @@ const FactRow = ({ label, value }) => (
 
 const PriceChart = ({ data, color }) => (
   <Box sx={{ height: { xs: 230, md: 300 }, minWidth: 0 }}>
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height: 300 }}>
       <LineChart data={data} margin={{ top: 8, right: 12, bottom: 8, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" opacity={0.22} />
         <XAxis dataKey="date" minTickGap={36} tick={{ fontSize: 11 }} />
