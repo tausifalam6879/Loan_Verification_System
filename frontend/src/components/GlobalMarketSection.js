@@ -426,14 +426,50 @@ const MarketTickerBoard = ({ quotes, sourceMode, onOpenAnalysis, onOpenCompany }
       detail={sourceMode === "live" ? "Auto-updates about every 30 seconds" : "Snapshot fallback; waiting for backend"}
     />
     <Paper variant="outlined" sx={{ minHeight: 86, p: 0.75, borderRadius: 1, overflow: "hidden", bgcolor: "background.paper" }}>
-      <Box sx={{ display: "flex", alignItems: "stretch", overflowX: "auto", scrollbarWidth: "thin" }}>
-        {(quotes || []).map((quote) => (
-          <LiveQuoteButton
-            key={quote.symbol}
-            quote={quote}
-            onClick={() => quote.kind === "company" ? onOpenCompany(quote.symbol) : onOpenAnalysis(quote.symbol)}
-          />
-        ))}
+      <Box
+        sx={{
+          overflow: "hidden",
+          "@keyframes marketTickerLeftToRight": {
+            "0%": { transform: "translateX(-50%)" },
+            "100%": { transform: "translateX(0)" }
+          },
+          "&:hover .market-ticker-track, &:focus-within .market-ticker-track": { animationPlayState: "paused" },
+          "@media (prefers-reduced-motion: reduce)": {
+            overflowX: "auto",
+            scrollbarWidth: "thin",
+            "& .market-ticker-track": { animation: "none", transform: "none" },
+            "& .market-ticker-copy": { display: "none" }
+          }
+        }}
+      >
+        <Box
+          className="market-ticker-track"
+          sx={{
+            display: "flex",
+            alignItems: "stretch",
+            width: "max-content",
+            willChange: "transform",
+            animation: quotes?.length ? "marketTickerLeftToRight 28s linear infinite" : "none"
+          }}
+        >
+          {[0, 1].map((copyIndex) => (
+            <Box
+              key={copyIndex}
+              className={copyIndex === 1 ? "market-ticker-copy" : undefined}
+              aria-hidden={copyIndex === 1 ? "true" : undefined}
+              sx={{ display: "flex", alignItems: "stretch" }}
+            >
+              {(quotes || []).map((quote) => (
+                <LiveQuoteButton
+                  key={`${copyIndex}-${quote.symbol}`}
+                  quote={quote}
+                  tabIndex={copyIndex === 1 ? -1 : 0}
+                  onClick={() => quote.kind === "company" ? onOpenCompany(quote.symbol) : onOpenAnalysis(quote.symbol)}
+                />
+              ))}
+            </Box>
+          ))}
+        </Box>
         {!quotes?.length && (
           <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>Market quotes are temporarily unavailable.</Typography>
         )}
@@ -445,7 +481,7 @@ const MarketTickerBoard = ({ quotes, sourceMode, onOpenAnalysis, onOpenCompany }
   </Box>
 );
 
-const LiveQuoteButton = ({ quote, onClick }) => {
+const LiveQuoteButton = ({ quote, onClick, tabIndex = 0 }) => {
   const price = Number(quote.price);
   const previousPriceRef = useRef(Number.isFinite(price) ? price : null);
   const [flash, setFlash] = useState(null);
@@ -465,6 +501,7 @@ const LiveQuoteButton = ({ quote, onClick }) => {
   return (
     <ButtonBase
       disabled={!available}
+      tabIndex={tabIndex}
       onClick={available ? onClick : undefined}
       aria-label={available ? `Open ${quote.name} in FinTrack` : `${quote.name} quote unavailable`}
       sx={{
