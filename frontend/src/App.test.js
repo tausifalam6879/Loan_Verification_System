@@ -94,3 +94,16 @@ test('renders the authenticated profile command center route', async () => {
   expect(await screen.findByText(/Account command center/i)).toBeInTheDocument();
   expect(await screen.findByRole("heading", { name: /Financial snapshot/i })).toBeInTheDocument();
 });
+
+test('renders the authenticated savings planner without mixing the market workspace', async () => {
+  localStorage.setItem("token", "test-token");
+  localStorage.setItem("role", "USER");
+  localStorage.setItem("email", "user@example.com");
+  window.location.hash = "#/investments";
+
+  render(<App />);
+
+  expect(await screen.findByRole("heading", { name: /Savings & Investment Planner/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /Build and compare a savings plan/i })).toBeInTheDocument();
+  expect(screen.queryByText(/FD and SIP \(Existing\)/i)).not.toBeInTheDocument();
+});

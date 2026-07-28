@@ -150,12 +150,12 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
       subtitle: "Track decisions, verification progress, payment status and application details."
     },
     investments: {
-      title: "FD and Investment Comparison",
-      subtitle: "Compare FD/SIP options and save selected bookings."
+      title: "Savings & Investment Planner",
+      subtitle: "Calculate FD maturity, explore SIP projection ranges and save comparison plans."
     },
     markets: {
-      title: "Investments and Global Markets",
-      subtitle: "Switch between live share-market intelligence and the existing FD/SIP comparison."
+      title: "Global Market Intelligence",
+      subtitle: "Track global indices, market signals, news factors and research evidence."
     }
   };
 
@@ -672,12 +672,12 @@ const WorkspaceCards = ({
     },
     {
       id: "investments",
-      title: "FD / Investments",
-      subtitle: "Compare FD and SIP options, save bookings",
+      title: "Savings Planner",
+      subtitle: "Calculate FD maturity and SIP projection ranges",
       icon: <SavingsIcon />,
       color: "#ca8a04",
       surface: "linear-gradient(145deg, #fef3c7, #fefce8)",
-      meta: "Comparison"
+      meta: "FD + SIP"
     }
   ];
 

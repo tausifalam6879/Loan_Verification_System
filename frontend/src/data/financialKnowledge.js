@@ -1,40 +1,52 @@
 export const fixedDepositProducts = [
   {
+    id: "sbi-regular",
     bank: "State Bank of India",
     type: "Regular FD",
     tenure: "7 days - 10 years",
     rate: "3.50% - 6.75% p.a.",
+    annualRate: 6.75,
     seniorRate: "Up to 7.25% p.a.",
+    seniorAnnualRate: 7.25,
     minAmount: "Rs. 1,000",
     process: "Choose tenure, complete KYC, fund from savings account, download FD receipt.",
     notes: "Premature withdrawal and TDS rules depend on tenure and customer profile."
   },
   {
+    id: "hdfc-sweep",
     bank: "HDFC Bank",
     type: "Sweep-in / Regular FD",
     tenure: "7 days - 10 years",
     rate: "3.00% - 7.00% p.a.",
+    annualRate: 7,
     seniorRate: "Up to 7.50% p.a.",
+    seniorAnnualRate: 7.5,
     minAmount: "Rs. 5,000",
     process: "Open FD online or branch, select payout/cumulative option, verify nominee.",
     notes: "Good fit for emergency corpus when sweep-in is enabled."
   },
   {
+    id: "indian-secure",
     bank: "Indian Bank",
     type: "IND SECURE / Term Deposit",
     tenure: "444 days and standard tenures",
     rate: "Around 6.60% p.a. for 444 days",
+    annualRate: 6.6,
     seniorRate: "Around 7.10% - 7.35% p.a.",
+    seniorAnnualRate: 7.35,
     minAmount: "Rs. 1,000",
     process: "Select deposit scheme, submit KYC/nominee, fund deposit, track maturity.",
     notes: "Special scheme rates can change or be withdrawn by the bank."
   },
   {
+    id: "kotak-regular",
     bank: "Kotak Mahindra Bank",
     type: "Regular FD",
     tenure: "7 days - 10 years",
     rate: "2.75% - 7.10% p.a.",
+    annualRate: 7.1,
     seniorRate: "Up to 7.60% p.a.",
+    seniorAnnualRate: 7.6,
     minAmount: "Rs. 5,000",
     process: "Book from net banking/app, choose auto-renewal, add nominee and maturity account.",
     notes: "Compare callable vs non-callable FD before locking large deposits."
@@ -43,34 +55,42 @@ export const fixedDepositProducts = [
 
 export const mutualFundProducts = [
   {
+    id: "liquid",
     category: "Liquid Fund",
     risk: "Low to Moderate",
     horizon: "1 day - 12 months",
     expectedReturn: "Market linked, often used for cash parking",
+    assumedAnnualReturn: 5.5,
     process: "Complete KYC, invest lump sum, keep emergency money accessible.",
     suitableFor: "Short-term surplus, emergency reserve, low volatility preference."
   },
   {
+    id: "short-debt",
     category: "Short Duration Debt Fund",
     risk: "Moderate",
     horizon: "1 - 3 years",
     expectedReturn: "Market linked debt returns",
+    assumedAnnualReturn: 6.5,
     process: "Check portfolio quality, expense ratio, exit load and taxation.",
     suitableFor: "Planned expenses where FD alternatives are being compared."
   },
   {
+    id: "hybrid",
     category: "Hybrid Fund",
     risk: "Moderate to High",
     horizon: "3+ years",
     expectedReturn: "Debt plus equity market linked returns",
+    assumedAnnualReturn: 9,
     process: "Choose aggressive/balanced category, start SIP, review annually.",
     suitableFor: "Investors who want equity exposure with some debt allocation."
   },
   {
+    id: "equity",
     category: "Index / Flexi Cap Equity Fund",
     risk: "High",
     horizon: "5+ years",
     expectedReturn: "Fully market linked, no guaranteed return",
+    assumedAnnualReturn: 12,
     process: "Use SIP, define goal, avoid short-term withdrawals, track benchmark.",
     suitableFor: "Long-term wealth creation with high volatility tolerance."
   }

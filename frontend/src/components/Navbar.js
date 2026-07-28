@@ -33,7 +33,7 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, em
         boxShadow: "0 12px 32px rgba(8, 47, 73, 0.22)"
       }}
     >
-      <Toolbar sx={{ gap: 2 }}>
+      <Toolbar sx={{ gap: { xs: 0.5, sm: 1, md: 2 }, px: { xs: 1, sm: 2 } }}>
         <IconButton
           edge="start"
           onClick={() => setDrawerOpen(true)}
@@ -45,11 +45,12 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, em
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           <Typography
             variant="h6"
-            sx={{ color: "#ffffff", fontWeight: 900, lineHeight: 1.1 }}
+            noWrap
+            sx={{ color: "#ffffff", fontWeight: 900, lineHeight: 1.1, fontSize: { xs: "1rem", sm: "1.15rem", md: "1.25rem" } }}
           >
             FinTech Dashboard
           </Typography>
-          <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+          <Typography variant="caption" sx={{ color: "#94a3b8", display: { xs: "none", md: "block" } }}>
             FinTech Loan Aggregator workspace
           </Typography>
         </Box>
@@ -58,7 +59,7 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, em
           icon={<AccountBalanceWalletIcon />}
           label={`Balance Rs. ${balance}`}
           sx={{
-            display: { xs: "none", sm: "inline-flex" },
+            display: { xs: "none", md: "inline-flex" },
             bgcolor: "rgba(240, 253, 250, 0.16)",
             color: "#ecfeff",
             fontWeight: 800,
@@ -74,7 +75,7 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, em
           {today}
         </Typography>
 
-        <FormControl size="small" sx={{ display: { xs: "none", sm: "block" }, minWidth: 116 }}>
+        <FormControl size="small" sx={{ display: { xs: "none", md: "block" }, minWidth: 116 }}>
           <Select
             value={themeMode}
             onChange={(event) => onThemeModeChange(event.target.value)}
