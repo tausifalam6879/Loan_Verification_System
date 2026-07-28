@@ -122,7 +122,7 @@ const ExpenseIntelligencePanel = ({ expenses, totalIncome }) => {
               icon={<TrendingUpIcon />}
               label={`Forecast for ${forecast.month}`}
               value={formatCurrency(forecast.amount)}
-              helper={forecast.basis}
+              helper={`${forecast.basis} · ${forecast.confidence} confidence`}
             />
           </Grid>
 

@@ -4,26 +4,72 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   Chip,
+  FormControlLabel,
+  MenuItem,
   Stack,
   TextField,
   Typography
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
 import { predictExpenseCategoryWithMl } from "../services/aiExpenseService";
 import { predictExpenseCategory } from "../utils/expenseIntelligence";
 
-const initialForm = {
-  amount: "",
-  category: "",
-  description: ""
+const toDateInput = (value) => {
+  if (!value) {
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    return new Date(today.getTime() - offset).toISOString().slice(0, 10);
+  }
+  return String(value).slice(0, 10);
 };
 
-const ExpenseForm = ({ onAddExpense, loading }) => {
-  const [form, setForm] = useState(initialForm);
+const emptyForm = () => ({
+  amount: "",
+  category: "",
+  description: "",
+  date: toDateInput(),
+  merchant: "",
+  paymentMethod: "UPI",
+  recurring: false
+});
+
+const paymentMethods = ["UPI", "Card", "Cash", "Bank Transfer", "Wallet", "Auto Debit", "Other"];
+
+const ExpenseForm = ({
+  onAddExpense,
+  onUpdateExpense,
+  editingExpense,
+  onCancelEdit,
+  loading
+}) => {
+  const [form, setForm] = useState(emptyForm);
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [mlPrediction, setMlPrediction] = useState(null);
+  const isEditing = Boolean(editingExpense);
+
+  useEffect(() => {
+    if (!editingExpense) {
+      setForm(emptyForm());
+      setCategoryTouched(false);
+      return;
+    }
+
+    setForm({
+      amount: editingExpense.amount ?? "",
+      category: editingExpense.category || "",
+      description: editingExpense.description || "",
+      date: toDateInput(editingExpense.date),
+      merchant: editingExpense.merchant || "",
+      paymentMethod: editingExpense.paymentMethod || "UPI",
+      recurring: Boolean(editingExpense.recurring)
+    });
+    setCategoryTouched(true);
+  }, [editingExpense]);
 
   const fallbackPrediction = useMemo(
     () => predictExpenseCategory(form.description),
@@ -56,12 +102,8 @@ const ExpenseForm = ({ onAddExpense, loading }) => {
         };
 
         setMlPrediction(normalized);
-
         if (!categoryTouched && normalized.confidence >= 0.55) {
-          setForm((current) => ({
-            ...current,
-            category: normalized.category
-          }));
+          setForm((current) => ({ ...current, category: normalized.category }));
         }
       } catch (error) {
         setMlPrediction(null);
@@ -72,74 +114,65 @@ const ExpenseForm = ({ onAddExpense, loading }) => {
   }, [categoryTouched, form.description]);
 
   const handleChange = (field) => (event) => {
-    let value = event.target.value;
-    
-    // Prevent negative values in amount field
-    if (field === "amount" && value) {
-      const numValue = Number(value);
-      if (numValue < 0) {
-        return; // Ignore negative input
-      }
+    const value = field === "recurring" ? event.target.checked : event.target.value;
+    if (field === "amount" && value && Number(value) < 0) {
+      return;
     }
-    
     if (field === "category") {
       setCategoryTouched(true);
     }
 
     setForm((current) => {
-      const next = {
-        ...current,
-        [field]: value
-      };
-
-      if (
-        field === "description" &&
-        !categoryTouched
-      ) {
+      const next = { ...current, [field]: value };
+      if (field === "description" && !categoryTouched) {
         const suggested = predictExpenseCategory(value);
         if (suggested.confidence >= 0.55) {
           next.category = suggested.category;
         }
       }
-
       return next;
     });
   };
 
   const applyPrediction = () => {
     setCategoryTouched(true);
-    setForm((current) => ({
-      ...current,
-      category: prediction.category
-    }));
+    setForm((current) => ({ ...current, category: prediction.category }));
+  };
+
+  const resetForm = () => {
+    setForm(emptyForm());
+    setCategoryTouched(false);
+    setMlPrediction(null);
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    onCancelEdit?.();
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
-    // Validate amount is not negative or zero
     const amount = Number(form.amount);
-    if (!amount || amount <= 0) {
-      alert("Please enter a valid amount greater than 0");
-      return;
-    }
-
-    // Validate category
-    if (!form.category.trim()) {
-      alert("Please select a category");
+    if (!amount || amount <= 0 || !form.category.trim()) {
       return;
     }
 
     const expense = {
-      amount: amount,
+      amount,
       category: form.category.trim(),
-      description: form.description.trim()
+      description: form.description.trim(),
+      date: form.date,
+      merchant: form.merchant.trim(),
+      paymentMethod: form.paymentMethod,
+      recurring: form.recurring
     };
 
-    const success = await onAddExpense(expense);
-    if (success) {
-      setForm(initialForm);
-      setCategoryTouched(false);
+    const result = isEditing
+      ? await onUpdateExpense(editingExpense.id, expense)
+      : await onAddExpense(expense);
+
+    if (result) {
+      resetForm();
     }
   };
 
@@ -149,47 +182,63 @@ const ExpenseForm = ({ onAddExpense, loading }) => {
       sx={{
         height: "100%",
         borderRadius: 2,
-        background: "linear-gradient(145deg, #ccfbf1, #eff6ff)",
-        border: "1px solid rgba(14, 116, 144, 0.16)",
+        background: isEditing
+          ? "linear-gradient(145deg, #fef3c7, #eff6ff)"
+          : "linear-gradient(145deg, #ccfbf1, #eff6ff)",
+        border: `1px solid ${isEditing ? "rgba(217, 119, 6, 0.28)" : "rgba(14, 116, 144, 0.16)"}`,
         boxShadow: "0 14px 34px rgba(8, 47, 73, 0.12)"
       }}
     >
       <CardContent sx={{ p: 2.5 }}>
-        <Typography
-          variant="h6"
-          sx={{ color: "#0f172a", fontWeight: 800, mb: 2.5 }}
-        >
-          Add New Expense
-        </Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
+          <Box>
+            <Typography variant="h6" sx={{ color: "#0f172a", fontWeight: 900 }}>
+              {isEditing ? "Edit Expense" : "Add New Expense"}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 700 }}>
+              {isEditing ? "Update the selected transaction" : "Track date, merchant and payment method"}
+            </Typography>
+          </Box>
+          {isEditing && <Chip label={`#${editingExpense.id}`} color="warning" size="small" />}
+        </Stack>
 
         <Box component="form" onSubmit={handleSubmit}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+            <TextField
+              fullWidth
+              required
+              type="number"
+              label="Amount (Rs.)"
+              value={form.amount}
+              onChange={handleChange("amount")}
+              sx={inputStyle}
+              inputProps={{ min: 0.01, step: 0.01 }}
+            />
+            <TextField
+              fullWidth
+              required
+              type="date"
+              label="Expense date"
+              value={form.date}
+              onChange={handleChange("date")}
+              InputLabelProps={{ shrink: true }}
+              sx={inputStyle}
+            />
+          </Stack>
+
           <TextField
             fullWidth
             required
-            type="number"
-            label="Amount (Rs.)"
-            value={form.amount}
-            onChange={handleChange("amount")}
-            sx={inputStyle}
-            inputProps={{ min: 0, step: 0.01 }}
-          />
-
-          <TextField
-            fullWidth
-            label="Category"
-            placeholder="Food, Rent, EMI"
-            value={form.category}
-            onChange={handleChange("category")}
+            label="Description"
+            placeholder="Example: Swiggy dinner order"
+            value={form.description}
+            onChange={handleChange("description")}
+            inputProps={{ maxLength: 240 }}
             sx={inputStyle}
           />
 
           {form.description.trim() && (
-            <Stack
-              direction="row"
-              alignItems="center"
-              spacing={1}
-              sx={{ mb: 1.5, flexWrap: "wrap", rowGap: 1 }}
-            >
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap", rowGap: 1 }}>
               <Chip
                 icon={<AutoAwesomeIcon />}
                 label={`AI predicts: ${prediction.category}`}
@@ -197,48 +246,86 @@ const ExpenseForm = ({ onAddExpense, loading }) => {
                 variant="outlined"
                 sx={{ fontWeight: 800, bgcolor: "rgba(255,255,255,0.76)" }}
               />
-              <Button
-                size="small"
-                onClick={applyPrediction}
-                disabled={prediction.confidence === 0}
-                sx={{ textTransform: "none", fontWeight: 800 }}
-              >
+              <Button size="small" onClick={applyPrediction} disabled={prediction.confidence === 0} sx={{ textTransform: "none", fontWeight: 800 }}>
                 Use category
               </Button>
               <Typography variant="caption" sx={{ color: "#475569", fontWeight: 700 }}>
-                {predictionSource} - Confidence {Math.round(prediction.confidence * 100)}%
+                {predictionSource} · {Math.round(prediction.confidence * 100)}% confidence
               </Typography>
             </Stack>
           )}
 
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+            <TextField
+              fullWidth
+              required
+              label="Category"
+              placeholder="Food, Rent, EMI"
+              value={form.category}
+              onChange={handleChange("category")}
+              inputProps={{ maxLength: 60 }}
+              sx={inputStyle}
+            />
+            <TextField
+              fullWidth
+              label="Merchant"
+              placeholder="Swiggy, Amazon, Landlord"
+              value={form.merchant}
+              onChange={handleChange("merchant")}
+              inputProps={{ maxLength: 100 }}
+              sx={inputStyle}
+            />
+          </Stack>
+
           <TextField
+            select
             fullWidth
-            required
-            label="Description"
-            placeholder="Short note"
-            value={form.description}
-            onChange={handleChange("description")}
-            sx={{ ...inputStyle, mb: 2.5 }}
+            label="Payment method"
+            value={form.paymentMethod}
+            onChange={handleChange("paymentMethod")}
+            sx={inputStyle}
+          >
+            {paymentMethods.map((method) => (
+              <MenuItem key={method} value={method}>{method}</MenuItem>
+            ))}
+          </TextField>
+
+          <FormControlLabel
+            control={<Checkbox checked={form.recurring} onChange={handleChange("recurring")} />}
+            label="This is a recurring expense or subscription"
+            sx={{ color: "#334155", mb: 1.5 }}
           />
 
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            disabled={loading}
-            startIcon={<AddIcon />}
-            sx={{
-              py: 1.35,
-              borderRadius: 2,
-              textTransform: "none",
-              fontWeight: 800,
-              background: "linear-gradient(90deg, #0d9488, #2563eb)",
-              boxShadow: "0 10px 22px rgba(13, 148, 136, 0.22)",
-              "&:hover": { background: "linear-gradient(90deg, #0f766e, #1d4ed8)" }
-            }}
-          >
-            Save Expense
-          </Button>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              disabled={loading}
+              startIcon={isEditing ? <EditIcon /> : <AddIcon />}
+              sx={{
+                py: 1.35,
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 800,
+                background: isEditing
+                  ? "linear-gradient(90deg, #d97706, #2563eb)"
+                  : "linear-gradient(90deg, #0d9488, #2563eb)"
+              }}
+            >
+              {loading ? "Saving..." : isEditing ? "Save Changes" : "Save Expense"}
+            </Button>
+            {isEditing && (
+              <Button
+                variant="outlined"
+                onClick={handleCancel}
+                startIcon={<CloseIcon />}
+                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 800, minWidth: 120 }}
+              >
+                Cancel
+              </Button>
+            )}
+          </Stack>
         </Box>
       </CardContent>
     </Card>
@@ -250,10 +337,6 @@ const inputStyle = {
   "& .MuiInputLabel-root": { color: "#334155" },
   "& .MuiInputLabel-root.Mui-focused": { color: "#0d9488" },
   "& .MuiInputBase-input": { color: "#0f172a" },
-  "& .MuiInputBase-input::placeholder": {
-    color: "#64748b",
-    opacity: 1
-  },
   "& .MuiOutlinedInput-root": {
     bgcolor: "rgba(255, 255, 255, 0.82)",
     color: "#0f172a",

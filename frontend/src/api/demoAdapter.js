@@ -4,11 +4,24 @@ const demoMode =
   process.env.REACT_APP_DEMO_MODE === "true" ||
   (typeof window !== "undefined" && window.location.hostname.endsWith("github.io"));
 
-const storageKey = "fintrackDemoState";
+const storageKey = () => {
+  const email = typeof window !== "undefined" ? window.localStorage.getItem("email") : "guest";
+  return `fintrackDemoStateV2:${email || "guest"}`;
+};
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
+const monthsAgo = (offset, day = 12) => {
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  date.setDate(1);
+  date.setMonth(date.getMonth() - offset);
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  date.setDate(Math.min(day, lastDay));
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
+const timestampFor = (date, hour = 10) => `${date}T${String(hour).padStart(2, "0")}:15:00`;
 const normalizeExpenseTimestamps = (expenses = []) =>
   expenses.map((expense) => {
     const date = expense.date || today();
@@ -22,9 +35,22 @@ const normalizeExpenseTimestamps = (expenses = []) =>
 
 const initialState = {
   expenses: [
-    { id: 1, amount: 4500, category: "rent", description: "Hostel and room expenses", date: today(), createdAt: now() },
-    { id: 2, amount: 1800, category: "food", description: "Monthly food and groceries", date: today(), createdAt: now() },
-    { id: 3, amount: 900, category: "travel", description: "Campus travel and metro", date: today(), createdAt: now() }
+    { id: 1, amount: 8500, category: "Rent", description: "Monthly apartment rent", merchant: "Landlord", paymentMethod: "UPI", recurring: true, date: monthsAgo(0, 2), createdAt: timestampFor(monthsAgo(0, 2), 9) },
+    { id: 2, amount: 2350, category: "Food", description: "Groceries and vegetables", merchant: "Reliance Fresh", paymentMethod: "Card", recurring: false, date: monthsAgo(0, 8), createdAt: timestampFor(monthsAgo(0, 8), 18) },
+    { id: 3, amount: 799, category: "Bills", description: "Broadband monthly bill", merchant: "JioFiber", paymentMethod: "UPI", recurring: true, date: monthsAgo(0, 10), createdAt: timestampFor(monthsAgo(0, 10), 11) },
+    { id: 4, amount: 620, category: "Travel", description: "Metro recharge and cab", merchant: "Delhi Metro", paymentMethod: "UPI", recurring: false, date: monthsAgo(0, 15), createdAt: timestampFor(monthsAgo(0, 15), 8) },
+    { id: 5, amount: 8500, category: "Rent", description: "Monthly apartment rent", merchant: "Landlord", paymentMethod: "Bank Transfer", recurring: true, date: monthsAgo(1, 2), createdAt: timestampFor(monthsAgo(1, 2), 9) },
+    { id: 6, amount: 4100, category: "Food", description: "Food and groceries", merchant: "Multiple", paymentMethod: "Card", recurring: false, date: monthsAgo(1, 14), createdAt: timestampFor(monthsAgo(1, 14), 19) },
+    { id: 7, amount: 1499, category: "Shopping", description: "Running shoes", merchant: "Myntra", paymentMethod: "Card", recurring: false, date: monthsAgo(1, 21), createdAt: timestampFor(monthsAgo(1, 21), 20) },
+    { id: 8, amount: 8500, category: "Rent", description: "Monthly apartment rent", merchant: "Landlord", paymentMethod: "Bank Transfer", recurring: true, date: monthsAgo(2, 2), createdAt: timestampFor(monthsAgo(2, 2), 9) },
+    { id: 9, amount: 3700, category: "Food", description: "Monthly meals and groceries", merchant: "Multiple", paymentMethod: "UPI", recurring: false, date: monthsAgo(2, 16), createdAt: timestampFor(monthsAgo(2, 16), 18) },
+    { id: 10, amount: 2499, category: "Education", description: "React advanced course", merchant: "Udemy", paymentMethod: "Card", recurring: false, date: monthsAgo(2, 19), createdAt: timestampFor(monthsAgo(2, 19), 14) },
+    { id: 11, amount: 8500, category: "Rent", description: "Monthly apartment rent", merchant: "Landlord", paymentMethod: "Bank Transfer", recurring: true, date: monthsAgo(3, 2), createdAt: timestampFor(monthsAgo(3, 2), 9) },
+    { id: 12, amount: 5200, category: "Food", description: "Food delivery and groceries", merchant: "Multiple", paymentMethod: "UPI", recurring: false, date: monthsAgo(3, 17), createdAt: timestampFor(monthsAgo(3, 17), 21) },
+    { id: 13, amount: 8500, category: "Rent", description: "Monthly apartment rent", merchant: "Landlord", paymentMethod: "Bank Transfer", recurring: true, date: monthsAgo(4, 2), createdAt: timestampFor(monthsAgo(4, 2), 9) },
+    { id: 14, amount: 1850, category: "Health", description: "Doctor consultation and medicines", merchant: "Apollo Pharmacy", paymentMethod: "Card", recurring: false, date: monthsAgo(4, 23), createdAt: timestampFor(monthsAgo(4, 23), 12) },
+    { id: 15, amount: 8500, category: "Rent", description: "Monthly apartment rent", merchant: "Landlord", paymentMethod: "Bank Transfer", recurring: true, date: monthsAgo(5, 2), createdAt: timestampFor(monthsAgo(5, 2), 9) },
+    { id: 16, amount: 4600, category: "Travel", description: "Train and local transport", merchant: "IRCTC", paymentMethod: "UPI", recurring: false, date: monthsAgo(5, 12), createdAt: timestampFor(monthsAgo(5, 12), 7) }
   ],
   applications: [
     {
@@ -113,9 +139,9 @@ const readState = () => {
     return clone(initialState);
   }
 
-  const saved = window.localStorage.getItem(storageKey);
+  const saved = window.localStorage.getItem(storageKey());
   if (!saved) {
-    window.localStorage.setItem(storageKey, JSON.stringify(initialState));
+    window.localStorage.setItem(storageKey(), JSON.stringify(initialState));
     return clone(initialState);
   }
 
@@ -124,16 +150,18 @@ const readState = () => {
     state.expenses = normalizeExpenseTimestamps(state.expenses);
     return state;
   } catch (error) {
-    window.localStorage.setItem(storageKey, JSON.stringify(initialState));
+    window.localStorage.setItem(storageKey(), JSON.stringify(initialState));
     return clone(initialState);
   }
 };
 
 const writeState = (state) => {
   if (typeof window !== "undefined") {
-    window.localStorage.setItem(storageKey, JSON.stringify(state));
+    window.localStorage.setItem(storageKey(), JSON.stringify(state));
   }
 };
+
+const resetDemoState = () => writeState(clone(initialState));
 
 const parseBody = (data) => {
   if (!data) {
@@ -264,6 +292,21 @@ const demoAdapter = async (config) => {
     return response(config, { success: true, message: "Demo expense added", data: expense });
   }
 
+  if (path.startsWith("/expenses/update/") && method === "put") {
+    const id = Number(path.split("/").pop());
+    state.expenses = state.expenses.map((expense) =>
+      Number(expense.id) === id
+        ? { ...expense, ...body, id, createdAt: expense.createdAt || now() }
+        : expense
+    );
+    writeState(state);
+    return response(config, {
+      success: true,
+      message: "Demo expense updated",
+      data: state.expenses.find((expense) => Number(expense.id) === id)
+    });
+  }
+
   if (path.startsWith("/expenses/delete/") && method === "delete") {
     const id = Number(path.split("/").pop());
     state.expenses = state.expenses.filter((expense) => Number(expense.id) !== id);
@@ -367,4 +410,4 @@ const demoAdapter = async (config) => {
   return response(config, {}, 404);
 };
 
-export { demoAdapter, demoMode };
+export { demoAdapter, demoMode, resetDemoState };

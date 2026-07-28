@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Alert,
@@ -23,7 +23,9 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 
 import DashboardHeader from "../components/dashboard/DashboardHeader";
 import ExpenseForm from "../components/ExpenseForm";
+import ExpenseBudgetPlanner from "../components/ExpenseBudgetPlanner";
 import ExpenseIntelligencePanel from "../components/ExpenseIntelligencePanel";
+import ExpenseOverviewCards from "../components/ExpenseOverviewCards";
 import ExpensePieChart from "../components/ExpensePieChart";
 import InvestmentMarketHub from "../components/InvestmentMarketHub";
 import LoanSection from "../components/loans/LoanSection";
@@ -36,22 +38,27 @@ import useExpenses from "../hooks/useExpenses";
 import { exportExpensesToCSV } from "../utils/exportCsv";
 import AiAssistant from "../components/AiAssistant";
 import { logout } from "../services/authService";
+import { demoMode, resetDemoState } from "../api/demoAdapter";
 
 const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const role = localStorage.getItem("role") || "USER";
+  const email = localStorage.getItem("email") || "demo";
+  const incomeStorageKey = `userIncome:${email}`;
+  const budgetStorageKey = `expenseBudgets:${email}`;
   const {
     expenses,
-    totalExpense,
     loading,
     error,
     loadExpenses,
     createExpense,
+    editExpense,
     removeExpense
   } = useExpenses();
 
   const [totalIncome, setTotalIncome] = useState(() => {
-    const saved = localStorage.getItem("userIncome");
+    const saved = localStorage.getItem(incomeStorageKey) || localStorage.getItem("userIncome");
     return saved ? Number(saved) : 50000;
   });
   const [incomeInput, setIncomeInput] = useState(totalIncome);
@@ -59,19 +66,50 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
   const [tabValue, setTabValue] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("desc");
-  const [showRecents, setShowRecents] = useState(true);
+  const [sortKey, setSortKey] = useState("date");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [showRecents] = useState(true);
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [budgets, setBudgets] = useState(() => {
+    try {
+      const saved = localStorage.getItem(budgetStorageKey);
+      return saved
+        ? JSON.parse(saved)
+        : { food: 6000, travel: 3000, bills: 3500, shopping: 4000, rent: 10000 };
+    } catch (error) {
+      return { food: 6000, travel: 3000, bills: 3500, shopping: 4000, rent: 10000 };
+    }
+  });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     severity: "success",
-    message: ""
+    message: "",
+    undoExpense: null
   });
-  const role = localStorage.getItem("role") || "USER";
-  const email = localStorage.getItem("email") || "";
 
-  const balance = totalIncome - totalExpense;
+  useEffect(() => {
+    localStorage.setItem(budgetStorageKey, JSON.stringify(budgets));
+  }, [budgetStorageKey, budgets]);
+
+  const currentMonthExpense = useMemo(() => {
+    const now = new Date();
+    return expenses.reduce((sum, expense) => {
+      const raw = expense.date || expense.createdAt;
+      if (!raw) return sum;
+      const parsed = new Date(String(raw).includes("T") ? raw : `${raw}T00:00:00`);
+      const isCurrentMonth =
+        !Number.isNaN(parsed.getTime()) &&
+        parsed.getFullYear() === now.getFullYear() &&
+        parsed.getMonth() === now.getMonth();
+      return sum + (isCurrentMonth ? Number(expense.amount || 0) : 0);
+    }, 0);
+  }, [expenses]);
+
+  const balance = totalIncome - currentMonthExpense;
   const budgetPercentage =
-    totalIncome > 0 ? Math.min((totalExpense / totalIncome) * 100, 100) : 0;
+    totalIncome > 0 ? Math.min((currentMonthExpense / totalIncome) * 100, 100) : 0;
   const workspaceByPath = {
     "/": "overview",
     "/expense": "expense",
@@ -136,22 +174,36 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
       .filter((expense) => {
         const category = (expense.category || "").toLowerCase();
         const description = (expense.description || "").toLowerCase();
+        const merchant = (expense.merchant || "").toLowerCase();
+        const paymentMethod = (expense.paymentMethod || "").toLowerCase();
+        const expenseDate = String(expense.date || expense.createdAt || "").slice(0, 10);
         const matchesTab =
           tabValue === "All" || category === tabValue.toLowerCase();
         const matchesSearch =
-          description.includes(search) || category.includes(search);
+          description.includes(search) ||
+          category.includes(search) ||
+          merchant.includes(search) ||
+          paymentMethod.includes(search);
+        const matchesFrom = !dateFrom || (expenseDate && expenseDate >= dateFrom);
+        const matchesTo = !dateTo || (expenseDate && expenseDate <= dateTo);
 
-        return matchesTab && matchesSearch;
+        return matchesTab && matchesSearch && matchesFrom && matchesTo;
       })
-      .sort((a, b) =>
-        sortOrder === "desc"
-          ? Number(b.amount || 0) - Number(a.amount || 0)
-          : Number(a.amount || 0) - Number(b.amount || 0)
-      );
-  }, [expenses, searchQuery, sortOrder, tabValue]);
+      .sort((a, b) => {
+        let comparison;
+        if (sortKey === "amount") {
+          comparison = Number(a.amount || 0) - Number(b.amount || 0);
+        } else if (sortKey === "category") {
+          comparison = String(a.category || "").localeCompare(String(b.category || ""));
+        } else {
+          comparison = String(a.date || a.createdAt || "").localeCompare(String(b.date || b.createdAt || ""));
+        }
+        return sortOrder === "desc" ? -comparison : comparison;
+      });
+  }, [dateFrom, dateTo, expenses, searchQuery, sortKey, sortOrder, tabValue]);
 
-  const showMessage = (message, severity = "success") => {
-    setSnackbar({ open: true, message, severity });
+  const showMessage = (message, severity = "success", undoExpense = null) => {
+    setSnackbar({ open: true, message, severity, undoExpense });
   };
 
   const toLocalExpenseTimestamp = (value = new Date()) => {
@@ -175,6 +227,16 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     return success;
   };
 
+  const handleUpdateExpense = async (id, expense) => {
+    const success = await editExpense(id, expense);
+    showMessage(
+      success ? "Expense updated successfully." : "Could not update expense.",
+      success ? "success" : "error"
+    );
+    if (success) setEditingExpense(null);
+    return success;
+  };
+
   const handleGatewayPayment = async ({ amount, payee, method, paidAt }) => {
     const paymentTime = toLocalExpenseTimestamp(paidAt);
     const success = await createExpense({
@@ -194,25 +256,69 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
   };
 
   const handleDeleteExpense = async (id) => {
+    const deletedExpense = expenses.find((expense) => Number(expense.id) === Number(id)) || null;
     const success = await removeExpense(id);
+    if (success && Number(editingExpense?.id) === Number(id)) {
+      setEditingExpense(null);
+    }
     showMessage(
-      success ? "Expense deleted successfully." : "Could not delete expense.",
-      success ? "success" : "error"
+      success ? "Expense deleted. You can undo this action." : "Could not delete expense.",
+      success ? "success" : "error",
+      success ? deletedExpense : null
+    );
+    return success;
+  };
+
+  const handleUndoDelete = async () => {
+    const deletedExpense = snackbar.undoExpense;
+    if (!deletedExpense) return;
+    const expenseToRestore = { ...deletedExpense };
+    delete expenseToRestore.id;
+    delete expenseToRestore.createdAt;
+    const restored = await createExpense(expenseToRestore);
+    showMessage(
+      restored ? "Expense restored successfully." : "Expense could not be restored.",
+      restored ? "success" : "error"
     );
   };
 
   const handleSaveIncome = () => {
     const newIncome = Number(incomeInput) || 0;
-    setTotalIncome(newIncome);
-    localStorage.setItem("userIncome", newIncome);
+    updateMonthlyIncome(newIncome);
     setIsEditingIncome(false);
     showMessage("Income updated successfully.");
+  };
+
+  const updateMonthlyIncome = (value) => {
+    const nextIncome = Math.max(0, Number(value) || 0);
+    setTotalIncome(nextIncome);
+    setIncomeInput(nextIncome);
+    localStorage.setItem(incomeStorageKey, nextIncome);
   };
 
   const handleExportCSV = () => {
     exportExpensesToCSV(expenses);
     setDrawerOpen(false);
     showMessage("CSV exported successfully.");
+  };
+
+  const handleExportFilteredCSV = () => {
+    exportExpensesToCSV(filteredAndSortedExpenses);
+    showMessage(`${filteredAndSortedExpenses.length} filtered transactions exported.`);
+  };
+
+  const handleEditExpense = (expense) => {
+    setEditingExpense(expense);
+    window.setTimeout(() => {
+      document.getElementById("expense-entry")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
+
+  const handleResetDemo = async () => {
+    resetDemoState();
+    setEditingExpense(null);
+    await loadExpenses();
+    showMessage("Demo expenses restored to the multi-month sample.");
   };
 
   const openWorkspace = (workspace) => {
@@ -300,7 +406,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
           <>
             <TopCards
               totalIncome={totalIncome}
-              totalExpense={totalExpense}
+              totalExpense={currentMonthExpense}
               balance={balance}
               budgetPercentage={budgetPercentage}
               isEditingIncome={isEditingIncome}
@@ -327,15 +433,37 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
         <Box id="workspace-panel" sx={{ mt: activeWorkspace === "markets" ? 0.5 : 2.5 }}>
           {activeWorkspace === "expense" && (
             <>
+              <ExpenseOverviewCards
+                expenses={expenses}
+                totalIncome={totalIncome}
+                onIncomeChange={updateMonthlyIncome}
+                isDemoMode={demoMode}
+                onResetDemo={handleResetDemo}
+              />
+
               <Grid container spacing={2.5}>
-                <Grid size={{ xs: 12, md: 5 }}>
-                  <ExpenseForm onAddExpense={handleAddExpense} loading={loading} />
+                <Grid size={{ xs: 12, md: 5 }} id="expense-entry">
+                  <ExpenseForm
+                    onAddExpense={handleAddExpense}
+                    onUpdateExpense={handleUpdateExpense}
+                    editingExpense={editingExpense}
+                    onCancelEdit={() => setEditingExpense(null)}
+                    loading={loading}
+                  />
                 </Grid>
 
                 <Grid size={{ xs: 12, md: 7 }} id="analytics-section">
                   <ExpensePieChart expenses={expenses} loading={loading} />
                 </Grid>
               </Grid>
+
+              <ExpenseBudgetPlanner
+                expenses={expenses}
+                budgets={budgets}
+                onBudgetsChange={setBudgets}
+              />
+
+              <MonthlyExpenseChart expenses={expenses} />
 
               <ExpenseIntelligencePanel
                 expenses={expenses}
@@ -354,10 +482,18 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
                     setSearchQuery,
                     sortOrder,
                     setSortOrder,
+                    sortKey,
+                    setSortKey,
                     tabValue,
-                    setTabValue
+                    setTabValue,
+                    dateFrom,
+                    setDateFrom,
+                    dateTo,
+                    setDateTo
                   }}
                   onDelete={handleDeleteExpense}
+                  onEdit={handleEditExpense}
+                  onExport={handleExportFilteredCSV}
                   loading={loading}
                 />
               </Box>
@@ -380,7 +516,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
           <AiAssistant
             balance={balance}
             totalIncome={totalIncome}
-            totalExpense={totalExpense}
+            totalExpense={currentMonthExpense}
             expenses={expenses}
           />
         )}
@@ -408,13 +544,20 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={2500}
+        autoHideDuration={snackbar.undoExpense ? 6000 : 2500}
         onClose={() => setSnackbar((current) => ({ ...current, open: false }))}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
         <Alert
           severity={snackbar.severity}
           variant="filled"
+          action={
+            snackbar.undoExpense ? (
+              <Button color="inherit" size="small" onClick={handleUndoDelete} sx={{ fontWeight: 900 }}>
+                Undo
+              </Button>
+            ) : null
+          }
           onClose={() =>
             setSnackbar((current) => ({ ...current, open: false }))
           }

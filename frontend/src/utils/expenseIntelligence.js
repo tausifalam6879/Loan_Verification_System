@@ -138,6 +138,14 @@ const nextMonthKey = (key) => {
   return getMonthKey(date);
 };
 
+const recentMonthKeys = (endKey, count) => {
+  const [year, month] = endKey.split("-").map(Number);
+  return Array.from({ length: count }, (_, index) => {
+    const offset = count - index - 1;
+    return getMonthKey(new Date(year, month - 1 - offset, 1));
+  });
+};
+
 const median = (values) => {
   if (!values.length) {
     return 0;
@@ -261,11 +269,20 @@ export const analyzeExpenses = (expenses = [], totalIncome = 0) => {
     .map(([key, amount]) => ({ key, month: formatMonth(key), amount }))
     .sort((a, b) => a.key.localeCompare(b.key));
 
-  const recentMonths = monthlyTotals.slice(-6);
-  const recentValues = recentMonths.map((item) => item.amount);
-  const latestMonth = monthlyTotals[monthlyTotals.length - 1];
-  const previousMonth = monthlyTotals[monthlyTotals.length - 2];
-  const latestMonthKey = latestMonth?.key || getMonthKey(new Date());
+  const currentMonthKey = getMonthKey(new Date());
+  const recentMonths = recentMonthKeys(currentMonthKey, 6).map((key) => ({
+    key,
+    month: formatMonth(key),
+    amount: monthlyTotalsMap.get(key) || 0
+  }));
+  const completedValues = recentMonths
+    .filter((item) => item.key < currentMonthKey && item.amount > 0)
+    .map((item) => item.amount);
+  const availableValues = monthlyTotals.slice(-3).map((item) => item.amount);
+  const recentValues = completedValues.length >= 2 ? completedValues.slice(-3) : availableValues;
+  const latestMonth = recentMonths[recentMonths.length - 1];
+  const previousMonth = recentMonths[recentMonths.length - 2];
+  const latestMonthKey = currentMonthKey;
   const forecastMonthKey = nextMonthKey(latestMonthKey);
   const lastThreeAverage =
     recentValues.slice(-3).reduce((sum, value) => sum + value, 0) /
@@ -278,6 +295,11 @@ export const analyzeExpenses = (expenses = [], totalIncome = 0) => {
     0,
     Math.round(lastThreeAverage * 0.72 + (recentValues[recentValues.length - 1] || 0) * 0.18 + slope * 0.1)
   );
+  const forecastConfidence = completedValues.length >= 4
+    ? "High"
+    : completedValues.length >= 2
+      ? "Medium"
+      : "Low";
 
   const categoryAmounts = normalizedExpenses.reduce((groups, expense) => {
     groups[expense.category] = groups[expense.category] || [];
@@ -381,7 +403,10 @@ export const analyzeExpenses = (expenses = [], totalIncome = 0) => {
       monthKey: forecastMonthKey,
       month: formatMonth(forecastMonthKey),
       amount: forecastAmount,
-      basis: recentValues.length >= 3 ? "weighted recent months + trend" : "available expense history"
+      confidence: forecastConfidence,
+      basis: completedValues.length >= 2
+        ? "completed months + recent trend"
+        : "limited available expense history"
     },
     anomalies,
     recommendations: recommendations.slice(0, 5),

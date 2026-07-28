@@ -10,6 +10,11 @@ export const addExpense = async (expense) => {
   return response.data?.data;
 };
 
+export const updateExpense = async (id, expense) => {
+  const response = await api.put(`/expenses/update/${id}`, expense);
+  return response.data?.data;
+};
+
 export const deleteExpense = async (id) => {
   await api.delete(`/expenses/delete/${id}`);
   return true;

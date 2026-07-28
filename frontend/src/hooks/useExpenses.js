@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   addExpense,
   deleteExpense,
-  getExpenses
+  getExpenses,
+  updateExpense
 } from "../services/expenseService";
 
 const useExpenses = () => {
@@ -38,12 +39,33 @@ const useExpenses = () => {
     setError("");
 
     try {
-      await addExpense(newExpense);
-      await loadExpenses();
-      return true;
+      const savedExpense = await addExpense(newExpense);
+      setExpenses((current) => [savedExpense, ...current]);
+      return savedExpense;
     } catch (error) {
       console.error("Error adding expense:", error);
       setError("Unable to add expense.");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const editExpense = async (id, changes) => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const savedExpense = await updateExpense(id, changes);
+      setExpenses((current) =>
+        current.map((expense) =>
+          Number(expense.id) === Number(id) ? savedExpense : expense
+        )
+      );
+      return savedExpense;
+    } catch (error) {
+      console.error("Error updating expense:", error);
+      setError("Unable to update expense.");
       return false;
     } finally {
       setLoading(false);
@@ -56,7 +78,9 @@ const useExpenses = () => {
 
     try {
       await deleteExpense(id);
-      await loadExpenses();
+      setExpenses((current) =>
+        current.filter((expense) => Number(expense.id) !== Number(id))
+      );
       return true;
     } catch (error) {
       console.error("Error deleting expense:", error);
@@ -83,6 +107,7 @@ const useExpenses = () => {
     error,
     loadExpenses,
     createExpense,
+    editExpense,
     removeExpense
   };
 };

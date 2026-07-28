@@ -6,7 +6,6 @@ import com.loan.VerificationSystem.entity.User;
 import com.loan.VerificationSystem.repository.ExpenseRepository;
 import com.loan.VerificationSystem.repository.LoanApplicationRepository;
 import com.loan.VerificationSystem.repository.UserRepository;
-import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -41,11 +40,7 @@ public class AiDashboardContextService {
     }
 
     public Map<String, Object> buildContext(String page) {
-        List<Expense> expenses = expenseRepository.findAll(Sort.by(
-                Sort.Order.desc("createdAt"),
-                Sort.Order.desc("date"),
-                Sort.Order.desc("id")
-        ));
+        List<Expense> expenses = loadCurrentUserExpenses();
 
         LocalDate today = LocalDate.now();
         YearMonth currentMonth = YearMonth.from(today);
@@ -105,7 +100,7 @@ public class AiDashboardContextService {
         Map<String, Object> context = new LinkedHashMap<>();
         context.put("page", page == null || page.isBlank() ? "dashboard" : page);
         context.put("currency", "INR");
-        context.put("expenseStorageNote", "Expenses in this project are stored in a shared expense ledger; there is no user_id column on Expense yet.");
+        context.put("expenseStorageNote", "Expense records are isolated to the authenticated user.");
         context.put("incomeNote", "Monthly income/current balance are frontend-local values and are not stored in backend database, so backend cannot verify them unless persisted later.");
         context.put("transactionCount", expenses.size());
         context.put("totalExpenseAllTime", round(totalExpense));
@@ -177,6 +172,20 @@ public class AiDashboardContextService {
             tips.add("Add more expense records to generate stronger saving signals.");
         }
         return tips;
+    }
+
+    private List<Expense> loadCurrentUserExpenses() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            return List.of();
+        }
+
+        User user = userRepository.findByEmail(authentication.getName());
+        if (user == null) {
+            return List.of();
+        }
+
+        return expenseRepository.findAllByUserOrderByCreatedAtDescDateDescIdDesc(user);
     }
 
     private List<Map<String, Object>> loadCurrentUserLoans() {

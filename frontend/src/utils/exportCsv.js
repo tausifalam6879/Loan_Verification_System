@@ -1,5 +1,5 @@
 export const exportExpensesToCSV = (expenses, selectedFields = null) => {
-  const availableFields = ["date", "time", "category", "description", "amount"];
+  const availableFields = ["date", "time", "category", "description", "merchant", "paymentMethod", "recurring", "amount"];
   const fieldsToExport = selectedFields && selectedFields.length > 0 ? selectedFields : availableFields;
   const formatTimestamp = (expense) => {
     const raw = expense.createdAt || (expense.date ? `${expense.date}T00:00:00` : "");
@@ -24,8 +24,10 @@ export const exportExpensesToCSV = (expenses, selectedFields = null) => {
       fieldsToExport
         .map(field => {
           const timestamp = formatTimestamp(expense);
-          const value = field === "date" || field === "time" ? timestamp[field] : expense[field];
-          return typeof value === "string" && value.includes(",") ? `"${value}"` : value || "";
+           let value = field === "date" || field === "time" ? timestamp[field] : expense[field];
+           if (field === "recurring") value = value ? "Yes" : "No";
+           const safeValue = String(value ?? "").replace(/^(\s*)[=+\-@]/, "$1'").replace(/"/g, '""');
+           return /[",\n]/.test(safeValue) ? `"${safeValue}"` : safeValue;
         })
         .join(",")
     )
@@ -48,5 +50,8 @@ export const getAvailableExpenseFields = () => [
   { id: "time", label: "Time" },
   { id: "category", label: "Category" },
   { id: "description", label: "Description" },
+  { id: "merchant", label: "Merchant" },
+  { id: "paymentMethod", label: "Payment Method" },
+  { id: "recurring", label: "Recurring" },
   { id: "amount", label: "Amount" }
 ];

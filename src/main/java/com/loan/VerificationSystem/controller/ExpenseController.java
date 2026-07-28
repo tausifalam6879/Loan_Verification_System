@@ -10,7 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/expenses")
-@CrossOrigin(origins = "*")
 public class ExpenseController {
 
     private final ExpenseService expenseService;
@@ -38,6 +37,18 @@ public class ExpenseController {
                 true,
                 "Expenses fetched successfully",
                 expenseService.getAllExpenses()
+        );
+    }
+
+    @PutMapping("/update/{id}")
+    public ApiResponse<Expense> updateExpense(
+            @PathVariable Long id,
+            @Valid @RequestBody Expense expense) {
+
+        return new ApiResponse<>(
+                true,
+                "Expense updated successfully",
+                expenseService.updateExpense(id, expense)
         );
     }
 
