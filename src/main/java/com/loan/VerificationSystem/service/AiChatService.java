@@ -24,7 +24,7 @@ import java.util.Map;
 public class AiChatService {
 
     private static final String SYSTEM_PROMPT = """
-            You are FinTrack AI, a financial assistant inside an expense tracking dashboard. Answer only using the provided dashboard/expense context and general financial reasoning. Do not invent transactions, balances, categories, or forecasts. If data is missing, clearly say what data is missing. Give short, practical, actionable answers. Use Indian Rupees when amounts are present.
+            You are FinTrack Copilot inside a private financial dashboard. Use only the authenticated, server-provided expense and loan-application context plus cautious general financial reasoning. Never invent transactions, income, balances, eligibility, approvals, market prices or forecasts. Clearly identify missing or unverified data. Do not claim to send money, submit a loan, place an investment or provide a guaranteed financial outcome. Give short, practical next steps and use Indian Rupees when amounts are present.
             """;
 
     private final AiDashboardContextService contextService;
@@ -314,6 +314,35 @@ public class AiChatService {
         List<Map<String, Object>> anomalies = (List<Map<String, Object>>) context.getOrDefault("unusualSpending", List.of());
         Map<String, Object> forecast = (Map<String, Object>) context.getOrDefault("forecastNextMonth", Map.of("amount", 0));
         List<String> savingSignals = (List<String>) context.getOrDefault("savingSignals", List.of());
+        List<Map<String, Object>> loanApplications = (List<Map<String, Object>>) context.getOrDefault("loanApplications", List.of());
+
+        if (containsAny(message, "application", "status", "processing fee")) {
+            if (loanApplications.isEmpty()) {
+                return "Is signed-in account ke liye koi saved loan application available nahi hai. Pehle Loan Marketplace se application submit karo, phir Application Center me status track karo.";
+            }
+            Map<String, Long> statuses = loanApplications.stream()
+                    .collect(java.util.stream.Collectors.groupingBy(
+                            item -> String.valueOf(item.getOrDefault("status", "PENDING")).replace('_', ' '),
+                            LinkedHashMap::new,
+                            java.util.stream.Collectors.counting()
+                    ));
+            String summary = statuses.entrySet().stream()
+                    .map(entry -> entry.getValue() + " " + entry.getKey().toLowerCase(Locale.ROOT))
+                    .collect(java.util.stream.Collectors.joining(", "));
+            return "Aapke signed-in account me " + loanApplications.size() + " saved loan application(s) hain: " + summary + ". Verification, decision aur fee detail ke liye Application Center kholo.";
+        }
+
+        if (containsAny(message, "loan", "emi", "risk", "afford")) {
+            if (loanApplications.isEmpty()) {
+                return "Loan/EMI assessment ke liye saved application data missing hai. Loan form me requested amount, income, existing EMI aur credit score submit karo; FinTrack guaranteed approval nahi deta.";
+            }
+            Map<String, Object> latest = loanApplications.get(0);
+            return "Latest saved application ka status " + latest.getOrDefault("status", "PENDING")
+                    + ", requested amount Rs. " + format(latest.get("requestedAmount"))
+                    + ", declared monthly income Rs. " + format(latest.get("monthlyIncome"))
+                    + " aur existing EMI Rs. " + format(latest.get("existingEmi"))
+                    + " hai. Ye account-scoped summary hai, approval guarantee nahi; detailed comparison ke liye Loan Marketplace kholo.";
+        }
 
         if (transactionCount == 0) {
             return "Abhi backend database me expense transactions available nahi hain. Pehle kuch expenses add karo, phir main top category, forecast, anomaly aur saving tips data ke basis par bata paunga.";
@@ -380,20 +409,24 @@ public class AiChatService {
             return "Aapka balance expense ledger ke total spends/payments ki wajah se decrease hota hai. Backend ke paas frontend-local income/current balance stored nahi hai, isliye exact balance audit missing hai. Available data ke hisaab se " + currentMonth + " expense Rs. " + format(currentMonthExpense) + " hai aur " + topText + ".";
         }
 
-        if (containsAny(message, "loan", "emi", "risk")) {
-            return "Loan/EMI risk ke liye backend me saved loan applications, requested amount, income, existing EMI, credit score aur fraud score use hote hain. Agar loan application data missing hai, pehle loan form submit karo.";
-        }
-
         return "Main aapke backend expense data se answer kar raha hoon. Available data: " + transactionCount + " transactions, " + currentMonth + " expense Rs. " + format(currentMonthExpense) + ". Aap top category, last 5 transactions, saving tips, forecast ya unusual spending pooch sakte ho.";
     }
 
     private List<String> suggestedQuestions(Map<String, Object> context) {
+        String page = String.valueOf(context.getOrDefault("page", "overview"));
+        if ("loans".equalsIgnoreCase(page)) {
+            return List.of("Can I safely afford a new EMI?", "What should I compare before choosing a loan?", "How do I track my submitted application?");
+        }
+        if ("applications".equalsIgnoreCase(page)) {
+            return List.of("Summarize my loan applications", "What application needs attention?", "Explain processing-fee status");
+        }
+        if ("payments".equalsIgnoreCase(page)) {
+            return List.of("What should I verify before recording a payment?", "Show my recent transactions", "How will this payment affect my monthly spending?");
+        }
         return List.of(
                 "Mera sabse zyada kharcha kis category me hua?",
                 "Last 5 transactions batao",
-                "Mujhe saving improve karne ke liye 3 tips do",
-                "Is month total expense kitna hai?",
-                "Kya koi unusual spending hai?"
+                "Mujhe saving improve karne ke liye 3 tips do"
         );
     }
 

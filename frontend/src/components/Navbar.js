@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
+import ColorLensIcon from "@mui/icons-material/ColorLens";
 import LogoutIcon from "@mui/icons-material/Logout";
 
 const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, email, onLogout }) => {
@@ -28,9 +28,13 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, em
       position="fixed"
       elevation={0}
       sx={{
-        background: "linear-gradient(90deg, #082f49 0%, #0f766e 58%, #134e4a 100%)",
+        background: (theme) => theme.fintrackMode === "soft"
+          ? "linear-gradient(90deg, #21184f 0%, #5d477f 58%, #8a648d 100%)"
+          : "linear-gradient(90deg, #082f49 0%, #0f766e 58%, #134e4a 100%)",
         borderBottom: "1px solid rgba(204, 251, 241, 0.22)",
-        boxShadow: "0 12px 32px rgba(8, 47, 73, 0.22)"
+        boxShadow: (theme) => theme.fintrackMode === "soft"
+          ? "0 6px 18px rgba(44, 29, 74, 0.18)"
+          : "0 12px 32px rgba(8, 47, 73, 0.22)"
       }}
     >
       <Toolbar sx={{ gap: { xs: 0.5, sm: 1, md: 2 }, px: { xs: 1, sm: 2 } }}>
@@ -79,7 +83,7 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, em
           <Select
             value={themeMode}
             onChange={(event) => onThemeModeChange(event.target.value)}
-            startAdornment={<DarkModeIcon sx={{ color: "#bef264", mr: 0.75, fontSize: 18 }} />}
+            startAdornment={<ColorLensIcon sx={{ color: "#fbcfe8", mr: 0.75, fontSize: 18 }} />}
             sx={{
               color: "#ecfeff",
               fontWeight: 800,
@@ -90,7 +94,7 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, em
           >
             <MenuItem value="system">System</MenuItem>
             <MenuItem value="light">Light</MenuItem>
-            <MenuItem value="dark">Dark</MenuItem>
+            <MenuItem value="soft">Soft</MenuItem>
           </Select>
         </FormControl>
 

@@ -185,8 +185,8 @@ const InvestmentSection = () => {
           borderRadius: 3,
           border: "1px solid rgba(20, 184, 166, 0.22)",
           background: (theme) =>
-            theme.palette.mode === "dark"
-              ? "linear-gradient(145deg, #0f172a, #123c4a)"
+            theme.fintrackMode === "soft"
+              ? "linear-gradient(145deg, #fffafb, #f5eaf3, #edf5ff)"
               : "linear-gradient(145deg, #f0fdfa, #eff6ff)"
         }}
       >

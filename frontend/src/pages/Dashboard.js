@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Alert,
@@ -21,7 +21,7 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import SavingsIcon from "@mui/icons-material/Savings";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 
-import DashboardHeader from "../components/dashboard/DashboardHeader";
+import FinancialCommandCenter from "../components/dashboard/FinancialCommandCenter";
 import ExpenseForm from "../components/ExpenseForm";
 import ExpenseBudgetPlanner from "../components/ExpenseBudgetPlanner";
 import ExpenseIntelligencePanel from "../components/ExpenseIntelligencePanel";
@@ -32,12 +32,12 @@ import LoanSection from "../components/loans/LoanSection";
 import MonthlyExpenseChart from "../components/MonthlyExpenseChart";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import TopCards from "../components/TopCards";
 import TransactionTable from "../components/TransactionTable";
 import useExpenses from "../hooks/useExpenses";
 import { exportExpensesToCSV } from "../utils/exportCsv";
 import AiAssistant from "../components/AiAssistant";
-import { logout } from "../services/authService";
+import { getProfile, logout } from "../services/authService";
+import { getLoanApplications } from "../services/loanService";
 import { demoMode, resetDemoState } from "../api/demoAdapter";
 
 const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
@@ -82,6 +82,12 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     }
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [overviewAccount, setOverviewAccount] = useState({
+    profile: { email, role, creditScore: null },
+    applications: [],
+    loading: false,
+    refreshedAt: ""
+  });
   const [snackbar, setSnackbar] = useState({
     open: false,
     severity: "success",
@@ -108,8 +114,6 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
   }, [expenses]);
 
   const balance = totalIncome - currentMonthExpense;
-  const budgetPercentage =
-    totalIncome > 0 ? Math.min((currentMonthExpense / totalIncome) * 100, 100) : 0;
   const workspaceByPath = {
     "/": "overview",
     "/expense": "expense",
@@ -132,6 +136,29 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
   };
   const activeWorkspace = workspaceByPath[location.pathname] || "overview";
   const isOverview = activeWorkspace === "overview";
+
+  const loadOverviewAccount = useCallback(async () => {
+    setOverviewAccount((current) => ({ ...current, loading: true }));
+    const [profileResult, applicationsResult] = await Promise.allSettled([
+      getProfile(),
+      getLoanApplications()
+    ]);
+
+    setOverviewAccount((current) => ({
+      profile: profileResult.status === "fulfilled"
+        ? profileResult.value
+        : current.profile,
+      applications: applicationsResult.status === "fulfilled" && Array.isArray(applicationsResult.value)
+        ? applicationsResult.value
+        : current.applications,
+      loading: false,
+      refreshedAt: new Date().toISOString()
+    }));
+  }, []);
+
+  useEffect(() => {
+    if (activeWorkspace !== "markets") loadOverviewAccount();
+  }, [activeWorkspace, loadOverviewAccount]);
   const pageMeta = {
     expense: {
       title: "Expense Page",
@@ -302,6 +329,10 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     showMessage("CSV exported successfully.");
   };
 
+  const handleRefreshOverview = async () => {
+    await Promise.allSettled([loadExpenses(), loadOverviewAccount()]);
+  };
+
   const handleExportFilteredCSV = () => {
     exportExpensesToCSV(filteredAndSortedExpenses);
     showMessage(`${filteredAndSortedExpenses.length} filtered transactions exported.`);
@@ -374,22 +405,15 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
           minHeight: "100vh",
           width: "100%",
           background:
-            activeMode === "dark"
-              ? "linear-gradient(180deg, rgba(13, 148, 136, 0.22) 0%, rgba(15, 23, 42, 0.92) 18rem, rgba(2, 6, 23, 1) 34rem)"
+            activeMode === "soft"
+              ? "radial-gradient(circle at top right, rgba(205, 159, 204, 0.24), transparent 28rem), linear-gradient(180deg, #fae8eb 0%, #fff5e8 36rem, #edf5ff 100%)"
               : "linear-gradient(180deg, rgba(8, 47, 73, 0.16) 0%, rgba(13, 148, 136, 0.12) 18rem, rgba(255, 255, 255, 0) 34rem)",
           pt: 11,
           px: { xs: 2, md: 4 },
           pb: 4
         }}
       >
-        {isOverview ? (
-          <Box id="dashboard-top">
-            <DashboardHeader
-              onRefresh={loadExpenses}
-              onExport={handleExportCSV}
-            />
-          </Box>
-        ) : activeWorkspace !== "markets" ? (
+        {!isOverview && activeWorkspace !== "markets" ? (
           <PageHeader
             title={pageMeta[activeWorkspace]?.title || "Workspace"}
             subtitle={pageMeta[activeWorkspace]?.subtitle || ""}
@@ -404,28 +428,32 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
 
         {isOverview && (
           <>
-            <TopCards
+            <FinancialCommandCenter
+              expenses={expenses}
               totalIncome={totalIncome}
-              totalExpense={currentMonthExpense}
-              balance={balance}
-              budgetPercentage={budgetPercentage}
-              isEditingIncome={isEditingIncome}
-              setIsEditingIncome={setIsEditingIncome}
+              budgets={budgets}
+              profile={overviewAccount.profile}
+              applications={overviewAccount.applications}
+              onOpen={openWorkspace}
+              onRefresh={handleRefreshOverview}
+              onExport={handleExportCSV}
               incomeInput={incomeInput}
               setIncomeInput={setIncomeInput}
-              handleSaveIncome={handleSaveIncome}
+              isEditingIncome={isEditingIncome}
+              setIsEditingIncome={setIsEditingIncome}
+              onSaveIncome={handleSaveIncome}
+              loading={loading || overviewAccount.loading}
+              refreshedAt={overviewAccount.refreshedAt}
             />
 
             <WorkspaceCards
               activeWorkspace={activeWorkspace}
               expensesCount={expenses.length}
-              filteredCount={filteredAndSortedExpenses.length}
+              currentMonthExpense={currentMonthExpense}
+              applicationsCount={overviewAccount.applications.length}
+              creditScore={overviewAccount.profile?.creditScore}
+              savedPlansCount={readSavedPlanCount(email)}
               onOpen={openWorkspace}
-            />
-            <MonthlyExpenseChart expenses={expenses} />
-            <ExpenseIntelligencePanel
-              expenses={expenses}
-              totalIncome={totalIncome}
             />
           </>
         )}
@@ -519,6 +547,9 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
             totalIncome={totalIncome}
             totalExpense={currentMonthExpense}
             expenses={expenses}
+            applications={overviewAccount.applications}
+            page={activeWorkspace}
+            onOpen={openWorkspace}
           />
         )}
 
@@ -578,10 +609,12 @@ const PageHeader = ({ title, subtitle }) => (
       borderRadius: 2,
       border: "1px solid rgba(15, 23, 42, 0.08)",
       background: (theme) =>
-        theme.palette.mode === "dark"
-          ? "linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(8, 47, 73, 0.92))"
+        theme.fintrackMode === "soft"
+          ? "linear-gradient(135deg, #fffafb, #f3e8f4, #eaf3ff)"
           : "linear-gradient(135deg, #ffffff, #eef6ff)",
-      boxShadow: "0 16px 38px rgba(15, 23, 42, 0.1)"
+      boxShadow: (theme) => theme.fintrackMode === "soft"
+        ? "0 8px 24px rgba(75, 52, 96, 0.08)"
+        : "0 16px 38px rgba(15, 23, 42, 0.1)"
     }}
   >
     <CardContent
@@ -609,75 +642,104 @@ const PageHeader = ({ title, subtitle }) => (
   </Card>
 );
 
+const readSavedPlanCount = (email) => {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem(`savedInvestmentPlansV2:${String(email || "demo").toLowerCase()}`) || "[]"
+    );
+    return Array.isArray(saved) ? saved.length : 0;
+  } catch (error) {
+    return 0;
+  }
+};
+
+const formatCompactCurrency = (value) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+    notation: Number(value || 0) >= 100000 ? "compact" : "standard"
+  }).format(Number(value || 0));
+
 const WorkspaceCards = ({
   activeWorkspace,
   expensesCount,
-  filteredCount,
+  currentMonthExpense,
+  applicationsCount,
+  creditScore,
+  savedPlansCount,
   onOpen
 }) => {
   const cards = [
     {
       id: "expense",
-      title: "Expense Page",
-      subtitle: "Entry form, category analytics, filters and transaction list",
+      title: "Expenses & budgets",
+      subtitle: "Record transactions, control category limits and review spending insights",
       icon: <AddCircleIcon />,
       color: "#16a34a",
       surface: "linear-gradient(145deg, #dcfce7, #f7fee7)",
-      meta: `${filteredCount}/${expensesCount} records`
+      meta: `${expensesCount} transactions`,
+      group: "Money management"
     },
     {
       id: "markets",
       title: "Global Markets",
-      subtitle: "World indices, ML outlook, news factors and grounded AI agent",
+      subtitle: "World indices, market alerts, news factors and research evidence",
       icon: <ShowChartIcon />,
       color: "#2563eb",
       surface: "linear-gradient(145deg, #dbeafe, #ecfeff)",
-      meta: "Live + Agentic AI"
+      meta: "Alerts + research",
+      group: "Wealth & research"
     },
     {
       id: "loans",
       title: "Loan Marketplace",
-      subtitle: "Backend offers, EMI and application form",
+      subtitle: "Compare EMI, eligibility, total cost and lender offers",
       icon: <AccountBalanceIcon />,
       color: "#7c3aed",
       surface: "linear-gradient(145deg, #ede9fe, #f5f3ff)",
-      meta: "Spring Boot linked"
+      meta: "EMI + eligibility",
+      group: "Borrowing"
     },
     {
       id: "payments",
       title: "Payment Gateway",
-      subtitle: "UPI, card and net banking checkout with balance deduction",
+      subtitle: "Record UPI, card and net-banking payments in the expense ledger",
       icon: <PaymentsIcon />,
       color: "#0d9488",
       surface: "linear-gradient(145deg, #ccfbf1, #ecfeff)",
-      meta: "UPI/Card/Bank"
+      meta: `${formatCompactCurrency(currentMonthExpense)} spent`,
+      group: "Money management"
     },
     {
       id: "applications",
       title: "Saved Applications",
-      subtitle: "Open saved loan applications and full details",
+      subtitle: "Track decisions, verification and processing-fee progress",
       icon: <AssignmentTurnedInIcon />,
       color: "#0891b2",
       surface: "linear-gradient(145deg, #cffafe, #ecfeff)",
-      meta: "Database records"
+      meta: `${applicationsCount} saved`,
+      group: "Borrowing"
     },
     {
       id: "profile",
       title: "Profile",
-      subtitle: "Name, email, role, applications and credit score",
+      subtitle: "Manage identity, security, application activity and credit profile",
       icon: <PersonIcon />,
       color: "#ea580c",
       surface: "linear-gradient(145deg, #ffedd5, #fff7ed)",
-      meta: "Account"
+      meta: creditScore ? `Score ${creditScore}` : "Complete profile",
+      group: "Account"
     },
     {
       id: "investments",
       title: "Savings Planner",
-      subtitle: "Calculate FD maturity and SIP projection ranges",
+      subtitle: "Calculate FD maturity, SIP ranges and save comparison plans",
       icon: <SavingsIcon />,
       color: "#ca8a04",
       surface: "linear-gradient(145deg, #fef3c7, #fefce8)",
-      meta: "FD + SIP"
+      meta: `${savedPlansCount} saved plans`,
+      group: "Wealth & research"
     }
   ];
 
@@ -688,10 +750,12 @@ const WorkspaceCards = ({
         borderRadius: 2,
         border: "1px solid rgba(15, 23, 42, 0.08)",
         background: (theme) =>
-          theme.palette.mode === "dark"
-            ? "linear-gradient(145deg, rgba(15,23,42,0.96), rgba(30,41,59,0.92))"
+          theme.fintrackMode === "soft"
+            ? "rgba(255, 253, 253, 0.92)"
             : "linear-gradient(145deg, #ffffff, #f8fafc)",
-        boxShadow: "0 16px 40px rgba(15, 23, 42, 0.08)"
+        boxShadow: (theme) => theme.fintrackMode === "soft"
+          ? "0 8px 24px rgba(75, 52, 96, 0.07)"
+          : "0 16px 40px rgba(15, 23, 42, 0.08)"
       }}
     >
       <CardContent sx={{ p: 2.5 }}>
@@ -707,10 +771,13 @@ const WorkspaceCards = ({
         >
           <Box>
             <Typography variant="overline" sx={{ color: "#0f766e", fontWeight: 900 }}>
-              Clean SPA Workspace
+              Explore FinTrack
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 900 }}>
-              Open only the card you want to work with
+              Your financial workspaces
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Open a focused workspace without leaving your private dashboard.
             </Typography>
           </Box>
           <AssessmentIcon sx={{ color: "#2563eb", fontSize: 34 }} />
@@ -721,27 +788,34 @@ const WorkspaceCards = ({
             const active = activeWorkspace === card.id;
 
             return (
-              <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={card.id}>
+              <Grid size={{ xs: 12, sm: 6, xl: 3 }} key={card.id}>
                 <Card
                   elevation={0}
                   onClick={() => onOpen(card.id)}
                   sx={{
                     height: "100%",
-                    minHeight: 158,
+                    minHeight: 148,
                     cursor: "pointer",
                     borderRadius: 2,
-                    background: card.surface,
+                    background: (theme) => theme.fintrackMode === "soft"
+                      ? "#fffdfd"
+                      : card.surface,
                     border: active
                       ? `2px solid ${card.color}`
                       : "1px solid rgba(15, 23, 42, 0.08)",
-                    boxShadow: active
-                      ? `0 16px 34px ${card.color}2e`
-                      : "0 10px 24px rgba(15, 23, 42, 0.08)",
-                    color: "#0f172a",
+                    boxShadow: (theme) => theme.fintrackMode === "soft"
+                      ? "0 3px 12px rgba(75, 52, 96, 0.06)"
+                      : active
+                        ? `0 16px 34px ${card.color}2e`
+                        : "0 10px 24px rgba(15, 23, 42, 0.08)",
+                    color: "text.primary",
                     transition: "transform 160ms ease, box-shadow 160ms ease",
                     "&:hover": {
-                      transform: "translateY(-3px)",
-                      boxShadow: `0 18px 36px ${card.color}2e`
+                      transform: "translateY(-2px)",
+                      borderColor: card.color,
+                      boxShadow: (theme) => theme.fintrackMode === "soft"
+                        ? `0 8px 20px ${card.color}16`
+                        : `0 18px 36px ${card.color}2e`
                     }
                   }}
                 >
@@ -767,10 +841,13 @@ const WorkspaceCards = ({
                         {card.meta}
                       </Typography>
                     </Box>
-                    <Typography sx={{ mt: 2, fontWeight: 900, fontSize: "1.05rem" }}>
+                    <Typography variant="overline" sx={{ display: "block", mt: 1.25, color: card.color, fontSize: "0.66rem", fontWeight: 900, lineHeight: 1.2 }}>
+                      {card.group}
+                    </Typography>
+                    <Typography sx={{ mt: 0.35, fontWeight: 900, fontSize: "1.05rem" }}>
                       {card.title}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: "#475569", mt: 0.5 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                       {card.subtitle}
                     </Typography>
                   </CardContent>

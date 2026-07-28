@@ -34,6 +34,21 @@ test('redirects unauthenticated users to login', () => {
   expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
 });
 
+test('renders the authenticated financial command center overview', async () => {
+  localStorage.setItem("token", "test-token");
+  localStorage.setItem("role", "USER");
+  localStorage.setItem("email", "user@example.com");
+  window.location.hash = "#/";
+
+  render(<App />);
+
+  expect(await screen.findByRole("heading", { name: /Financial Command Center/i })).toBeInTheDocument();
+  expect(screen.queryByText(/Welcome back/i)).not.toBeInTheDocument();
+  expect(screen.getAllByText(/Financial health/i).length).toBeGreaterThan(0);
+  expect(screen.getByRole("heading", { name: /Priority alerts/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /Your financial workspaces/i })).toBeInTheDocument();
+});
+
 test('renders the authenticated loan marketplace route', async () => {
   localStorage.setItem("token", "test-token");
   localStorage.setItem("role", "USER");

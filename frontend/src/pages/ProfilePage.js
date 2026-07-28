@@ -179,8 +179,8 @@ const ProfilePage = () => {
       <Box
         sx={{
           minHeight: "100vh",
-          background: (theme) => theme.palette.mode === "dark"
-            ? "radial-gradient(circle at top, rgba(15,118,110,0.2), rgba(2,6,23,1) 38rem)"
+          background: (theme) => theme.fintrackMode === "soft"
+            ? "radial-gradient(circle at top, rgba(205,159,204,0.20), transparent 28rem), linear-gradient(180deg, #fae8eb, #fff5e8 42rem, #edf5ff)"
             : "linear-gradient(180deg, #ecfeff 0, #f8fafc 24rem, #ffffff 100%)",
           px: { xs: 2, md: 4 },
           py: { xs: 3, md: 4 }

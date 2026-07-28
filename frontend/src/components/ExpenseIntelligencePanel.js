@@ -55,8 +55,8 @@ const ExpenseIntelligencePanel = ({ expenses, totalIncome }) => {
         borderRadius: 2,
         border: "1px solid rgba(15, 23, 42, 0.08)",
         background: (theme) =>
-          theme.palette.mode === "dark"
-            ? "linear-gradient(145deg, rgba(15,23,42,0.96), rgba(12,74,110,0.88))"
+          theme.fintrackMode === "soft"
+            ? "linear-gradient(145deg, #fffdfd, #f7edf5)"
             : "linear-gradient(145deg, #ffffff, #f0fdfa)",
         boxShadow: "0 16px 40px rgba(15, 23, 42, 0.08)"
       }}
@@ -165,7 +165,7 @@ const ExpenseIntelligencePanel = ({ expenses, totalIncome }) => {
                 border: "1px solid",
                 borderColor: "divider",
                 bgcolor: (theme) =>
-                  theme.palette.mode === "dark" ? "rgba(15, 23, 42, 0.56)" : "rgba(255,255,255,0.72)"
+                  theme.fintrackMode === "soft" ? "#fff9fc" : "rgba(255,255,255,0.72)"
               }}
             >
               {categoryTrends.length > 0 ? (
@@ -203,7 +203,7 @@ const ExpenseIntelligencePanel = ({ expenses, totalIncome }) => {
                 border: "1px solid",
                 borderColor: "divider",
                 bgcolor: (theme) =>
-                  theme.palette.mode === "dark" ? "rgba(15, 23, 42, 0.56)" : "rgba(255,255,255,0.72)"
+                  theme.fintrackMode === "soft" ? "#fff9fc" : "rgba(255,255,255,0.72)"
               }}
             >
               <Typography sx={{ fontWeight: 900, mb: 1 }}>
@@ -258,7 +258,7 @@ const MetricCard = ({ icon, label, value, helper }) => (
       border: "1px solid",
       borderColor: "divider",
       bgcolor: (theme) =>
-        theme.palette.mode === "dark" ? "rgba(15, 23, 42, 0.58)" : "rgba(255,255,255,0.76)"
+        theme.fintrackMode === "soft" ? "#fff9fc" : "rgba(255,255,255,0.76)"
     }}
   >
     <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "primary.main" }}>

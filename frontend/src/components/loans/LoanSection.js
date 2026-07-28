@@ -881,14 +881,17 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
           p: { xs: 2, md: 3 },
           borderRadius: 4,
           border: "1px solid rgba(148, 163, 184, 0.25)",
-          background:
-            "linear-gradient(135deg, #083344 0%, #0f766e 50%, #2563eb 100%)",
-          boxShadow: "0 24px 60px rgba(8, 47, 73, 0.22)"
+          background: (theme) => theme.fintrackMode === "soft"
+            ? "linear-gradient(135deg, #f6dfe4 0%, #f1e5f4 52%, #e4f0ff 100%)"
+            : "linear-gradient(135deg, #083344 0%, #0f766e 50%, #2563eb 100%)",
+          boxShadow: (theme) => theme.fintrackMode === "soft"
+            ? "0 10px 28px rgba(75, 52, 96, 0.10)"
+            : "0 24px 60px rgba(8, 47, 73, 0.22)"
         }}
       >
         {loadingOffers ? (
-          <Box sx={{ py: 6, display: "grid", placeItems: "center", color: "#ffffff" }}>
-            <CircularProgress sx={{ color: "#a3e635" }} />
+          <Box sx={{ py: 6, display: "grid", placeItems: "center", color: (theme) => theme.fintrackMode === "soft" ? theme.palette.text.primary : "#ffffff" }}>
+            <CircularProgress sx={{ color: (theme) => theme.fintrackMode === "soft" ? theme.palette.primary.main : "#a3e635" }} />
             <Typography sx={{ mt: 2 }}>Loading loan offers from backend...</Typography>
           </Box>
         ) : (

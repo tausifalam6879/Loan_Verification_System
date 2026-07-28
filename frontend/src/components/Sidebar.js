@@ -112,7 +112,9 @@ const Sidebar = ({
       sx={{
         "& .MuiDrawer-paper": {
           width: drawerWidth,
-          background: "linear-gradient(180deg, #082f49 0%, #0f172a 72%)",
+          background: (theme) => theme.fintrackMode === "soft"
+            ? "linear-gradient(180deg, #21184f 0%, #4d3b70 68%, #735776 100%)"
+            : "linear-gradient(180deg, #082f49 0%, #0f172a 72%)",
           color: "#ffffff",
           borderRight: "none"
         }

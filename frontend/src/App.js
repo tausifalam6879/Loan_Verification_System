@@ -10,30 +10,78 @@ import "./App.css";
 
 function App() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
-  const [themeMode, setThemeMode] = useState(() => localStorage.getItem("themeMode") || "system");
-  const activeMode = themeMode === "system" ? (prefersDarkMode ? "dark" : "light") : themeMode;
+  const [themeMode, setThemeMode] = useState(() => {
+    const savedMode = localStorage.getItem("themeMode") || "system";
+    return savedMode === "dark" ? "soft" : savedMode;
+  });
+  const activeMode = themeMode === "system" ? (prefersDarkMode ? "soft" : "light") : themeMode;
+  const isSoftMode = activeMode === "soft";
 
   const theme = useMemo(
     () =>
       createTheme({
+        fintrackMode: activeMode,
         palette: {
-          mode: activeMode,
+          mode: "light",
           primary: {
-            main: "#0d9488"
+            main: isSoftMode ? "#6f5795" : "#0d9488"
           },
           secondary: {
-            main: "#2563eb"
+            main: isSoftMode ? "#d66f82" : "#2563eb"
           },
           background: {
-            default: activeMode === "dark" ? "#06141b" : "#eaf4f2",
-            paper: activeMode === "dark" ? "#0f172a" : "#ffffff"
+            default: isSoftMode ? "#f8eff3" : "#eaf4f2",
+            paper: isSoftMode ? "#fffdfd" : "#ffffff"
+          },
+          text: isSoftMode
+            ? {
+                primary: "#271f3d",
+                secondary: "#6e637d"
+              }
+            : {
+                primary: "#0f172a",
+                secondary: "#64748b"
+              },
+          divider: isSoftMode
+            ? "rgba(86, 64, 112, 0.15)"
+            : "rgba(15, 23, 42, 0.12)"
+        },
+        components: {
+          MuiCssBaseline: {
+            styleOverrides: {
+              body: {
+                background: isSoftMode
+                  ? "linear-gradient(135deg, #fae8eb 0%, #fff4e6 48%, #eaf4ff 100%)"
+                  : "linear-gradient(135deg, #eaf4f2 0%, #edf4ff 48%, #f6f1e8 100%)"
+              }
+            }
+          },
+          MuiPaper: {
+            styleOverrides: {
+              root: {
+                backgroundImage: "none",
+                ...(isSoftMode && {
+                  backgroundColor: "#fffdfd"
+                })
+              }
+            }
+          },
+          MuiCard: {
+            styleOverrides: {
+              root: {
+                backgroundImage: "none",
+                ...(isSoftMode && {
+                  boxShadow: "0 6px 20px rgba(75, 52, 96, 0.08)"
+                })
+              }
+            }
           }
         },
         shape: {
           borderRadius: 8
         }
       }),
-    [activeMode]
+    [activeMode, isSoftMode]
   );
 
   const handleThemeModeChange = (mode) => {

@@ -1,4 +1,5 @@
 import { predictExpenseCategory } from "../utils/expenseIntelligence";
+import { buildCopilotFallbackAnswer, getCopilotPrompts } from "../utils/copilot";
 
 const demoMode =
   process.env.REACT_APP_DEMO_MODE === "true" ||
@@ -578,6 +579,41 @@ const demoAdapter = async (config) => {
 
   const state = readState(session.email);
   const persistState = () => writeState(state, session.email);
+
+  if (path === "/ai/chat" && method === "post") {
+    const currentDate = new Date();
+    const currentMonthExpense = state.expenses.reduce((sum, expense) => {
+      const rawDate = expense.date || expense.createdAt;
+      if (!rawDate) return sum;
+      const parsedDate = new Date(String(rawDate).includes("T") ? rawDate : `${rawDate}T00:00:00`);
+      const isCurrentMonth =
+        !Number.isNaN(parsedDate.getTime()) &&
+        parsedDate.getFullYear() === currentDate.getFullYear() &&
+        parsedDate.getMonth() === currentDate.getMonth();
+      return sum + (isCurrentMonth ? Number(expense.amount || 0) : 0);
+    }, 0);
+    const page = body.page || "overview";
+    const answer = buildCopilotFallbackAnswer({
+      question: body.message,
+      page,
+      expenses: state.expenses,
+      applications: state.applications,
+      totalExpense: currentMonthExpense
+    });
+
+    return response(config, {
+      success: true,
+      message: "Account-scoped demo analytics generated",
+      data: {
+        answer,
+        usedContext: true,
+        suggestedQuestions: getCopilotPrompts(page).slice(0, 3),
+        provider: "demo-analytics",
+        model: "account-scoped-local",
+        liveProvider: false
+      }
+    });
+  }
 
   if (path === "/users/me" && method === "get") {
     const submittedScores = state.applications

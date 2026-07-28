@@ -150,3 +150,33 @@ test("binds login OTP verification to a prior request for the registered identit
 
   expect(loginResponse.data.token).toMatch(/^demo-session-/);
 });
+
+test("keeps Copilot account-scoped and returns contextual demo analytics after login", async () => {
+  await call("/api/users/register", "post", {
+    fullName: "Copilot User",
+    email: "copilot@example.com",
+    mobile: "9000012345",
+    password: "copilot-password"
+  });
+
+  await expect(
+    call("/api/ai/chat", "post", { message: "What needs my attention?", page: "overview" })
+  ).rejects.toMatchObject({ response: { status: 401 } });
+
+  const loginResponse = await call("/api/users/login", "post", {
+    email: "copilot@example.com",
+    channel: "PASSWORD",
+    password: "copilot-password"
+  });
+  const chatResponse = await call(
+    "/api/ai/chat",
+    "post",
+    { message: "Summarize my loan applications", page: "applications" },
+    loginResponse.data.token
+  );
+
+  expect(chatResponse.data.success).toBe(true);
+  expect(chatResponse.data.data.usedContext).toBe(true);
+  expect(chatResponse.data.data.provider).toBe("demo-analytics");
+  expect(chatResponse.data.data.answer).toMatch(/signed-in account/i);
+});

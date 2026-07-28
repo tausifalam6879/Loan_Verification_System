@@ -41,7 +41,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
   if (session.status === "checking") {
     return (
-      <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center", bgcolor: "#020617" }}>
+      <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center", bgcolor: "background.default" }}>
         <Box sx={{ textAlign: "center", color: "white" }}>
           <CircularProgress size={30} sx={{ color: "#14b8a6" }} />
           <Typography sx={{ mt: 1.5, fontWeight: 800 }}>Verifying secure session...</Typography>
