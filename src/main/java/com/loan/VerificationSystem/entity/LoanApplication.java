@@ -1,5 +1,6 @@
 package com.loan.VerificationSystem.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -54,22 +55,29 @@ public class LoanApplication {
     @Min(value = 1, message = "Tenure months must be at least 1")
     private Integer tenureMonths;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String aadhaarNumber;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String panNumber;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String passportPhotoUrl;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String aadhaarDocumentUrl;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String panDocumentUrl;
 
     private String nomineeName;
 
     private String nomineeRelation;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String nomineePhone;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String bankAccountNumber;
 
     private String ifscCode;
@@ -88,12 +96,15 @@ public class LoanApplication {
     private String address;
 
     @Column(columnDefinition = "LONGTEXT")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String passportPhotoDataUrl;
 
     @Column(columnDefinition = "LONGTEXT")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String aadhaarDocumentDataUrl;
 
     @Column(columnDefinition = "LONGTEXT")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String panDocumentDataUrl;
 
     private Boolean identityMismatch = false;
@@ -133,5 +144,49 @@ public class LoanApplication {
     @PrePersist
     void onCreate() {
         createdAt = LocalDateTime.now();
+    }
+
+    @JsonProperty("maskedAadhaarNumber")
+    public String maskedAadhaarNumber() {
+        return mask(aadhaarNumber, 4);
+    }
+
+    @JsonProperty("maskedPanNumber")
+    public String maskedPanNumber() {
+        return mask(panNumber, 3);
+    }
+
+    @JsonProperty("maskedBankAccountNumber")
+    public String maskedBankAccountNumber() {
+        return mask(bankAccountNumber, 4);
+    }
+
+    @JsonProperty("maskedNomineePhone")
+    public String maskedNomineePhone() {
+        return mask(nomineePhone, 4);
+    }
+
+    @JsonProperty("aadhaarDocumentUploaded")
+    public boolean aadhaarDocumentUploaded() {
+        return hasText(aadhaarDocumentUrl) || hasText(aadhaarDocumentDataUrl);
+    }
+
+    @JsonProperty("panDocumentUploaded")
+    public boolean panDocumentUploaded() {
+        return hasText(panDocumentUrl) || hasText(panDocumentDataUrl);
+    }
+
+    private String mask(String value, int visibleDigits) {
+        if (!hasText(value)) {
+            return "";
+        }
+        String normalized = value.trim();
+        int visible = Math.min(visibleDigits, normalized.length());
+        return "X".repeat(Math.max(0, normalized.length() - visible))
+                + normalized.substring(normalized.length() - visible);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

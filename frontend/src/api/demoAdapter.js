@@ -22,6 +22,11 @@ const monthsAgo = (offset, day = 12) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 };
 const timestampFor = (date, hour = 10) => `${date}T${String(hour).padStart(2, "0")}:15:00`;
+const maskValue = (value, visible = 4) => {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "";
+  return `${"X".repeat(Math.max(0, normalized.length - visible))}${normalized.slice(-visible)}`;
+};
 const normalizeExpenseTimestamps = (expenses = []) =>
   expenses.map((expense) => {
     const date = expense.date || today();
@@ -343,9 +348,21 @@ const demoAdapter = async (config) => {
 
   if (path === "/loans/apply" && method === "post") {
     const fraudScore = Number(body.creditScore || 0) < 620 ? 54 : 18;
+    const selectedOffer = loanOffers.find((offer) => Number(offer.id) === Number(body.loanOfferId)) || loanOffers[0];
+    const safeBody = {
+      ...body,
+      maskedAadhaarNumber: maskValue(body.aadhaarNumber),
+      maskedPanNumber: maskValue(body.panNumber, 3),
+      maskedBankAccountNumber: maskValue(body.bankAccountNumber),
+      maskedNomineePhone: maskValue(body.nomineePhone),
+      aadhaarDocumentUploaded: Boolean(body.aadhaarDocumentUrl || body.aadhaarDocumentDataUrl),
+      panDocumentUploaded: Boolean(body.panDocumentUrl || body.panDocumentDataUrl)
+    };
+    ["aadhaarNumber", "panNumber", "bankAccountNumber", "nomineePhone", "passportPhotoUrl", "passportPhotoDataUrl", "aadhaarDocumentUrl", "aadhaarDocumentDataUrl", "panDocumentUrl", "panDocumentDataUrl"].forEach((field) => delete safeBody[field]);
     const app = {
       id: Date.now(),
-      ...body,
+      ...safeBody,
+      loanOffer: selectedOffer,
       status: fraudScore > 40 ? "PENDING_REVIEW" : "PRE_APPROVED",
       fraudScore,
       fraudLevel: fraudScore > 40 ? "MEDIUM" : "LOW",

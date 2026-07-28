@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   CardContent,
-  Checkbox,
   Chip,
   CircularProgress,
   Divider,
@@ -14,7 +13,6 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
-  FormControlLabel,
   Grid,
   InputLabel,
   LinearProgress,
@@ -48,6 +46,11 @@ import { paymentGatewayOptions } from "../../data/financialKnowledge";
 import { applyForLoan, getLoanApplications, getLoanOffer, getLoanOffers, payProcessingFee } from "../../services/loanService";
 import { uploadLoanDocument } from "../../utils/cloudinaryUpload";
 import { calculateCreditBand, calculateEmi, runFraudRiskCheck } from "../../utils/loanCalculations";
+import {
+  calculateOfferMetrics,
+  evaluateOfferEligibility,
+  filterAndSortLoanOffers
+} from "../../utils/loanMarketplace";
 
 const iconMap = {
   credit: CreditScoreIcon,
@@ -83,9 +86,9 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
   
   // Card Payment Fields
   const [cardType, setCardType] = useState("debit");
-  const [cardNumber, setCardNumber] = useState("4111111111111111");
-  const [cardExpiry, setCardExpiry] = useState("12/28");
-  const [cardCvv, setCardCvv] = useState("123");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
   
   // Net Banking Fields
   const [selectedBank, setSelectedBank] = useState("sbi");
@@ -109,13 +112,13 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
   ];
 
   const [applicantName, setApplicantName] = useState("Demo Applicant");
-  const [email, setEmail] = useState("demo@fintrack.in");
+  const [email] = useState(() => localStorage.getItem("email") || "demo@fintrack.in");
   const [creditScore, setCreditScore] = useState(735);
   const [monthlyIncome, setMonthlyIncome] = useState(65000);
   const [requestedAmount, setRequestedAmount] = useState(600000);
   const [tenureMonths, setTenureMonths] = useState(48);
-  const [identityMismatch, setIdentityMismatch] = useState(false);
-  const [failedAttempts, setFailedAttempts] = useState(1);
+  const [loanTypeFilter, setLoanTypeFilter] = useState("all");
+  const [offerSort, setOfferSort] = useState("match");
   const [aadhaarNumber, setAadhaarNumber] = useState("");
   const [panNumber, setPanNumber] = useState("");
   const [passportPhotoUrl, setPassportPhotoUrl] = useState("");
@@ -172,12 +175,6 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     } finally {
       setLoadingApplications(false);
     }
-  };
-
-  // Validation helpers to prevent negative values
-  const validatePositiveNumber = (value, min = 0) => {
-    const num = Number(value);
-    return isNaN(num) || num < min ? "" : value;
   };
 
   const validateCreditScore = (value) => {
@@ -243,13 +240,17 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         second: "2-digit"
       })
     : "";
-  const comparisonOffers = ["SBI", "HDFC", "ICICI", "Axis"]
-    .map((bankName) =>
-      offers.find((offer) =>
-        (offer.bank?.shortName || offer.bank?.name || "").toLowerCase().includes(bankName.toLowerCase())
-      )
-    )
-    .filter(Boolean);
+  const marketplaceRows = useMemo(
+    () => filterAndSortLoanOffers(offers, {
+      loanType: loanTypeFilter,
+      amount: requestedAmount,
+      tenureMonths,
+      creditScore,
+      sortBy: offerSort
+    }),
+    [creditScore, loanTypeFilter, offerSort, offers, requestedAmount, tenureMonths]
+  );
+  const comparisonOffers = marketplaceRows.slice(0, 4).map((row) => row.offer);
   const showLoanMarketplace = view === "loans" || view === "all";
   const showLoanDetails = view === "loans" || view === "all";
   const showPayments = view === "payments" || view === "all";
@@ -259,7 +260,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
       eyebrow: "Phase 2 Loan Aggregator",
       title: "Loan Marketplace",
       description:
-        "Real backend offers, backend application save, credit score and fraud risk checks."
+        "Backend-served demo offers, personalized eligibility, transparent costs and secure application checks."
     },
     payments: {
       eyebrow: "Dynamic Payment Gateway",
@@ -277,7 +278,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
       eyebrow: "Phase 2 Loan Aggregator",
       title: "Loan Marketplace",
       description:
-        "Real backend offers, backend application save, credit score and fraud risk checks."
+        "Backend-served demo offers, personalized eligibility, transparent costs and secure application checks."
     }
   };
   const currentCopy = sectionCopy[view] || sectionCopy.loans;
@@ -291,28 +292,23 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
       ),
     [requestedAmount, selectedOffer, tenureMonths]
   );
-  const autoDeviceRisk = useMemo(() => {
-    if (identityMismatch || Number(failedAttempts) >= 4) {
-      return "high";
-    }
-    if (
-      Number(failedAttempts) >= 2 ||
-      Number(creditScore) < Number(selectedOffer?.minCreditScore || 620) ||
-      Number(requestedAmount) > Number(monthlyIncome) * 18
-    ) {
-      return "medium";
-    }
-    return "low";
-  }, [creditScore, failedAttempts, identityMismatch, monthlyIncome, requestedAmount, selectedOffer]);
   const creditBand = calculateCreditBand(creditScore);
   const fraudRisk = runFraudRiskCheck({
     creditScore,
     monthlyIncome,
     requestedAmount,
-    identityMismatch,
-    failedAttempts,
-    deviceRisk: autoDeviceRisk
+    identityMismatch: false,
+    failedAttempts: 0,
+    deviceRisk: "low"
   });
+  const selectedMetrics = useMemo(
+    () => calculateOfferMetrics(selectedOffer, requestedAmount, tenureMonths),
+    [requestedAmount, selectedOffer, tenureMonths]
+  );
+  const selectedEligibility = useMemo(
+    () => evaluateOfferEligibility(selectedOffer, { amount: requestedAmount, tenureMonths, creditScore }),
+    [creditScore, requestedAmount, selectedOffer, tenureMonths]
+  );
   const approvalFit = Math.max(
     12,
     Math.min(96, Number(creditScore) / 9 - fraudRisk.score / 3)
@@ -374,7 +370,6 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     const requestedAmountNum = Number(requestedAmount);
     const tenureMonthsNum = Number(tenureMonths);
     const existingEmiNum = Number(existingEmi) || 0;
-    const failedAttemptsNum = Number(failedAttempts);
     const normalizedNomineePhone = normalizeIndianMobile(nomineePhone);
 
     if (creditScoreNum < 300 || creditScoreNum > 900) {
@@ -402,11 +397,6 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
       return;
     }
 
-    if (failedAttemptsNum < 0) {
-      alert("Failed attempts cannot be negative");
-      return;
-    }
-
     if (!isValidIndianMobile(normalizedNomineePhone)) {
       setApiError("Enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.");
       return;
@@ -417,7 +407,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
 
     try {
       const result = await applyForLoan({
-        loanOffer: { id: selectedOffer.id },
+        loanOfferId: selectedOffer.id,
         applicantName,
         email,
         monthlyIncome: monthlyIncomeNum,
@@ -442,10 +432,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         loanPurpose,
         address,
         city,
-        pincode,
-        identityMismatch,
-        failedAttempts: failedAttemptsNum,
-        deviceRisk: autoDeviceRisk
+        pincode
       });
 
       setApplicationResult(result);
@@ -482,7 +469,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         setPanDocumentDataUrl(uploaded.dataUrl);
       }
     } catch (error) {
-      setApiError("Document upload failed. Check Cloudinary settings or try again.");
+      setApiError(error?.message || "Document upload failed. Check Cloudinary settings or try again.");
     } finally {
       setUploadingDocument("");
     }
@@ -496,7 +483,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     setApiError("");
 
     try {
-      const amount = Math.max(99, Math.round(Number(requestedAmount || 0) * 0.005));
+      const amount = selectedMetrics.processingFee;
       const result = await payProcessingFee(applicationResult.id, {
         amount,
         reference: `${paymentMethod.toUpperCase()}-${Date.now()}`
@@ -541,6 +528,21 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     if (["gpay", "phonepe", "upi"].includes(paymentMethod) && !isValidUpiId(payerUpi)) {
       setApiError("Enter a valid UPI ID, for example name@upi.");
       return;
+    }
+
+    if (paymentMethod === "card") {
+      if (!/^\d{16}$/.test(cardNumber)) {
+        setApiError("Enter a valid 16-digit card number.");
+        return;
+      }
+      if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardExpiry)) {
+        setApiError("Enter card expiry in MM/YY format.");
+        return;
+      }
+      if (!/^\d{3,4}$/.test(cardCvv)) {
+        setApiError("Enter a valid 3 or 4-digit CVV.");
+        return;
+      }
     }
     
     if (amount > Number(balance || 0)) {
@@ -657,9 +659,62 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
       </Box>
 
       {apiError && (
-        <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+        <Alert severity="warning" sx={{ ...alertStyleBySeverity.warning, mb: 2 }}>
           {apiError}
         </Alert>
+      )}
+
+      {showLoanMarketplace && (
+        <Paper
+          elevation={0}
+          sx={{
+            mb: 2,
+            p: 2.5,
+            borderRadius: 3,
+            color: "#0f172a",
+            border: "1px solid rgba(14, 116, 144, 0.18)",
+            background: "linear-gradient(145deg, #ffffff, #ecfeff)"
+          }}
+        >
+          <Stack direction={{ xs: "column", lg: "row" }} justifyContent="space-between" gap={1.5} sx={{ mb: 2 }}>
+            <Box>
+              <Typography variant="h6" sx={{ color: "#0f172a", fontWeight: 900 }}>Find your best-fit offer</Typography>
+              <Typography variant="body2" sx={{ color: "#475569" }}>Change your profile once; EMI, eligibility and total cost update across every lender.</Typography>
+            </Box>
+            <Chip
+              label={`${marketplaceRows.length} matching offers`}
+              variant="outlined"
+              sx={{ color: "#0f766e", borderColor: "#14b8a6", fontWeight: 900, alignSelf: { xs: "flex-start", lg: "center" } }}
+            />
+          </Stack>
+          <Grid container spacing={1.25}>
+            <Grid size={{ xs: 12, sm: 6, lg: 2.4 }}>
+              <TextField select fullWidth size="small" label="Loan type" value={loanTypeFilter} onChange={(event) => setLoanTypeFilter(event.target.value)} sx={marketplaceFilterStyle}>
+                <MenuItem value="all">All loan types</MenuItem>
+                {[...new Map(offers.map((offer) => [offer.loanType?.slug, offer.loanType])).values()].filter(Boolean).map((type) => (
+                  <MenuItem key={type.slug} value={type.slug}>{type.name}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, lg: 2.4 }}>
+              <TextField fullWidth size="small" type="number" label="Required amount" value={requestedAmount} onChange={(event) => setRequestedAmount(validateLoanAmount(event.target.value))} inputProps={{ min: 1 }} sx={marketplaceFilterStyle} />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, lg: 2.4 }}>
+              <TextField fullWidth size="small" type="number" label="Tenure months" value={tenureMonths} onChange={(event) => setTenureMonths(validateTenure(event.target.value))} inputProps={{ min: 1 }} sx={marketplaceFilterStyle} />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, lg: 2.4 }}>
+              <TextField fullWidth size="small" type="number" label="Credit score" value={creditScore} onChange={(event) => setCreditScore(validateCreditScore(event.target.value))} inputProps={{ min: 300, max: 900 }} sx={marketplaceFilterStyle} />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, lg: 2.4 }}>
+              <TextField select fullWidth size="small" label="Sort offers" value={offerSort} onChange={(event) => setOfferSort(event.target.value)} sx={marketplaceFilterStyle}>
+                <MenuItem value="match">Best eligibility match</MenuItem>
+                <MenuItem value="rate">Lowest interest rate</MenuItem>
+                <MenuItem value="emi">Lowest EMI</MenuItem>
+                <MenuItem value="total">Lowest total repayment</MenuItem>
+              </TextField>
+            </Grid>
+          </Grid>
+        </Paper>
       )}
 
       {showLoanMarketplace && (
@@ -681,7 +736,11 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
           </Box>
         ) : (
           <Grid container spacing={2.5}>
-            {offers.map((offer) => {
+            {marketplaceRows.length === 0 ? (
+              <Grid size={{ xs: 12 }}>
+                <Alert severity="info" sx={alertStyleBySeverity.info}>No offer matches these filters. Try another loan type, amount, tenure or credit score.</Alert>
+              </Grid>
+            ) : marketplaceRows.map(({ offer, eligibility, metrics }) => {
               const loanType = offer.loanType;
               const LoanIcon = iconMap[loanType.iconName] || AccountBalanceIcon;
               const active = offer.id === selectedOffer?.id;
@@ -714,11 +773,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                           <Box sx={iconBoxStyle(color)}>
                             <LoanIcon />
                           </Box>
-                          <Chip
-                            size="small"
-                            label={`${offer.interestRate}%`}
-                            sx={{ bgcolor: "#0f172a", color: "#ffffff", fontWeight: 900 }}
-                          />
+                          <Stack spacing={0.5} alignItems="flex-end">
+                            <Chip size="small" label={`${offer.interestRate}%`} sx={{ bgcolor: "#0f172a", color: "#ffffff", fontWeight: 900 }} />
+                            <Chip size="small" label={eligibility.eligible ? "Eligible" : "Review"} color={eligibility.eligible ? "success" : "warning"} sx={{ fontWeight: 900 }} />
+                          </Stack>
                         </Box>
                         <Box sx={{ flex: 1 }}>
                           <Typography sx={{ color: "#0f172a", fontWeight: 900, mb: 0.5, fontSize: "1rem" }}>
@@ -734,6 +792,9 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                           </Typography>
                           <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 800 }}>
                             {offer.minTenureMonths} - {offer.maxTenureMonths} months
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: "#0f172a", fontWeight: 900, mt: 0.75 }}>
+                            EMI Rs. {metrics.emi.toLocaleString("en-IN")} · Interest Rs. {metrics.totalInterest.toLocaleString("en-IN")}
                           </Typography>
                           <Button
                             fullWidth
@@ -771,7 +832,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
               Compare available bank offers side-by-side before applying.
             </Typography>
             <Grid container spacing={1.5}>
-              {comparisonOffers.map((offer) => (
+              {comparisonOffers.map((offer) => {
+                const metrics = calculateOfferMetrics(offer, requestedAmount, tenureMonths);
+                const eligibility = evaluateOfferEligibility(offer, { amount: requestedAmount, tenureMonths, creditScore });
+                return (
                 <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={`compare-${offer.id}`}>
                   <Box
                     sx={{
@@ -788,7 +852,12 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                     <Typography variant="body2" sx={{ color: "#64748b", mb: 1.5 }}>
                       {offer.loanType.name}
                     </Typography>
+                    <Chip size="small" label={eligibility.eligible ? "Eligible now" : "Needs review"} color={eligibility.eligible ? "success" : "warning"} sx={{ mb: 1.25, fontWeight: 900 }} />
                     <ComparisonRow label="Interest" value={`${offer.interestRate}%`} />
+                    <ComparisonRow label="Your EMI" value={`Rs. ${metrics.emi.toLocaleString("en-IN")}`} />
+                    <ComparisonRow label="Total interest" value={`Rs. ${metrics.totalInterest.toLocaleString("en-IN")}`} />
+                    <ComparisonRow label="Total repayment" value={`Rs. ${metrics.totalPayable.toLocaleString("en-IN")}`} />
+                    <ComparisonRow label="Processing fee" value={`Rs. ${metrics.processingFee.toLocaleString("en-IN")}`} />
                     <ComparisonRow
                       label="Maximum"
                       value={`Rs. ${Number(offer.maxAmount || 0).toLocaleString("en-IN")}`}
@@ -809,7 +878,8 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                     </Button>
                   </Box>
                 </Grid>
-              ))}
+                );
+              })}
             </Grid>
           </CardContent>
         </Card>
@@ -840,7 +910,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         >
           <Box>
             <Typography variant="overline" sx={{ color: "#0f766e", fontWeight: 900 }}>
-              Real Loan Application
+              Secure Loan Application
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 900 }}>
               {selectedLoanType?.name || "Loan Offer"}
@@ -910,7 +980,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                         <TextField fullWidth required label="Applicant name" value={applicantName} onChange={(event) => setApplicantName(event.target.value)} />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField fullWidth required label="Email" value={email} onChange={(event) => setEmail(event.target.value)} />
+                        <TextField fullWidth required label="Authenticated email" value={email} InputProps={{ readOnly: true }} helperText="Applications are always linked to the signed-in account." />
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField fullWidth required label="Credit score" type="number" value={creditScore} onChange={(event) => setCreditScore(validateCreditScore(event.target.value))} />
@@ -939,7 +1009,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                           sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
                         >
                           Upload Aadhaar
-                          <input hidden accept="image/*,.pdf" type="file" onChange={(event) => handleDocumentChange(event, "aadhaar")} />
+                          <input hidden accept="image/jpeg,image/png,application/pdf" type="file" onChange={(event) => handleDocumentChange(event, "aadhaar")} />
                         </Button>
                         {(aadhaarDocumentUrl || aadhaarDocumentDataUrl) && (
                           <Typography variant="caption" sx={{ color: "#0f766e", fontWeight: 900 }}>
@@ -956,7 +1026,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                           sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
                         >
                           Upload PAN
-                          <input hidden accept="image/*,.pdf" type="file" onChange={(event) => handleDocumentChange(event, "pan")} />
+                          <input hidden accept="image/jpeg,image/png,application/pdf" type="file" onChange={(event) => handleDocumentChange(event, "pan")} />
                         </Button>
                         {(panDocumentUrl || panDocumentDataUrl) && (
                           <Typography variant="caption" sx={{ color: "#0f766e", fontWeight: 900 }}>
@@ -973,7 +1043,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                             sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
                           >
                             Upload passport photo
-                            <input hidden accept="image/*" type="file" onChange={(event) => handleDocumentChange(event, "photo")} />
+                            <input hidden accept="image/jpeg,image/png" type="file" onChange={(event) => handleDocumentChange(event, "photo")} />
                           </Button>
                           <TextField fullWidth label="Photo URL optional" value={passportPhotoUrl} onChange={(event) => {
                             setPassportPhotoUrl(event.target.value);
@@ -1039,21 +1109,19 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField fullWidth label="Pincode" value={pincode} onChange={(event) => setPincode(event.target.value)} />
                       </Grid>
-                      <Grid size={{ xs: 12, sm: 4 }}>
-                        <FormControlLabel control={<Checkbox checked={identityMismatch} onChange={(event) => setIdentityMismatch(event.target.checked)} />} label="KYC mismatch" />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 4 }}>
-                        <TextField fullWidth label="Failed attempts" type="number" value={failedAttempts} onChange={(event) => setFailedAttempts(validatePositiveNumber(event.target.value, 0))} inputProps={{ min: 0, step: 1 }} />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 4 }}>
-                        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: "#f8fafc", border: "1px solid rgba(15, 23, 42, 0.12)" }}>
-                          <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 800 }}>
-                            Auto device/IP risk
-                          </Typography>
-                          <Typography sx={{ color: autoDeviceRisk === "high" ? "#ef4444" : autoDeviceRisk === "medium" ? "#f59e0b" : "#10b981", fontWeight: 900, textTransform: "uppercase" }}>
-                            {autoDeviceRisk}
-                          </Typography>
-                        </Box>
+                      <Grid size={{ xs: 12 }}>
+                        <Alert
+                          severity="info"
+                          sx={{
+                            borderRadius: 2,
+                            color: "#075985",
+                            bgcolor: "#f0f9ff",
+                            border: "1px solid #7dd3fc",
+                            "& .MuiAlert-icon": { color: "#0284c7" }
+                          }}
+                        >
+                          Verification, duplicate-application and risk signals are generated by the backend. Applicants cannot edit these protected values.
+                        </Alert>
                       </Grid>
                     </Grid>
 
@@ -1075,7 +1143,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
 
                     {applicationResult && (
                       <Stack spacing={1.5} sx={{ mt: 2 }}>
-                        <Alert severity={applicationResult.fraudLevel === "HIGH" ? "error" : "success"} sx={{ borderRadius: 2 }}>
+                        <Alert
+                          severity={applicationResult.fraudLevel === "HIGH" ? "error" : "success"}
+                          sx={alertStyleBySeverity[applicationResult.fraudLevel === "HIGH" ? "error" : "success"]}
+                        >
                           Application #{applicationResult.id} saved on server. Status: {applicationResult.status}. Fraud Score: {applicationResult.fraudScore}/100.
                         </Alert>
                         <Button
@@ -1148,7 +1219,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                       {selectedLoanType.name}
                     </Typography>
                     <Typography sx={{ color: "#64748b" }}>
-                      {selectedOffer.bank.name} real offer from backend
+                      {selectedOffer.bank.name} backend-served demo offer
                     </Typography>
                   </Box>
                 </Box>
@@ -1158,7 +1229,27 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                   <LoanFact label="Max Amount" value={`Rs. ${Number(selectedOffer.maxAmount).toLocaleString("en-IN")}`} />
                   <LoanFact label="Tenure" value={`${selectedOffer.minTenureMonths} - ${selectedOffer.maxTenureMonths} months`} />
                   <LoanFact label="Min Score" value={selectedOffer.minCreditScore} />
+                  <LoanFact label="Your EMI" value={`Rs. ${selectedMetrics.emi.toLocaleString("en-IN")}`} />
+                  <LoanFact label="Total Interest" value={`Rs. ${selectedMetrics.totalInterest.toLocaleString("en-IN")}`} />
+                  <LoanFact label="Total Repayment" value={`Rs. ${selectedMetrics.totalPayable.toLocaleString("en-IN")}`} />
+                  <LoanFact label="Processing Fee" value={`Rs. ${selectedMetrics.processingFee.toLocaleString("en-IN")}`} />
                 </Grid>
+
+                <Alert
+                  severity={selectedEligibility.eligible ? "success" : "warning"}
+                  sx={{
+                    mb: 2,
+                    borderRadius: 2,
+                    color: selectedEligibility.eligible ? "#166534" : "#9a3412",
+                    bgcolor: selectedEligibility.eligible ? "#ecfdf5" : "#fff7ed",
+                    border: `1px solid ${selectedEligibility.eligible ? "#86efac" : "#fdba74"}`,
+                    "& .MuiAlert-icon": { color: selectedEligibility.eligible ? "#16a34a" : "#ea580c" }
+                  }}
+                >
+                  {selectedEligibility.eligible
+                    ? "Your current amount, tenure and credit score meet this offer's basic eligibility rules."
+                    : `Manual review signals: ${selectedEligibility.reasons.join(" · ")}`}
+                </Alert>
 
                 <Divider sx={{ my: 2 }} />
 
@@ -1181,7 +1272,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
             <Card sx={panelStyle}>
               <CardContent sx={{ p: 3 }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 2 }}>
-                  Real Loan Application
+                  Eligibility Preview
                 </Typography>
 
                 <Grid container spacing={1.5}>
@@ -1189,7 +1280,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                     <TextField fullWidth label="Applicant name" value={applicantName} onChange={(event) => setApplicantName(event.target.value)} />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField fullWidth label="Email" value={email} onChange={(event) => setEmail(event.target.value)} />
+                    <TextField fullWidth label="Authenticated email" value={email} InputProps={{ readOnly: true }} />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField fullWidth label="Credit score" type="number" value={creditScore} onChange={(event) => setCreditScore(validateCreditScore(event.target.value))} inputProps={{ min: 300, max: 900 }} />
@@ -1237,32 +1328,23 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                 Backend Fraud Detection Signals
               </Typography>
               <Typography variant="body2" sx={{ color: "#64748b" }}>
-                Same values are submitted to Spring Boot and stored with fraud score/status.
+                Spring Boot generates verification signals and stores the resulting risk score, reasons and application status.
               </Typography>
             </Box>
           </Box>
 
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <FormControlLabel control={<Checkbox checked={identityMismatch} onChange={(event) => setIdentityMismatch(event.target.checked)} />} label="KYC identity mismatch" />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <TextField fullWidth label="Failed attempts" type="number" value={failedAttempts} onChange={(event) => setFailedAttempts(validatePositiveNumber(event.target.value, 0))} inputProps={{ min: 0, step: 1 }} />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: "#ecfeff", border: "1px solid rgba(14, 116, 144, 0.14)" }}>
-                <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 800 }}>
-                  Auto device/IP risk
-                </Typography>
-                <Typography sx={{ color: autoDeviceRisk === "high" ? "#ef4444" : autoDeviceRisk === "medium" ? "#f59e0b" : "#10b981", fontWeight: 900, textTransform: "uppercase" }}>
-                  {autoDeviceRisk}
-                </Typography>
-                <Typography variant="caption" sx={{ color: "#64748b" }}>
-                  Based on failed attempts, KYC signal, income fit, and credit score.
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
+          <Alert
+            severity="info"
+            sx={{
+              borderRadius: 2,
+              color: "#075985",
+              bgcolor: "#f0f9ff",
+              border: "1px solid #7dd3fc",
+              "& .MuiAlert-icon": { color: "#0284c7" }
+            }}
+          >
+            Applicants submit KYC and financial details only. Duplicate-application, consistency and risk signals are calculated on the server and cannot be edited by applicants.
+          </Alert>
 
           <Box
             sx={{
@@ -1278,7 +1360,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
 
           {applicationResult && (
             <Stack spacing={1.5} sx={{ mt: 2 }}>
-              <Alert severity={applicationResult.fraudLevel === "HIGH" ? "error" : "success"} sx={{ borderRadius: 2 }}>
+              <Alert
+                severity={applicationResult.fraudLevel === "HIGH" ? "error" : "success"}
+                sx={alertStyleBySeverity[applicationResult.fraudLevel === "HIGH" ? "error" : "success"]}
+              >
                 Application #{applicationResult.id} saved in backend. Status: {applicationResult.status}. Fraud Score: {applicationResult.fraudScore}/100.
               </Alert>
                         <Button
@@ -1416,19 +1501,22 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         <DialogContent dividers>
           {selectedApplication && (
             <Grid container spacing={1.5}>
+              <Grid size={{ xs: 12 }}>
+                <ApplicationJourney application={selectedApplication} />
+              </Grid>
               <SavedFact label="Application ID" value={`#${selectedApplication.id}`} />
               <SavedFact label="Applicant" value={selectedApplication.applicantName} />
               <SavedFact label="Email" value={selectedApplication.email} />
               <SavedFact label="Loan" value={selectedApplication.loanOffer?.loanType?.name} />
               <SavedFact label="Bank" value={selectedApplication.loanOffer?.bank?.name} />
               <SavedFact label="Amount" value={`Rs. ${Number(selectedApplication.requestedAmount || 0).toLocaleString("en-IN")}`} />
-              <SavedFact label="Aadhaar" value={selectedApplication.aadhaarNumber} />
-              <SavedFact label="PAN" value={selectedApplication.panNumber} />
-              <SavedFact label="Aadhaar Document" value={selectedApplication.aadhaarDocumentUrl || selectedApplication.aadhaarDocumentDataUrl ? "Uploaded" : "-"} />
-              <SavedFact label="PAN Document" value={selectedApplication.panDocumentUrl || selectedApplication.panDocumentDataUrl ? "Uploaded" : "-"} />
+              <SavedFact label="Aadhaar" value={selectedApplication.maskedAadhaarNumber || "Protected"} />
+              <SavedFact label="PAN" value={selectedApplication.maskedPanNumber || "Protected"} />
+              <SavedFact label="Aadhaar Document" value={selectedApplication.aadhaarDocumentUploaded ? "Securely stored" : "-"} />
+              <SavedFact label="PAN Document" value={selectedApplication.panDocumentUploaded ? "Securely stored" : "-"} />
               <SavedFact label="Nominee" value={`${selectedApplication.nomineeName || "-"} ${selectedApplication.nomineeRelation ? `(${selectedApplication.nomineeRelation})` : ""}`} />
-              <SavedFact label="Nominee Phone" value={selectedApplication.nomineePhone} />
-              <SavedFact label="Bank Account" value={selectedApplication.bankAccountNumber} />
+              <SavedFact label="Nominee Phone" value={selectedApplication.maskedNomineePhone || "Protected"} />
+              <SavedFact label="Bank Account" value={selectedApplication.maskedBankAccountNumber || "Protected"} />
               <SavedFact label="IFSC" value={selectedApplication.ifscCode} />
               <SavedFact label="Employment" value={selectedApplication.employmentType} />
               <SavedFact label="Eligibility Status" value={selectedApplication.status} />
@@ -1439,21 +1527,6 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
               <SavedFact label="Address" value={selectedApplication.address} wide />
               <SavedFact label="Automatic Verification" value={selectedApplication.verificationSummary} wide />
               <SavedFact label="Decision Reason" value={selectedApplication.decisionReason} wide />
-              {(selectedApplication.passportPhotoDataUrl || selectedApplication.passportPhotoUrl) && (
-                <Grid size={{ xs: 12 }}>
-                  <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: "#ecfeff" }}>
-                    <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 800 }}>
-                      Passport Photo
-                    </Typography>
-                    <Box
-                      component="img"
-                      src={selectedApplication.passportPhotoDataUrl || selectedApplication.passportPhotoUrl}
-                      alt="Applicant passport"
-                      sx={{ display: "block", mt: 1, width: 96, height: 96, objectFit: "cover", borderRadius: 2 }}
-                    />
-                  </Box>
-                </Grid>
-              )}
             </Grid>
           )}
         </DialogContent>
@@ -1478,7 +1551,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         <DialogTitle sx={{ fontWeight: 900 }}>Processing Fee Payment</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2}>
-            <Alert severity="info" sx={{ borderRadius: 2 }}>
+            <Alert severity="info" sx={alertStyleBySeverity.info}>
               Demo gateway: application #{applicationResult?.id} ke liye {selectedPayment.label} payment reference se processing fee mark paid hogi.
             </Alert>
             <Box sx={{ p: 2, borderRadius: 2, bgcolor: "#ecfeff" }}>
@@ -1486,7 +1559,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                 Amount
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 900 }}>
-                Rs. {Math.max(99, Math.round(Number(requestedAmount || 0) * 0.005)).toLocaleString("en-IN")}
+                Rs. {selectedMetrics.processingFee.toLocaleString("en-IN")}
               </Typography>
             </Box>
             <Grid container spacing={1.25}>
@@ -1617,7 +1690,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                   <TextField 
                     label="Card number" 
                     value={cardNumber}
-                    onChange={(event) => setCardNumber(event.target.value.replace(/\s/g, ''))}
+                    onChange={(event) => setCardNumber(event.target.value.replace(/\D/g, ""))}
                     fullWidth 
                     sx={gatewayInputStyle}
                     placeholder="Enter 16-digit card number"
@@ -1628,7 +1701,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                   <TextField 
                     label="Expiry (MM/YY)" 
                     value={cardExpiry}
-                    onChange={(event) => setCardExpiry(event.target.value)}
+                    onChange={(event) => setCardExpiry(event.target.value.replace(/[^\d/]/g, ""))}
                     fullWidth 
                     sx={gatewayInputStyle}
                     placeholder="MM/YY"
@@ -1639,7 +1712,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                   <TextField 
                     label="CVV" 
                     value={cardCvv}
-                    onChange={(event) => setCardCvv(event.target.value)}
+                    onChange={(event) => setCardCvv(event.target.value.replace(/\D/g, ""))}
                     fullWidth 
                     sx={gatewayInputStyle}
                     placeholder="123"
@@ -1740,6 +1813,55 @@ const LoanFact = ({ label, value }) => (
     </Box>
   </Grid>
 );
+
+const ApplicationJourney = ({ application }) => {
+  const status = application.status || "SUBMITTED";
+  const isPreApproved = status === "PRE_APPROVED";
+  const steps = [
+    { label: "Submitted", detail: "Application saved", complete: true },
+    { label: "Verification", detail: "KYC and fraud checks completed", complete: Boolean(application.status) },
+    {
+      label: isPreApproved ? "Pre-approved" : "Review decision",
+      detail: status.replaceAll("_", " "),
+      complete: Boolean(application.status),
+      warning: !isPreApproved
+    },
+    {
+      label: "Processing fee",
+      detail: application.paymentStatus === "PAID" ? "Payment verified" : "Pending",
+      complete: application.paymentStatus === "PAID"
+    }
+  ];
+
+  return (
+    <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: "#f8fafc", border: "1px solid #e2e8f0" }}>
+      <Typography sx={{ fontWeight: 900, mb: 1.5 }}>Application journey</Typography>
+      <Grid container spacing={1}>
+        {steps.map((step, index) => (
+          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={step.label}>
+            <Box
+              sx={{
+                height: "100%",
+                p: 1.25,
+                borderRadius: 2,
+                bgcolor: step.complete ? (step.warning ? "#fff7ed" : "#ecfdf5") : "#ffffff",
+                border: `1px solid ${step.complete ? (step.warning ? "#fdba74" : "#86efac") : "#cbd5e1"}`
+              }}
+            >
+              <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 900 }}>
+                STEP {index + 1}
+              </Typography>
+              <Typography sx={{ fontWeight: 900 }}>{step.label}</Typography>
+              <Typography variant="caption" sx={{ color: "#475569" }}>
+                {step.detail}
+              </Typography>
+            </Box>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
+  );
+};
 
 const SavedFact = ({ label, value, wide = false }) => (
   <Grid size={{ xs: 12, sm: wide ? 12 : 6 }}>
@@ -1936,6 +2058,63 @@ const panelStyle = {
   },
   "& .MuiCheckbox-root": {
     color: "#0d9488"
+  }
+};
+
+const alertStyleBySeverity = {
+  info: {
+    borderRadius: 2,
+    color: "#075985",
+    bgcolor: "#f0f9ff",
+    border: "1px solid #7dd3fc",
+    "& .MuiAlert-icon": { color: "#0284c7" }
+  },
+  success: {
+    borderRadius: 2,
+    color: "#166534",
+    bgcolor: "#ecfdf5",
+    border: "1px solid #86efac",
+    "& .MuiAlert-icon": { color: "#16a34a" }
+  },
+  warning: {
+    borderRadius: 2,
+    color: "#9a3412",
+    bgcolor: "#fff7ed",
+    border: "1px solid #fdba74",
+    "& .MuiAlert-icon": { color: "#ea580c" }
+  },
+  error: {
+    borderRadius: 2,
+    color: "#991b1b",
+    bgcolor: "#fef2f2",
+    border: "1px solid #fca5a5",
+    "& .MuiAlert-icon": { color: "#dc2626" }
+  }
+};
+
+const marketplaceFilterStyle = {
+  "& .MuiInputLabel-root": {
+    color: "#475569"
+  },
+  "& .MuiInputLabel-root.Mui-focused": {
+    color: "#0f766e"
+  },
+  "& .MuiInputBase-root": {
+    color: "#0f172a",
+    backgroundColor: "#ffffff"
+  },
+  "& .MuiInputBase-input, & .MuiSelect-select": {
+    color: "#0f172a",
+    WebkitTextFillColor: "#0f172a",
+    fontWeight: 700
+  },
+  "& .MuiSelect-icon": {
+    color: "#475569"
+  },
+  "& .MuiOutlinedInput-root": {
+    "& fieldset": { borderColor: "#94a3b8" },
+    "&:hover fieldset": { borderColor: "#0d9488" },
+    "&.Mui-focused fieldset": { borderColor: "#0d9488" }
   }
 };
 

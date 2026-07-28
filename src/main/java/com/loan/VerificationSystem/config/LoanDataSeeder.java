@@ -104,13 +104,23 @@ public class LoanDataSeeder {
         offer.setLoanType(type);
         offer.setInterestRate(rate);
         offer.setMaxAmount(maxAmount);
+        offer.setMinAmount(Math.min(50000.0, maxAmount));
         offer.setMinTenureMonths(minTenure);
         offer.setMaxTenureMonths(maxTenure);
         offer.setProcessingFee(processingFee);
+        offer.setProcessingFeePercent(extractFeePercent(processingFee));
         offer.setMinCreditScore(minCreditScore);
         offer.setHighlights(highlights);
         offer.setDocumentsRequired(documents);
         return offer;
+    }
+
+    private double extractFeePercent(String processingFee) {
+        if (processingFee == null) {
+            return 0.5;
+        }
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("([0-9]+(?:\\.[0-9]+)?)").matcher(processingFee);
+        return matcher.find() ? Double.parseDouble(matcher.group(1)) : 0.0;
     }
 
     private void saveOfferIfMissing(LoanOfferRepository loanOfferRepository, LoanOffer offer) {

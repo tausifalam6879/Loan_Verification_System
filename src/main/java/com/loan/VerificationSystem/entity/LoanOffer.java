@@ -7,8 +7,12 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.Data;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Data
@@ -31,6 +35,8 @@ public class LoanOffer {
     @Column(nullable = false)
     private Double maxAmount;
 
+    private Double minAmount = 25000.0;
+
     @Column(nullable = false)
     private Integer minTenureMonths;
 
@@ -39,6 +45,8 @@ public class LoanOffer {
 
     private String processingFee;
 
+    private Double processingFeePercent = 0.5;
+
     private Integer minCreditScore;
 
     @Column(length = 1200)
@@ -46,4 +54,14 @@ public class LoanOffer {
 
     @Column(length = 1200)
     private String documentsRequired;
+
+    private Boolean active = true;
+
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    void updateTimestamp() {
+        updatedAt = LocalDateTime.now();
+    }
 }

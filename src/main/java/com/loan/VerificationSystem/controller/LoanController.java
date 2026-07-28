@@ -2,10 +2,10 @@ package com.loan.VerificationSystem.controller;
 
 import com.loan.VerificationSystem.entity.LoanApplication;
 import com.loan.VerificationSystem.entity.LoanOffer;
+import com.loan.VerificationSystem.dto.LoanApplicationRequestDTO;
 import com.loan.VerificationSystem.service.LoanService;
 import com.loan.VerificationSystem.service.LoanService.PaymentRequest;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,7 +17,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/loans")
-@CrossOrigin(origins = "*")
 public class LoanController {
 
     private final LoanService loanService;
@@ -37,7 +36,7 @@ public class LoanController {
     }
 
     @PostMapping("/apply")
-    public LoanApplication apply(@Valid @RequestBody LoanApplication application) {
+    public LoanApplication apply(@Valid @RequestBody LoanApplicationRequestDTO application) {
         return loanService.apply(application);
     }
 

@@ -1,6 +1,7 @@
 package com.loan.VerificationSystem.service;
 import com.loan.VerificationSystem.exception.ResourceNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.loan.VerificationSystem.dto.LoanApplicationRequestDTO;
 import com.loan.VerificationSystem.entity.LoanApplication;
 import com.loan.VerificationSystem.entity.LoanOffer;
 import com.loan.VerificationSystem.repository.LoanApplicationRepository;
@@ -9,6 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import com.loan.VerificationSystem.entity.User;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import java.net.URI;
@@ -65,19 +68,25 @@ public class LoanService {
     }
 
     public List<LoanApplication> getApplications() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+        if (!isAdmin) {
+            throw new AccessDeniedException("Admin access is required");
+        }
         return loanApplicationRepository.findAll();
     }
 
-    public LoanApplication apply(LoanApplication request) {
-        String email = SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getName();
+    public LoanApplication apply(LoanApplicationRequestDTO input) {
+        User user = getCurrentUser();
+        LoanOffer offer = getOffer(input.getLoanOfferId());
+        LoanApplication request = mapApplication(input, user, offer);
 
-        User user = userRepository.findByEmail(email);
+        if (input.getTenureMonths() < offer.getMinTenureMonths()
+                || input.getTenureMonths() > offer.getMaxTenureMonths()) {
+            throw new IllegalArgumentException("Selected tenure is outside this offer's allowed range");
+        }
 
-        request.setUser(user);
-        LoanOffer offer = getOffer(request.getLoanOffer().getId());
         request.setLoanOffer(offer);
         normalizeApplication(request);
 
@@ -115,20 +124,24 @@ public class LoanService {
     }
 
     public List<LoanApplication> getMyApplications() {
-
-        String email = SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getName();
-
-        User user = userRepository.findByEmail(email);
-
-        return loanApplicationRepository.findByUser(user);
+        return loanApplicationRepository.findByUser(getCurrentUser());
     }
 
     public LoanApplication markProcessingFeePaid(Long id, PaymentRequest paymentRequest) {
-        LoanApplication application = loanApplicationRepository.findById(id)
+        User user = getCurrentUser();
+        LoanApplication application = loanApplicationRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ResourceNotFoundException("Loan application not found: " + id));
+
+        if ("PAID".equalsIgnoreCase(application.getPaymentStatus())) {
+            return application;
+        }
+
+        double feePercent = Optional.ofNullable(application.getLoanOffer().getProcessingFeePercent()).orElse(0.5);
+        double expectedAmount = Math.max(99, Math.round(application.getRequestedAmount() * feePercent / 100.0));
+        if (paymentRequest.amount() == null || Math.abs(paymentRequest.amount() - expectedAmount) > 0.01) {
+            throw new IllegalArgumentException("Processing fee amount must be Rs. " + Math.round(expectedAmount));
+        }
+
         application.setProcessingFeePaid(true);
         application.setPaymentStatus("PAID");
         application.setPaymentReference(
@@ -138,6 +151,56 @@ public class LoanService {
         );
         application.setProcessingFeeAmount(paymentRequest.amount());
         return loanApplicationRepository.save(application);
+    }
+
+    private LoanApplication mapApplication(LoanApplicationRequestDTO input, User user, LoanOffer offer) {
+        LoanApplication application = new LoanApplication();
+        application.setUser(user);
+        application.setLoanOffer(offer);
+        application.setApplicantName(input.getApplicantName().trim());
+        application.setEmail(user.getEmail());
+        application.setMonthlyIncome(input.getMonthlyIncome());
+        application.setRequestedAmount(input.getRequestedAmount());
+        application.setCreditScore(input.getCreditScore());
+        application.setTenureMonths(input.getTenureMonths());
+        application.setAadhaarNumber(input.getAadhaarNumber());
+        application.setPanNumber(input.getPanNumber());
+        application.setPassportPhotoUrl(input.getPassportPhotoUrl());
+        application.setPassportPhotoDataUrl(input.getPassportPhotoDataUrl());
+        application.setAadhaarDocumentUrl(input.getAadhaarDocumentUrl());
+        application.setAadhaarDocumentDataUrl(input.getAadhaarDocumentDataUrl());
+        application.setPanDocumentUrl(input.getPanDocumentUrl());
+        application.setPanDocumentDataUrl(input.getPanDocumentDataUrl());
+        application.setNomineeName(input.getNomineeName());
+        application.setNomineeRelation(input.getNomineeRelation());
+        application.setNomineePhone(input.getNomineePhone());
+        application.setBankAccountNumber(input.getBankAccountNumber());
+        application.setIfscCode(input.getIfscCode());
+        application.setEmploymentType(input.getEmploymentType());
+        application.setExistingEmi(Optional.ofNullable(input.getExistingEmi()).orElse(0.0));
+        application.setLoanPurpose(input.getLoanPurpose());
+        application.setCity(input.getCity());
+        application.setPincode(input.getPincode());
+        application.setAddress(input.getAddress());
+        application.setIdentityMismatch(false);
+        application.setFailedAttempts(0);
+        application.setDeviceRisk("low");
+        application.setDuplicateApplicant(false);
+        application.setProcessingFeePaid(false);
+        application.setPaymentStatus("UNPAID");
+        return application;
+    }
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new AccessDeniedException("Authentication is required");
+        }
+        User user = userRepository.findByEmail(authentication.getName());
+        if (user == null) {
+            throw new ResourceNotFoundException("Authenticated user not found");
+        }
+        return user;
     }
 
     private void normalizeApplication(LoanApplication request) {
@@ -165,10 +228,10 @@ public class LoanService {
                 && request.getRequestedAmount() <= request.getMonthlyIncome() * 20;
         result.add(incomeFit, "Income-to-loan ratio is acceptable.", "Loan amount is too high against monthly income.");
 
-        boolean duplicate = hasValue(request.getAadhaarNumber()) && loanApplicationRepository.existsByAadhaarNumber(request.getAadhaarNumber())
-                || hasValue(request.getPanNumber()) && loanApplicationRepository.existsByPanNumber(request.getPanNumber())
-                || hasValue(request.getEmail()) && loanApplicationRepository.existsByEmail(request.getEmail())
-                || hasValue(request.getNomineePhone()) && loanApplicationRepository.existsByNomineePhone(request.getNomineePhone());
+        boolean duplicate = hasValue(request.getAadhaarNumber())
+                && loanApplicationRepository.existsByAadhaarNumberAndUserNot(request.getAadhaarNumber(), request.getUser())
+                || hasValue(request.getPanNumber())
+                && loanApplicationRepository.existsByPanNumberAndUserNot(request.getPanNumber(), request.getUser());
         result.duplicateApplicant = duplicate;
         if (duplicate) {
             result.reasons.add("Duplicate applicant signal found from Aadhaar/PAN/email/phone.");

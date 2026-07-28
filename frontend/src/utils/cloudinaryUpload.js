@@ -1,4 +1,17 @@
 export const uploadLoanDocument = async (file) => {
+  const allowedTypes = new Set(["image/jpeg", "image/png", "application/pdf"]);
+  const maxFileSize = 5 * 1024 * 1024;
+
+  if (!file) {
+    throw new Error("Select a document to upload.");
+  }
+  if (!allowedTypes.has(file.type)) {
+    throw new Error("Only JPG, PNG, or PDF documents are allowed.");
+  }
+  if (file.size > maxFileSize) {
+    throw new Error("Document size must be 5 MB or less.");
+  }
+
   const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
 

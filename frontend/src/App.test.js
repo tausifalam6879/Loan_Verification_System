@@ -8,6 +8,7 @@ beforeEach(() => {
 afterEach(() => {
   jest.restoreAllMocks();
   localStorage.clear();
+  window.location.hash = "#/";
 });
 
 test('redirects unauthenticated users to login', () => {
@@ -15,4 +16,15 @@ test('redirects unauthenticated users to login', () => {
   expect(screen.getByRole('heading', { name: /Login/i })).toBeInTheDocument();
   expect(screen.getAllByLabelText(/Email/i)[0]).toBeInTheDocument();
   expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
+});
+
+test('renders the authenticated loan marketplace route', async () => {
+  localStorage.setItem("token", "test-token");
+  localStorage.setItem("role", "USER");
+  localStorage.setItem("email", "user@example.com");
+  window.location.hash = "#/loans";
+
+  render(<App />);
+
+  expect((await screen.findAllByRole("heading", { name: /Loan Marketplace/i })).length).toBeGreaterThan(0);
 });
