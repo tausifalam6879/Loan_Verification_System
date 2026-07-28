@@ -66,6 +66,7 @@ const initialState = {
       monthlyIncome: 65000,
       creditScore: 735,
       tenureMonths: 48,
+      loanOfferId: 3,
       status: "PRE_APPROVED",
       fraudScore: 18,
       fraudLevel: "LOW",
@@ -73,6 +74,7 @@ const initialState = {
       employmentType: "salaried",
       loanPurpose: "Education and personal finance",
       city: "Raipur",
+      createdAt: now(),
       paymentStatus: "UNPAID",
       verificationSummary: "Demo verification completed successfully.",
       decisionReason: "Strong credit profile and low fraud signal."
@@ -153,6 +155,11 @@ const readState = () => {
   try {
     const state = { ...clone(initialState), ...JSON.parse(saved) };
     state.expenses = normalizeExpenseTimestamps(state.expenses);
+    state.applications = (state.applications || []).map((application) => {
+      const offerId = application.loanOfferId || (Number(application.id) === 1 ? 3 : null);
+      const loanOffer = application.loanOffer || loanOffers.find((offer) => Number(offer.id) === Number(offerId));
+      return loanOffer ? { ...application, loanOfferId: loanOffer.id, loanOffer } : application;
+    });
     return state;
   } catch (error) {
     window.localStorage.setItem(storageKey(), JSON.stringify(initialState));

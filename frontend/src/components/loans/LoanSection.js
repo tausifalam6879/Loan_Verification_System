@@ -52,6 +52,12 @@ import {
   filterAndSortLoanOffers
 } from "../../utils/loanMarketplace";
 import {
+  applicationStatusGroup,
+  enrichApplications,
+  filterAndSortApplications,
+  summarizeApplications
+} from "../../utils/applicationDashboard";
+import {
   buildPaymentReceipt,
   maskPaymentIdentity,
   paymentProgressSteps,
@@ -156,6 +162,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [pincode, setPincode] = useState("");
+  const [applicationSearch, setApplicationSearch] = useState("");
+  const [applicationStatusFilter, setApplicationStatusFilter] = useState("all");
+  const [applicationSort, setApplicationSort] = useState("newest");
+  const [applicationsRefreshedAt, setApplicationsRefreshedAt] = useState("");
 
   useEffect(() => {
     localStorage.setItem(paymentHistoryStorageKey, JSON.stringify(paymentHistory.slice(0, 25)));
@@ -191,6 +201,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     try {
       const data = await getLoanApplications();
       setApplications(data);
+      setApplicationsRefreshedAt(new Date().toISOString());
     } catch (error) {
       setApiError("Could not load saved loan applications from backend.");
     } finally {
@@ -273,6 +284,22 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     }),
     [creditScore, loanTypeFilter, offerSort, offers, requestedAmount, tenureMonths]
   );
+  const enrichedApplications = useMemo(
+    () => enrichApplications(applications, offers),
+    [applications, offers]
+  );
+  const applicationSummary = useMemo(
+    () => summarizeApplications(enrichedApplications),
+    [enrichedApplications]
+  );
+  const visibleApplications = useMemo(
+    () => filterAndSortApplications(enrichedApplications, {
+      search: applicationSearch,
+      status: applicationStatusFilter,
+      sort: applicationSort
+    }),
+    [applicationSearch, applicationSort, applicationStatusFilter, enrichedApplications]
+  );
   const comparisonOffers = marketplaceRows.slice(0, 4).map((row) => row.offer);
   const showLoanMarketplace = view === "loans" || view === "all";
   const showLoanDetails = view === "loans" || view === "all";
@@ -292,10 +319,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         "Open UPI, card or net banking style checkout and record successful payments in the expense ledger."
     },
     applications: {
-      eyebrow: "Saved Server Records",
-      title: "Saved Loan Applications",
+      eyebrow: "Application Tracking",
+      title: "Application Center",
       description:
-        "Applications saved through Spring Boot and MySQL open here as detailed SPA cards."
+        "Review verification progress, lender decisions, payment state and protected application details."
     },
     all: {
       eyebrow: "Phase 2 Loan Aggregator",
@@ -674,8 +701,48 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     }, 100);
   };
 
+  const handleOpenSavedPayment = (application) => {
+    if (!application.loanOffer) {
+      setApiError("This older application has no lender reference, so its fee cannot be calculated safely.");
+      return;
+    }
+    setApplicationResult(application);
+    setSelectedOffer(application.loanOffer);
+    setRequestedAmount(Number(application.requestedAmount || 0));
+    setTenureMonths(Number(application.tenureMonths || application.loanOffer.minTenureMonths || 12));
+    setSelectedApplication(null);
+    setPaymentOpen(true);
+  };
+
+  const handleDownloadApplicationSummary = (application) => {
+    const offer = application.loanOffer;
+    const summary = [
+      "FINTRACK LOAN APPLICATION SUMMARY",
+      "",
+      `Application ID: #${application.id}`,
+      `Applicant: ${application.applicantName || "-"}`,
+      `Lender: ${offer?.bank?.name || "Not recorded"}`,
+      `Loan product: ${offer?.loanType?.name || "Not recorded"}`,
+      `Requested amount: Rs. ${Number(application.requestedAmount || 0).toLocaleString("en-IN")}`,
+      `Decision: ${formatApplicationStatus(application.status)}`,
+      `Payment: ${application.paymentStatus || "UNPAID"}`,
+      `Created: ${formatApplicationDate(application.createdAt)}`,
+      `Aadhaar: ${application.maskedAadhaarNumber || "Protected"}`,
+      `PAN: ${application.maskedPanNumber || "Protected"}`,
+      `Decision reason: ${application.decisionReason || "Not available"}`
+    ].join("\n");
+    const file = new Blob([summary], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `loan-application-${application.id}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Box sx={{ mt: 3.5 }}>
+      {(view === "loans" || view === "all") && (
       <Box
         sx={{
           display: "flex",
@@ -728,6 +795,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
           )}
         </Stack>
       </Box>
+      )}
 
       {apiError && (
         <Alert severity="warning" sx={{ ...alertStyleBySeverity.warning, mb: 2 }}>
@@ -1480,29 +1548,89 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                   <AssignmentTurnedInIcon />
                 </Box>
                 <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 900 }}>
-                    Saved Loan Applications
+                  <Typography variant="h6" sx={{ color: "#0f172a", fontWeight: 900 }}>
+                    Your applications
                   </Typography>
                   <Typography variant="body2" sx={{ color: "#64748b" }}>
-                    Applications saved in Spring Boot server and MySQL database.
+                    Track lender decisions, verification progress and processing-fee status.
                   </Typography>
                 </Box>
               </Box>
-              <Button
-                variant="outlined"
-                onClick={loadApplications}
-                disabled={loadingApplications}
-                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
-              >
-                Refresh Saved
-              </Button>
+              <Stack spacing={0.5} sx={{ alignItems: { xs: "flex-start", md: "flex-end" } }}>
+                <Button
+                  variant="outlined"
+                  onClick={loadApplications}
+                  disabled={loadingApplications}
+                  sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
+                >
+                  Refresh applications
+                </Button>
+                <Typography variant="caption" sx={{ color: "#64748b" }}>
+                  {applicationsRefreshedAt ? `Last refreshed ${new Date(applicationsRefreshedAt).toLocaleTimeString("en-IN")}` : "Waiting for first refresh"}
+                </Typography>
+              </Stack>
             </Box>
+
+            <Grid container spacing={1.25} sx={{ mb: 2 }}>
+              <ApplicationSummaryCard label="Total" value={applicationSummary.total} color="#2563eb" />
+              <ApplicationSummaryCard label="Pre-approved" value={applicationSummary.approved} color="#16a34a" />
+              <ApplicationSummaryCard label="In review" value={applicationSummary.review} color="#d97706" />
+              <ApplicationSummaryCard label="Blocked" value={applicationSummary.blocked} color="#dc2626" />
+              <ApplicationSummaryCard label="Fee pending" value={applicationSummary.feePending} color="#7c3aed" />
+            </Grid>
+
+            <Grid container spacing={1.25} sx={{ mb: 2 }}>
+              <Grid size={{ xs: 12, md: 5 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Search application, lender or loan"
+                  value={applicationSearch}
+                  onChange={(event) => setApplicationSearch(event.target.value)}
+                  sx={marketplaceFilterStyle}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3.5 }}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Status"
+                  value={applicationStatusFilter}
+                  onChange={(event) => setApplicationStatusFilter(event.target.value)}
+                  sx={marketplaceFilterStyle}
+                >
+                  <MenuItem value="all">All statuses</MenuItem>
+                  <MenuItem value="approved">Pre-approved / approved</MenuItem>
+                  <MenuItem value="review">In review</MenuItem>
+                  <MenuItem value="blocked">Blocked / rejected</MenuItem>
+                  <MenuItem value="paid">Fee paid</MenuItem>
+                  <MenuItem value="unpaid">Fee pending</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3.5 }}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Sort"
+                  value={applicationSort}
+                  onChange={(event) => setApplicationSort(event.target.value)}
+                  sx={marketplaceFilterStyle}
+                >
+                  <MenuItem value="newest">Newest first</MenuItem>
+                  <MenuItem value="oldest">Oldest first</MenuItem>
+                  <MenuItem value="amount_high">Highest amount</MenuItem>
+                  <MenuItem value="amount_low">Lowest amount</MenuItem>
+                </TextField>
+              </Grid>
+            </Grid>
 
             {loadingApplications ? (
               <Box sx={{ py: 4, display: "grid", placeItems: "center" }}>
                 <CircularProgress />
               </Box>
-            ) : applications.length === 0 ? (
+            ) : enrichedApplications.length === 0 ? (
               <Box
                 sx={{
                   p: 3,
@@ -1512,50 +1640,73 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                   textAlign: "center"
                 }}
               >
-                <Typography sx={{ fontWeight: 900 }}>No saved applications yet</Typography>
+                <Typography sx={{ color: "#0f172a", fontWeight: 900 }}>No applications yet</Typography>
                 <Typography variant="body2" sx={{ color: "#64748b" }}>
-                  Open a loan card, fill details, and submit to server.
+                  Choose a loan offer and submit an application to start tracking its journey.
                 </Typography>
               </Box>
+            ) : visibleApplications.length === 0 ? (
+              <Alert severity="info" sx={alertStyleBySeverity.info}>
+                No application matches the current search or status filter.
+              </Alert>
             ) : (
-              <Grid container spacing={1.5}>
-                {applications.map((application) => (
-                  <Grid size={{ xs: 12, md: 6, xl: 4 }} key={application.id}>
+              <Stack spacing={1.5}>
+                {visibleApplications.map((application) => {
+                  const statusStyle = applicationStatusStyle(application.status);
+                  return (
                     <Card
-                      onClick={() => setSelectedApplication(application)}
                       sx={{
-                        cursor: "pointer",
                         borderRadius: 2,
                         background: "linear-gradient(145deg, #e0f2fe, #f0fdfa)",
                         border: "1px solid rgba(14, 116, 144, 0.16)",
                         boxShadow: "0 10px 24px rgba(8, 47, 73, 0.1)"
                       }}
                     >
-                      <CardContent sx={{ p: 2 }}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1 }}>
-                          <Typography sx={{ fontWeight: 900 }}>
+                      <CardContent sx={{ p: 2.25 }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: { xs: "flex-start", md: "center" }, gap: 1.5, flexDirection: { xs: "column", md: "row" } }}>
+                          <Box>
+                          <Typography sx={{ color: "#0f172a", fontWeight: 900 }}>
                             #{application.id} {application.applicantName}
                           </Typography>
-                          <Chip
-                            size="small"
-                            label={application.status || "SAVED"}
-                            sx={{ bgcolor: "#082f49", color: "#ffffff", fontWeight: 900 }}
-                          />
+                          <Typography variant="caption" sx={{ color: "#64748b" }}>
+                            Created {formatApplicationDate(application.createdAt)}
+                          </Typography>
+                          </Box>
+                          <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap" }}>
+                            <Chip size="small" label={formatApplicationStatus(application.status)} sx={{ bgcolor: statusStyle.background, color: statusStyle.color, fontWeight: 900 }} />
+                            <Chip
+                              size="small"
+                              label={application.paymentStatus === "PAID" ? "Fee paid" : "Fee pending"}
+                              sx={{ bgcolor: application.paymentStatus === "PAID" ? "#dcfce7" : "#ede9fe", color: application.paymentStatus === "PAID" ? "#166534" : "#6d28d9", fontWeight: 900 }}
+                            />
+                          </Stack>
                         </Box>
-                        <Typography variant="body2" sx={{ color: "#475569", mt: 0.75 }}>
-                          {application.loanOffer?.bank?.shortName} | {application.loanOffer?.loanType?.name}
-                        </Typography>
-                        <Typography sx={{ color: "#2563eb", fontWeight: 900, mt: 1 }}>
-                          Rs. {Number(application.requestedAmount || 0).toLocaleString("en-IN")}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 800 }}>
-                          Fraud {application.fraudLevel || "-"} | Score {application.fraudScore ?? "-"}
-                        </Typography>
+
+                        <Grid container spacing={1} sx={{ my: 1.5 }}>
+                          <ApplicationFact label="Lender" value={application.loanOffer?.bank?.name || "Lender not recorded"} />
+                          <ApplicationFact label="Loan product" value={application.loanOffer?.loanType?.name || "Loan type not recorded"} />
+                          <ApplicationFact label="Requested amount" value={`Rs. ${Number(application.requestedAmount || 0).toLocaleString("en-IN")}`} />
+                          <ApplicationFact label="Risk check" value={`${application.fraudLevel || "-"} · Score ${application.fraudScore ?? "-"}`} />
+                        </Grid>
+
+                        <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                          <Button variant="contained" onClick={() => setSelectedApplication(application)} sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}>
+                            View details
+                          </Button>
+                          {application.paymentStatus !== "PAID" && (
+                            <Button variant="outlined" onClick={() => handleOpenSavedPayment(application)} disabled={!application.loanOffer} sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}>
+                              Pay processing fee
+                            </Button>
+                          )}
+                          <Button variant="text" onClick={() => handleDownloadApplicationSummary(application)} sx={{ textTransform: "none", fontWeight: 900 }}>
+                            Download summary
+                          </Button>
+                        </Stack>
                       </CardContent>
                     </Card>
-                  </Grid>
-                ))}
-              </Grid>
+                  );
+                })}
+              </Stack>
             )}
           </CardContent>
         </Card>
@@ -1567,9 +1718,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         onClose={() => setSelectedApplication(null)}
         fullWidth
         maxWidth="md"
+        PaperProps={{ sx: { borderRadius: 3, bgcolor: "#f8fafc", color: "#0f172a" } }}
       >
-        <DialogTitle sx={{ fontWeight: 900 }}>
-          Saved Application Details
+        <DialogTitle sx={{ color: "#0f172a", fontWeight: 900 }}>
+          Application #{selectedApplication?.id} details
         </DialogTitle>
         <DialogContent dividers>
           {selectedApplication && (
@@ -1580,8 +1732,8 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
               <SavedFact label="Application ID" value={`#${selectedApplication.id}`} />
               <SavedFact label="Applicant" value={selectedApplication.applicantName} />
               <SavedFact label="Email" value={selectedApplication.email} />
-              <SavedFact label="Loan" value={selectedApplication.loanOffer?.loanType?.name} />
-              <SavedFact label="Bank" value={selectedApplication.loanOffer?.bank?.name} />
+              <SavedFact label="Loan" value={selectedApplication.loanOffer?.loanType?.name || "Loan type not recorded"} />
+              <SavedFact label="Bank" value={selectedApplication.loanOffer?.bank?.name || "Lender not recorded"} />
               <SavedFact label="Amount" value={`Rs. ${Number(selectedApplication.requestedAmount || 0).toLocaleString("en-IN")}`} />
               <SavedFact label="Aadhaar" value={selectedApplication.maskedAadhaarNumber || "Protected"} />
               <SavedFact label="PAN" value={selectedApplication.maskedPanNumber || "Protected"} />
@@ -1592,7 +1744,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
               <SavedFact label="Bank Account" value={selectedApplication.maskedBankAccountNumber || "Protected"} />
               <SavedFact label="IFSC" value={selectedApplication.ifscCode} />
               <SavedFact label="Employment" value={selectedApplication.employmentType} />
-              <SavedFact label="Eligibility Status" value={selectedApplication.status} />
+              <SavedFact label="Eligibility Status" value={formatApplicationStatus(selectedApplication.status)} />
               <SavedFact label="Fraud" value={`${selectedApplication.fraudLevel || "-"} / ${selectedApplication.fraudScore ?? "-"}`} />
               <SavedFact label="Auto Device Risk" value={selectedApplication.deviceRisk} />
               <SavedFact label="Payment" value={`${selectedApplication.paymentStatus || "UNPAID"} ${selectedApplication.paymentReference ? `(${selectedApplication.paymentReference})` : ""}`} />
@@ -1603,8 +1755,12 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
             </Grid>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSelectedApplication(null)}>Close</Button>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => handleDownloadApplicationSummary(selectedApplication)} sx={{ textTransform: "none", fontWeight: 900 }}>Download summary</Button>
+          {selectedApplication?.paymentStatus !== "PAID" && (
+            <Button onClick={() => handleOpenSavedPayment(selectedApplication)} disabled={!selectedApplication?.loanOffer} variant="outlined" sx={{ textTransform: "none", fontWeight: 900 }}>Pay fee</Button>
+          )}
+          <Button onClick={() => setSelectedApplication(null)} variant="contained" sx={{ textTransform: "none", fontWeight: 900 }}>Close</Button>
         </DialogActions>
       </Dialog>
 
@@ -1910,6 +2066,45 @@ const LoanFact = ({ label, value }) => (
   </Grid>
 );
 
+const formatApplicationStatus = (status) => String(status || "SUBMITTED")
+  .toLowerCase()
+  .replaceAll("_", " ")
+  .replace(/\b\w/g, (character) => character.toUpperCase());
+
+const formatApplicationDate = (value) => {
+  if (!value) return "Date not recorded";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime())
+    ? "Date not recorded"
+    : parsed.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+};
+
+const applicationStatusStyle = (status) => {
+  const group = applicationStatusGroup(status);
+  if (group === "approved") return { background: "#dcfce7", color: "#166534" };
+  if (group === "review") return { background: "#fef3c7", color: "#92400e" };
+  if (group === "blocked") return { background: "#fee2e2", color: "#991b1b" };
+  return { background: "#dbeafe", color: "#1d4ed8" };
+};
+
+const ApplicationSummaryCard = ({ label, value, color }) => (
+  <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
+    <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: "#ffffff", border: `1px solid ${color}33` }}>
+      <Typography variant="h5" sx={{ color, fontWeight: 900 }}>{value}</Typography>
+      <Typography variant="caption" sx={{ color: "#475569", fontWeight: 800 }}>{label}</Typography>
+    </Box>
+  </Grid>
+);
+
+const ApplicationFact = ({ label, value }) => (
+  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+    <Box sx={{ height: "100%", p: 1.25, borderRadius: 1.5, bgcolor: "rgba(255,255,255,0.76)", border: "1px solid #dbeafe" }}>
+      <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 800 }}>{label}</Typography>
+      <Typography variant="body2" sx={{ color: "#0f172a", fontWeight: 900 }}>{value}</Typography>
+    </Box>
+  </Grid>
+);
+
 const ApplicationJourney = ({ application }) => {
   const status = application.status || "SUBMITTED";
   const isPreApproved = status === "PRE_APPROVED";
@@ -1931,7 +2126,7 @@ const ApplicationJourney = ({ application }) => {
 
   return (
     <Box sx={{ p: 2, borderRadius: 2.5, bgcolor: "#f8fafc", border: "1px solid #e2e8f0" }}>
-      <Typography sx={{ fontWeight: 900, mb: 1.5 }}>Application journey</Typography>
+      <Typography sx={{ color: "#0f172a", fontWeight: 900, mb: 1.5 }}>Application journey</Typography>
       <Grid container spacing={1}>
         {steps.map((step, index) => (
           <Grid size={{ xs: 12, sm: 6, md: 3 }} key={step.label}>
@@ -1947,7 +2142,7 @@ const ApplicationJourney = ({ application }) => {
               <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 900 }}>
                 STEP {index + 1}
               </Typography>
-              <Typography sx={{ fontWeight: 900 }}>{step.label}</Typography>
+              <Typography sx={{ color: "#0f172a", fontWeight: 900 }}>{step.label}</Typography>
               <Typography variant="caption" sx={{ color: "#475569" }}>
                 {step.detail}
               </Typography>

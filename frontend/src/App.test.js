@@ -40,3 +40,15 @@ test('renders the authenticated payment command center route', async () => {
   expect((await screen.findAllByRole("heading", { name: /Payment Gateway/i })).length).toBeGreaterThan(0);
   expect(await screen.findByRole("heading", { name: /Payment history/i })).toBeInTheDocument();
 });
+
+test('renders the authenticated loan application center route', async () => {
+  localStorage.setItem("token", "test-token");
+  localStorage.setItem("role", "USER");
+  localStorage.setItem("email", "user@example.com");
+  window.location.hash = "#/applications";
+
+  render(<App />);
+
+  expect(await screen.findByRole("heading", { name: /Loan Application Center/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /Your applications/i })).toBeInTheDocument();
+});

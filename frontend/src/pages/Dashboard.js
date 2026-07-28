@@ -146,8 +146,8 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
       subtitle: "Pay with UPI, card, or net banking and record the payment in the expense ledger."
     },
     applications: {
-      title: "Saved Loan Applications",
-      subtitle: "Open server-saved loan applications and inspect full details."
+      title: "Loan Application Center",
+      subtitle: "Track decisions, verification progress, payment status and application details."
     },
     investments: {
       title: "FD and Investment Comparison",
@@ -595,7 +595,7 @@ const PageHeader = ({ title, subtitle }) => (
     >
       <Box>
         <Typography variant="overline" sx={{ color: "#0f766e", fontWeight: 900 }}>
-          Separate Webpage
+          FinTrack Workspace
         </Typography>
         <Typography variant="h4" sx={{ fontWeight: 900, lineHeight: 1.15 }}>
           {title}
