@@ -51,6 +51,12 @@ import {
   evaluateOfferEligibility,
   filterAndSortLoanOffers
 } from "../../utils/loanMarketplace";
+import {
+  buildPaymentReceipt,
+  maskPaymentIdentity,
+  paymentProgressSteps,
+  receiptToText
+} from "../../utils/paymentGateway";
 
 const iconMap = {
   credit: CreditScoreIcon,
@@ -81,8 +87,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
   const [gatewayAmount, setGatewayAmount] = useState("");
   const [paymentRecipient, setPaymentRecipient] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("gpay");
+  const [paymentContext, setPaymentContext] = useState("general");
   const [paying, setPaying] = useState(false);
   const [lastPaymentAt, setLastPaymentAt] = useState("");
+  const [latestReceipt, setLatestReceipt] = useState(null);
   
   // Card Payment Fields
   const [cardType, setCardType] = useState("debit");
@@ -113,6 +121,15 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
 
   const [applicantName, setApplicantName] = useState("Demo Applicant");
   const [email] = useState(() => localStorage.getItem("email") || "demo@fintrack.in");
+  const paymentHistoryStorageKey = `fintrackPaymentHistory:${email}`;
+  const [paymentHistory, setPaymentHistory] = useState(() => {
+    try {
+      const storedHistory = JSON.parse(localStorage.getItem(paymentHistoryStorageKey) || "[]");
+      return Array.isArray(storedHistory) ? storedHistory : [];
+    } catch (error) {
+      return [];
+    }
+  });
   const [creditScore, setCreditScore] = useState(735);
   const [monthlyIncome, setMonthlyIncome] = useState(65000);
   const [requestedAmount, setRequestedAmount] = useState(600000);
@@ -139,6 +156,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [pincode, setPincode] = useState("");
+
+  useEffect(() => {
+    localStorage.setItem(paymentHistoryStorageKey, JSON.stringify(paymentHistory.slice(0, 25)));
+  }, [paymentHistory, paymentHistoryStorageKey]);
 
   useEffect(() => {
     const loadOffers = async () => {
@@ -230,6 +251,8 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     : AccountBalanceIcon;
   const accentColor = selectedLoanType?.color || "#2563eb";
   const selectedPayment = paymentGatewayOptions.find((method) => method.id === paymentMethod) || paymentGatewayOptions[0];
+  const isLoanFeeCheckout = paymentContext === "loan-fee" && Boolean(applicationResult?.id);
+  const gatewayProgress = paymentProgressSteps(gatewayStep);
   const formattedLastPaymentAt = lastPaymentAt
     ? new Date(lastPaymentAt).toLocaleString("en-IN", {
         day: "2-digit",
@@ -475,40 +498,42 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     }
   };
 
-  const handlePayProcessingFee = async () => {
-    if (!applicationResult?.id) {
-      return;
-    }
-    setPaying(true);
-    setApiError("");
-
-    try {
-      const amount = selectedMetrics.processingFee;
-      const result = await payProcessingFee(applicationResult.id, {
-        amount,
-        reference: `${paymentMethod.toUpperCase()}-${Date.now()}`
-      });
-      setApplicationResult(result);
-      setLastPaymentAt(new Date().toISOString());
-      setPaymentOpen(false);
-      setSnackbarOpen(true);
-      loadApplications();
-    } catch (error) {
-      setApiError("Payment update failed. Please check Spring Boot backend.");
-    } finally {
-      setPaying(false);
-    }
+  const recordPaymentReceipt = (receipt) => {
+    setLatestReceipt(receipt);
+    setPaymentHistory((current) => [
+      receipt,
+      ...current.filter((item) => item.reference !== receipt.reference)
+    ].slice(0, 25));
   };
 
-  const handleOpenGateway = (methodId = paymentMethod) => {
+  const handleDownloadReceipt = (receipt = latestReceipt) => {
+    if (!receipt) return;
+    const file = new Blob([receiptToText(receipt)], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `fintrack-receipt-${receipt.reference}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleOpenGateway = (methodId = paymentMethod, context = "general") => {
+    const isLoanFee = context === "loan-fee" && Boolean(applicationResult?.id);
     setPaymentMethod(methodId);
-    setGatewayAmount((current) => current || "");
-    setPaymentRecipient((current) =>
-      current || selectedOffer?.bank?.name || "Loan Processing Fee"
-    );
+    setPaymentContext(isLoanFee ? "loan-fee" : "general");
+    setGatewayAmount(isLoanFee ? String(selectedMetrics.processingFee) : "");
+    setPaymentRecipient(isLoanFee ? `${selectedOffer?.bank?.name || "Lender"} processing fee` : "");
     setGatewayStep("ready");
     setLastPaymentAt("");
+    setLatestReceipt(null);
+    setApiError("");
     setGatewayOpen(true);
+  };
+
+  const handlePayProcessingFee = () => {
+    if (!applicationResult?.id || applicationResult.paymentStatus === "PAID") return;
+    setPaymentOpen(false);
+    handleOpenGateway(paymentMethod, "loan-fee");
   };
 
   const handleCompleteGatewayPayment = async () => {
@@ -545,6 +570,12 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
       }
     }
     
+    const isLoanFeePayment = paymentContext === "loan-fee" && Boolean(applicationResult?.id);
+    if (isLoanFeePayment && Math.abs(amount - selectedMetrics.processingFee) > 0.01) {
+      setApiError(`Loan processing fee is locked at Rs. ${selectedMetrics.processingFee.toLocaleString("en-IN")}.`);
+      return;
+    }
+
     if (amount > Number(balance || 0)) {
       setApiError("Insufficient balance for this payment amount.");
       return;
@@ -554,13 +585,24 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     setPaying(true);
     setApiError("");
 
+    const paidAt = new Date().toISOString();
+    const generatedReference = `${paymentMethod.toUpperCase()}-${Date.now()}`;
+    const selectedBankName = banksList.find((bank) => bank.id === selectedBank)?.name;
+    const paymentIdentity = maskPaymentIdentity({
+      methodId: paymentMethod,
+      upiId: payerUpi,
+      cardNumber,
+      bankName: selectedBankName
+    });
+
     try {
-      const paidAt = new Date().toISOString();
-      if (applicationResult?.id) {
+      let confirmedReference = generatedReference;
+      if (isLoanFeePayment) {
         const result = await payProcessingFee(applicationResult.id, {
           amount,
-          reference: `${paymentMethod.toUpperCase()}-${Date.now()}`
+          reference: generatedReference
         });
+        confirmedReference = result.paymentReference || generatedReference;
         setApplicationResult(result);
         loadApplications();
       }
@@ -569,18 +611,47 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
           amount,
           payee: paymentRecipient.trim(),
           method: selectedPayment.label,
-          paidAt
+          paidAt,
+          reference: confirmedReference,
+          applicationId: isLoanFeePayment ? applicationResult.id : null
         });
         if (!recorded) {
           throw new Error("Payment expense save failed");
         }
       }
+      const receipt = buildPaymentReceipt({
+        reference: confirmedReference,
+        applicationId: isLoanFeePayment ? applicationResult.id : null,
+        amount,
+        recipient: paymentRecipient,
+        methodId: paymentMethod,
+        methodLabel: selectedPayment.label,
+        paymentIdentity,
+        paidAt
+      });
+      recordPaymentReceipt(receipt);
+      setCardNumber("");
+      setCardExpiry("");
+      setCardCvv("");
       setLastPaymentAt(paidAt);
       setGatewayStep("success");
       setSnackbarOpen(true);
     } catch (error) {
-      setGatewayStep("ready");
-      setApiError("Payment update failed. Please check Spring Boot backend.");
+      const failedReceipt = buildPaymentReceipt({
+        reference: generatedReference,
+        applicationId: isLoanFeePayment ? applicationResult.id : null,
+        amount,
+        recipient: paymentRecipient,
+        methodId: paymentMethod,
+        methodLabel: selectedPayment.label,
+        paymentIdentity,
+        paidAt,
+        status: "FAILED",
+        failureReason: "Authorization or ledger update failed"
+      });
+      recordPaymentReceipt(failedReceipt);
+      setGatewayStep("failed");
+      setApiError("Payment failed safely. No retry will reuse this transaction reference.");
     } finally {
       setPaying(false);
     }
@@ -1202,6 +1273,8 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
           paymentMethod={paymentMethod}
           setPaymentMethod={setPaymentMethod}
           onStartPayment={handleOpenGateway}
+          paymentHistory={paymentHistory}
+          onDownloadReceipt={handleDownloadReceipt}
         />
       )}
 
@@ -1552,7 +1625,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         <DialogContent dividers>
           <Stack spacing={2}>
             <Alert severity="info" sx={alertStyleBySeverity.info}>
-              Demo gateway: application #{applicationResult?.id} ke liye {selectedPayment.label} payment reference se processing fee mark paid hogi.
+              Demo mode: no real money moves. Application #{applicationResult?.id} ka backend-calculated fee aur lender checkout me locked rahenge.
             </Alert>
             <Box sx={{ p: 2, borderRadius: 2, bgcolor: "#ecfeff" }}>
               <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 800 }}>
@@ -1581,12 +1654,12 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
           </Button>
           <Button
             variant="contained"
-            startIcon={paying ? <CircularProgress size={18} color="inherit" /> : <PaymentsIcon />}
+            startIcon={<PaymentsIcon />}
             onClick={handlePayProcessingFee}
-            disabled={paying || !applicationResult?.id}
+            disabled={!applicationResult?.id || applicationResult?.paymentStatus === "PAID"}
             sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
           >
-            Pay with {selectedPayment.label}
+            Continue with {selectedPayment.label}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1623,10 +1696,15 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
               {selectedPayment.label}
             </Typography>
           </Box>
-          <Chip label={selectedPayment.rail} sx={{ bgcolor: "#ccfbf1", color: "#0f766e", fontWeight: 900 }} />
+          <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <Chip label="SIMULATION" sx={{ bgcolor: "#fef3c7", color: "#92400e", fontWeight: 900 }} />
+            <Chip label={selectedPayment.rail} sx={{ bgcolor: "#ccfbf1", color: "#0f766e", fontWeight: 900 }} />
+          </Stack>
         </DialogTitle>
         <DialogContent sx={{ p: 2.5 }}>
           <Stack spacing={2}>
+            <PaymentProgress steps={gatewayProgress} failed={gatewayStep === "failed"} />
+
             <Box sx={{ p: 2, borderRadius: 2, bgcolor: "#f0fdfa", border: "1px solid rgba(13, 148, 136, 0.18)" }}>
               <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 800 }}>
                 Available Balance
@@ -1649,7 +1727,9 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                   fullWidth
                   required
                   sx={gatewayInputStyle}
+                  InputProps={{ readOnly: isLoanFeeCheckout }}
                   inputProps={{ min: 0.01, step: 0.01 }}
+                  helperText={isLoanFeeCheckout ? "Locked to the backend-calculated processing fee." : "Enter the demo payment amount."}
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
@@ -1660,6 +1740,8 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                   fullWidth
                   required
                   sx={gatewayInputStyle}
+                  InputProps={{ readOnly: isLoanFeeCheckout }}
+                  helperText={isLoanFeeCheckout ? "Locked to the selected lender application." : "Enter a demo recipient."}
                 />
               </Grid>
             </Grid>
@@ -1736,19 +1818,29 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
               sx={{
                 p: 2,
                 borderRadius: 2,
-                bgcolor: gatewayStep === "success" ? "#dcfce7" : "#eff6ff",
-                border: `1px solid ${gatewayStep === "success" ? "rgba(16, 185, 129, 0.28)" : "rgba(37, 99, 235, 0.18)"}`
+                bgcolor: gatewayStep === "success" ? "#dcfce7" : gatewayStep === "failed" ? "#fef2f2" : "#eff6ff",
+                border: `1px solid ${gatewayStep === "success" ? "#86efac" : gatewayStep === "failed" ? "#fca5a5" : "#93c5fd"}`
               }}
             >
-              <Typography sx={{ color: gatewayStep === "success" ? "#047857" : "#1d4ed8", fontWeight: 900 }}>
-                {gatewayStep === "success" ? "Payment successful" : gatewayStep === "processing" ? "Processing payment..." : "Ready for payment authorization"}
+              <Typography sx={{ color: gatewayStep === "success" ? "#047857" : gatewayStep === "failed" ? "#b91c1c" : "#1d4ed8", fontWeight: 900 }}>
+                {gatewayStep === "success"
+                  ? "Payment successful"
+                  : gatewayStep === "failed"
+                    ? "Payment failed safely"
+                    : gatewayStep === "processing"
+                      ? "Processing payment..."
+                      : "Ready for payment authorization"}
               </Typography>
               <Typography variant="body2" sx={{ color: "#475569" }}>
                 {gatewayStep === "success"
-                  ? applicationResult?.id
+                  ? isLoanFeeCheckout
                     ? "Backend payment status updated to PAID and expense ledger balance deducted."
                     : "Payment saved in expenses, so dashboard balance is deducted."
-                  : "Fill amount and recipient, then authorize to record the payment in expense ledger."}
+                  : gatewayStep === "failed"
+                    ? "No success receipt was issued. Review the message above and retry with a new reference."
+                    : isLoanFeeCheckout
+                      ? "Verify the locked fee and lender, then authorize the demo payment."
+                      : "Fill amount and recipient, then authorize to record the payment in expense ledger."}
               </Typography>
               {gatewayStep === "success" && formattedLastPaymentAt && (
                 <Typography variant="caption" sx={{ color: "#047857", fontWeight: 900 }}>
@@ -1756,6 +1848,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                 </Typography>
               )}
             </Box>
+
+            {gatewayStep === "success" && latestReceipt && (
+              <PaymentReceiptCard receipt={latestReceipt} onDownload={() => handleDownloadReceipt(latestReceipt)} />
+            )}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
@@ -1769,7 +1865,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
             disabled={paying || gatewayStep === "success"}
             sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
           >
-            Authorize Payment
+            {gatewayStep === "failed" ? "Retry with new reference" : "Authorize Payment"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1919,8 +2015,108 @@ const paymentIconMap = {
   netbanking: AccountBalanceIcon
 };
 
-const PaymentGatewayOverview = ({ paymentMethod, setPaymentMethod, onStartPayment }) => (
-  <Card sx={{ ...panelStyle, mt: 2.5 }}>
+const PaymentProgress = ({ steps, failed = false }) => (
+  <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: "#f8fafc", border: "1px solid #e2e8f0" }}>
+    <Typography variant="caption" sx={{ color: "#475569", fontWeight: 900 }}>
+      PAYMENT PROGRESS
+    </Typography>
+    <Grid container spacing={1} sx={{ mt: 0.25 }}>
+      {steps.map((step, index) => {
+        const failedStep = failed && index === 2;
+        return (
+          <Grid size={{ xs: 6, sm: 3 }} key={step.label}>
+            <Box
+              sx={{
+                height: "100%",
+                p: 1,
+                borderRadius: 1.5,
+                bgcolor: failedStep ? "#fef2f2" : step.complete ? "#ecfdf5" : "#ffffff",
+                border: `1px solid ${failedStep ? "#fca5a5" : step.complete ? "#86efac" : "#cbd5e1"}`
+              }}
+            >
+              <Typography variant="caption" sx={{ color: failedStep ? "#b91c1c" : step.complete ? "#166534" : "#64748b", fontWeight: 900 }}>
+                {failedStep ? "FAILED" : step.complete ? "DONE" : `STEP ${index + 1}`}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#0f172a", fontWeight: 800 }}>
+                {step.label}
+              </Typography>
+            </Box>
+          </Grid>
+        );
+      })}
+    </Grid>
+  </Box>
+);
+
+const PaymentReceiptCard = ({ receipt, onDownload }) => (
+  <Box sx={{ p: 2, borderRadius: 2, bgcolor: "#ffffff", border: "1px solid #86efac" }}>
+    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1, mb: 1 }}>
+      <Box>
+        <Typography sx={{ color: "#166534", fontWeight: 900 }}>Demo payment receipt</Typography>
+        <Typography variant="caption" sx={{ color: "#64748b" }}>No real money was transferred.</Typography>
+      </Box>
+      <Chip size="small" label={receipt.status} sx={{ bgcolor: "#dcfce7", color: "#166534", fontWeight: 900 }} />
+    </Box>
+    <ComparisonRow label="Reference" value={receipt.reference} />
+    <ComparisonRow label="Amount" value={`Rs. ${receipt.amount.toLocaleString("en-IN")}`} />
+    <ComparisonRow label="Recipient" value={receipt.recipient} />
+    <ComparisonRow label="Method" value={`${receipt.methodLabel} · ${receipt.paymentIdentity}`} />
+    <ComparisonRow label="Paid at" value={new Date(receipt.paidAt).toLocaleString("en-IN")} />
+    <Button onClick={onDownload} variant="outlined" size="small" sx={{ mt: 1, borderRadius: 2, textTransform: "none", fontWeight: 900 }}>
+      Download receipt
+    </Button>
+  </Box>
+);
+
+const PaymentHistoryPanel = ({ history = [], onDownloadReceipt }) => (
+  <Card sx={panelStyle}>
+    <CardContent sx={{ p: 2.5 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, mb: 2 }}>
+        <Box>
+          <Typography variant="h6" sx={{ color: "#0f172a", fontWeight: 900 }}>Payment history</Typography>
+          <Typography variant="body2" sx={{ color: "#475569" }}>Device-local demo receipts; raw card and CVV values are never stored.</Typography>
+        </Box>
+        <Chip label={`${history.length} records`} sx={{ bgcolor: "#dbeafe", color: "#1d4ed8", fontWeight: 900 }} />
+      </Box>
+
+      {history.length === 0 ? (
+        <Alert severity="info" sx={alertStyleBySeverity.info}>Complete a demo payment to create the first receipt.</Alert>
+      ) : (
+        <Stack spacing={1}>
+          {history.slice(0, 8).map((receipt) => (
+            <Box key={receipt.reference} sx={{ p: 1.5, borderRadius: 2, bgcolor: "#ffffff", border: "1px solid #e2e8f0" }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, alignItems: { xs: "flex-start", sm: "center" }, flexDirection: { xs: "column", sm: "row" } }}>
+                <Box>
+                  <Typography sx={{ color: "#0f172a", fontWeight: 900 }}>
+                    Rs. {Number(receipt.amount || 0).toLocaleString("en-IN")} · {receipt.recipient}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "#64748b" }}>
+                    {receipt.methodLabel} · {receipt.reference} · {new Date(receipt.paidAt).toLocaleString("en-IN")}
+                  </Typography>
+                  {receipt.failureReason && <Typography variant="caption" sx={{ color: "#b91c1c", display: "block" }}>{receipt.failureReason}</Typography>}
+                </Box>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                  <Chip
+                    size="small"
+                    label={receipt.status}
+                    sx={{ bgcolor: receipt.status === "SUCCESS" ? "#dcfce7" : "#fee2e2", color: receipt.status === "SUCCESS" ? "#166534" : "#991b1b", fontWeight: 900 }}
+                  />
+                  {receipt.status === "SUCCESS" && (
+                    <Button size="small" onClick={() => onDownloadReceipt(receipt)} sx={{ textTransform: "none", fontWeight: 900 }}>Receipt</Button>
+                  )}
+                </Stack>
+              </Box>
+            </Box>
+          ))}
+        </Stack>
+      )}
+    </CardContent>
+  </Card>
+);
+
+const PaymentGatewayOverview = ({ paymentMethod, setPaymentMethod, onStartPayment, paymentHistory, onDownloadReceipt }) => (
+  <Stack spacing={2.5} sx={{ mt: 2.5 }}>
+  <Card sx={panelStyle}>
     <CardContent sx={{ p: 2.5 }}>
       <Box
         sx={{
@@ -1968,6 +2164,8 @@ const PaymentGatewayOverview = ({ paymentMethod, setPaymentMethod, onStartPaymen
       </Grid>
     </CardContent>
   </Card>
+  <PaymentHistoryPanel history={paymentHistory} onDownloadReceipt={onDownloadReceipt} />
+  </Stack>
 );
 
 const PaymentMethodCard = ({ method, selected, onSelect, compact = false }) => {

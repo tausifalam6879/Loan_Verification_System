@@ -28,3 +28,15 @@ test('renders the authenticated loan marketplace route', async () => {
 
   expect((await screen.findAllByRole("heading", { name: /Loan Marketplace/i })).length).toBeGreaterThan(0);
 });
+
+test('renders the authenticated payment command center route', async () => {
+  localStorage.setItem("token", "test-token");
+  localStorage.setItem("role", "USER");
+  localStorage.setItem("email", "user@example.com");
+  window.location.hash = "#/payments";
+
+  render(<App />);
+
+  expect((await screen.findAllByRole("heading", { name: /Payment Gateway/i })).length).toBeGreaterThan(0);
+  expect(await screen.findByRole("heading", { name: /Payment history/i })).toBeInTheDocument();
+});
