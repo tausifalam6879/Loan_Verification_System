@@ -1,8 +1,18 @@
 import api from "../api/axiosConfig";
 
 const REQUEST_TIMEOUT_MS = 8000;
+const QUOTE_REQUEST_TIMEOUT_MS = 20000;
 const CACHE_PREFIX = "fintrack.market.v3";
 const SNAPSHOT_URL = `${process.env.PUBLIC_URL || ""}/data/market-snapshot.json`;
+
+const MARKET_BOARD = [
+  { symbol: "RELIANCE.NS", name: "Reliance", kind: "company" },
+  { symbol: "HDFCBANK.NS", name: "HDFC Bank", kind: "company" },
+  { symbol: "INFY.NS", name: "Infosys", kind: "company" },
+  { symbol: "^NSEI", name: "Nifty 50", kind: "index" },
+  { symbol: "^BSESN", name: "BSE Sensex", kind: "index" },
+  { symbol: "AAPL", name: "Apple", kind: "company" }
+];
 
 let snapshotPromise;
 let lastForcedSnapshotAt = 0;
@@ -122,8 +132,8 @@ const requestWithFallback = async ({ cacheKey, liveRequest, selectSnapshot, isUs
   }
 };
 
-const getLive = async (url, params) => {
-  const response = await api.get(url, { params, timeout: REQUEST_TIMEOUT_MS });
+const getLive = async (url, params, timeout = REQUEST_TIMEOUT_MS) => {
+  const response = await api.get(url, { params, timeout });
   return response.data;
 };
 
@@ -136,10 +146,23 @@ const validAnalysis = (data) => Boolean(data?.symbol && data?.name && data?.outl
 const validCompany = (data) => Boolean(data?.symbol && data?.name && isFiniteNumber(data?.quote?.price) && data?.history?.length);
 const validNews = (data) => Array.isArray(data?.articles) && Boolean(data?.generatedAt);
 
+const overviewFromSnapshot = (snapshot) => {
+  const overview = snapshot?.overview;
+  if (!overview || overview.watchlist?.length) return overview;
+  const indices = new Map((overview.markets || []).map((item) => [item.symbol, item]));
+  const companies = snapshot.companies || {};
+  const watchlist = MARKET_BOARD.map((definition) => {
+    const company = companies[definition.symbol];
+    const quote = indices.get(definition.symbol) || company?.quote;
+    return quote ? { ...quote, symbol: definition.symbol, name: definition.name, kind: definition.kind } : null;
+  }).filter(Boolean);
+  return { ...overview, watchlist };
+};
+
 export const getGlobalMarketOverview = (refresh = false) => requestWithFallback({
   cacheKey: "overview",
-  liveRequest: () => getLive("/market/overview", { refresh }),
-  selectSnapshot: (snapshot) => snapshot.overview,
+  liveRequest: () => getLive("/market/overview", { refresh }, QUOTE_REQUEST_TIMEOUT_MS),
+  selectSnapshot: overviewFromSnapshot,
   isUsable: validOverview,
   unavailableMessage: "Market overview is temporarily unavailable from both the live API and the scheduled snapshot.",
   refreshSnapshot: refresh

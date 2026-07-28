@@ -34,6 +34,15 @@ GLOBAL_INDICES = {
     "^BSESN": {"name": "BSE Sensex", "region": "India", "currency": "INR"},
 }
 
+MARKET_BOARD = {
+    "RELIANCE.NS": {"name": "Reliance", "region": "India", "currency": "INR", "kind": "company"},
+    "HDFCBANK.NS": {"name": "HDFC Bank", "region": "India", "currency": "INR", "kind": "company"},
+    "INFY.NS": {"name": "Infosys", "region": "India", "currency": "INR", "kind": "company"},
+    "^NSEI": {"name": "Nifty 50", "region": "India", "currency": "INR", "kind": "index"},
+    "^BSESN": {"name": "BSE Sensex", "region": "India", "currency": "INR", "kind": "index"},
+    "AAPL": {"name": "Apple", "region": "United States", "currency": "USD", "kind": "company"},
+}
+
 MACRO_FACTORS = {
     "GC=F": {
         "name": "Gold",
@@ -136,6 +145,7 @@ NEGATIVE_WORDS = {
 }
 
 CACHE_TTL_SECONDS = int(os.getenv("MARKET_CACHE_TTL_SECONDS", "120"))
+QUOTE_CACHE_TTL_SECONDS = int(os.getenv("MARKET_QUOTE_CACHE_TTL_SECONDS", "15"))
 _cache: Dict[str, Dict[str, Any]] = {}
 
 
@@ -145,9 +155,9 @@ class MarketAgentRequest(BaseModel):
     recent_messages: List[Dict[str, Any]] = Field(default_factory=list)
 
 
-def _cache_get(key: str) -> Optional[Any]:
+def _cache_get(key: str, ttl_seconds: int = CACHE_TTL_SECONDS) -> Optional[Any]:
     item = _cache.get(key)
-    if item and time.time() - item["created_at"] < CACHE_TTL_SECONDS:
+    if item and time.time() - item["created_at"] < ttl_seconds:
         return item["value"]
     return None
 
@@ -191,6 +201,19 @@ def _history(symbol: str, period: str) -> pd.DataFrame:
     return _cache_put(key, frame).copy()
 
 
+def _intraday_history(symbol: str) -> pd.DataFrame:
+    """Return recent minute bars without making every browser poll hit Yahoo."""
+    key = f"history:{symbol}:5d:1m"
+    cached = _cache_get(key, QUOTE_CACHE_TTL_SECONDS)
+    if cached is not None:
+        return cached.copy()
+    frame = yf.Ticker(symbol).history(period="5d", interval="1m", auto_adjust=False, prepost=False)
+    if frame is None or frame.empty or "Close" not in frame:
+        raise ValueError(f"Intraday market data is unavailable for {symbol}.")
+    frame = frame.dropna(subset=["Close"]).copy()
+    return _cache_put(key, frame).copy()
+
+
 def _round(value: Any, digits: int = 2) -> Optional[float]:
     try:
         numeric = float(value)
@@ -199,26 +222,48 @@ def _round(value: Any, digits: int = 2) -> Optional[float]:
         return None
 
 
-def market_snapshot(symbol: str) -> Dict[str, Any]:
+def market_snapshot(symbol: str, include_average_volume: bool = True) -> Dict[str, Any]:
     symbol = _sanitize_symbol(symbol)
-    frame = _history(symbol, "1mo")
+    daily_frame: Optional[pd.DataFrame] = None
+    quote_mode = "end-of-day"
+    try:
+        frame = _intraday_history(symbol)
+        quote_mode = "intraday"
+    except Exception:
+        daily_frame = _history(symbol, "1mo")
+        frame = daily_frame
+
     latest = frame.iloc[-1]
-    previous = frame.iloc[-2] if len(frame) > 1 else latest
+    latest_date = frame.index[-1].date()
+    session_mask = [index.date() == latest_date for index in frame.index]
+    session = frame.loc[session_mask]
+    previous_session = frame.loc[[index.date() < latest_date for index in frame.index]]
+    previous_close = float(previous_session.iloc[-1]["Close"]) if not previous_session.empty else None
+    if previous_close is None:
+        if daily_frame is None:
+            daily_frame = _history(symbol, "1mo")
+        daily_previous = daily_frame.loc[[index.date() < latest_date for index in daily_frame.index]]
+        previous_close = float(daily_previous.iloc[-1]["Close"]) if not daily_previous.empty else float(latest["Close"])
+
     close = float(latest["Close"])
-    previous_close = float(previous["Close"])
     change = close - previous_close
-    metadata = GLOBAL_INDICES.get(symbol, MACRO_FACTORS.get(symbol, {}))
-    volume = _round(latest.get("Volume"), 0)
-    average_volume = _round(frame["Volume"].tail(20).mean(), 0) if "Volume" in frame else None
+    metadata = GLOBAL_INDICES.get(symbol, MARKET_BOARD.get(symbol, MACRO_FACTORS.get(symbol, {})))
+    volume = _round(session["Volume"].sum(), 0) if "Volume" in session else _round(latest.get("Volume"), 0)
+    if include_average_volume and daily_frame is None:
+        daily_frame = _history(symbol, "1mo")
+    average_volume = (
+        _round(daily_frame["Volume"].tail(20).mean(), 0)
+        if daily_frame is not None and "Volume" in daily_frame else None
+    )
     return {
         "symbol": symbol,
         "name": metadata.get("name", symbol),
         "region": metadata.get("region", "Global"),
         "currency": metadata.get("currency", metadata.get("unit", "Local currency")),
         "price": _round(close),
-        "open": _round(latest.get("Open")),
-        "high": _round(latest.get("High")),
-        "low": _round(latest.get("Low")),
+        "open": _round(session.iloc[0].get("Open")),
+        "high": _round(session["High"].max()) if "High" in session else _round(latest.get("High")),
+        "low": _round(session["Low"].min()) if "Low" in session else _round(latest.get("Low")),
         "previousClose": _round(previous_close),
         "volume": volume,
         "averageVolume20d": average_volume,
@@ -226,6 +271,7 @@ def market_snapshot(symbol: str) -> Dict[str, Any]:
         "changePercent": _round((change / previous_close) * 100 if previous_close else 0),
         "dataAsOf": frame.index[-1].isoformat(),
         "source": "Yahoo Finance via yfinance",
+        "quoteMode": quote_mode,
         "status": "available",
     }
 
@@ -298,32 +344,38 @@ def market_breadth() -> Dict[str, Any]:
 
 
 def global_overview() -> Dict[str, Any]:
-    snapshots: List[Dict[str, Any]] = []
-    with ThreadPoolExecutor(max_workers=6) as executor:
-        jobs = {executor.submit(market_snapshot, symbol): symbol for symbol in GLOBAL_INDICES}
+    quotes_by_symbol: Dict[str, Dict[str, Any]] = {}
+    requested_symbols = list(dict.fromkeys([*GLOBAL_INDICES, *MARKET_BOARD]))
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        jobs = {executor.submit(market_snapshot, symbol, False): symbol for symbol in requested_symbols}
         for job in as_completed(jobs):
             symbol = jobs[job]
             try:
-                snapshots.append(job.result())
+                quotes_by_symbol[symbol] = job.result()
             except Exception as error:
-                metadata = GLOBAL_INDICES[symbol]
-                snapshots.append({
+                metadata = GLOBAL_INDICES.get(symbol) or MARKET_BOARD[symbol]
+                quotes_by_symbol[symbol] = {
                     "symbol": symbol,
                     "name": metadata["name"],
                     "region": metadata["region"],
                     "currency": metadata["currency"],
                     "status": "unavailable",
                     "error": str(error),
-                })
-    order = {symbol: index for index, symbol in enumerate(GLOBAL_INDICES)}
-    snapshots.sort(key=lambda item: order.get(item["symbol"], 999))
+                }
+    snapshots = [quotes_by_symbol[symbol] for symbol in GLOBAL_INDICES]
+    watchlist = [
+        {**quotes_by_symbol[symbol], "kind": metadata["kind"]}
+        for symbol, metadata in MARKET_BOARD.items()
+    ]
     available = [item for item in snapshots if item["status"] == "available"]
     return {
         "markets": snapshots,
+        "watchlist": watchlist,
         "availableMarkets": len(available),
         "totalMarkets": len(snapshots),
         "generatedAt": datetime.now(timezone.utc).isoformat(),
-        "dataDelayNotice": "Quotes may be delayed and depend on the upstream data source.",
+        "refreshIntervalSeconds": QUOTE_CACHE_TTL_SECONDS,
+        "dataDelayNotice": "Minute quotes update while markets are open, but may be delayed by the upstream provider and exchange rules.",
     }
 
 

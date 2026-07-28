@@ -17,8 +17,7 @@ import {
   Tabs,
   TextField,
   Tooltip,
-  Typography,
-  useTheme
+  Typography
 } from "@mui/material";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -78,6 +77,8 @@ const formatTime = (value) => {
 
 const directionColor = (value) => Number(value) >= 0 ? "#15803d" : "#dc2626";
 const outlookColor = (outlook) => outlook === "BULLISH" ? "#15803d" : outlook === "BEARISH" ? "#dc2626" : "#b45309";
+const QUOTE_REFRESH_MS = 30000;
+const SUPPORTING_DATA_REFRESH_MS = 120000;
 
 const GlobalMarketSection = () => {
   const [view, setView] = useState("overview");
@@ -97,18 +98,35 @@ const GlobalMarketSection = () => {
   const [agentLoading, setAgentLoading] = useState(false);
   const [agentMessages, setAgentMessages] = useState([]);
 
-  const loadPulse = async (refresh = false) => {
-    setLoadingPulse(true);
-    const results = await Promise.allSettled([
-      getGlobalMarketOverview(refresh), getMarketFactors(refresh), getMarketBreadth(refresh), getMarketNewsFeed(refresh)
-    ]);
+  const loadPulse = async (refresh = false, showLoading = true) => {
+    if (showLoading) setLoadingPulse(true);
+    let results;
+    if (refresh) {
+      const [overviewResult] = await Promise.allSettled([getGlobalMarketOverview(true)]);
+      const supportingResults = await Promise.allSettled([
+        getMarketFactors(false), getMarketBreadth(false), getMarketNewsFeed(false)
+      ]);
+      results = [overviewResult, ...supportingResults];
+    } else {
+      results = await Promise.allSettled([
+        getGlobalMarketOverview(false), getMarketFactors(false), getMarketBreadth(false), getMarketNewsFeed(false)
+      ]);
+    }
     if (results[0].status === "fulfilled") setOverview(results[0].value);
     if (results[1].status === "fulfilled") setFactors(results[1].value);
     if (results[2].status === "fulfilled") setBreadth(results[2].value);
     if (results[3].status === "fulfilled") setNewsFeed(results[3].value);
     const failed = results.find((result) => result.status === "rejected");
     setError(failed ? "Some market feeds could not be refreshed. Available sections still show their source and timestamp." : "");
-    setLoadingPulse(false);
+    if (showLoading) setLoadingPulse(false);
+  };
+
+  const refreshOverviewQuotes = async () => {
+    try {
+      setOverview(await getGlobalMarketOverview(false));
+    } catch (requestError) {
+      // Keep the last successful board on screen; the slower full refresh reports persistent failures.
+    }
   };
 
   const analyzeSymbol = async (nextSymbol = symbol, refresh = false) => {
@@ -155,19 +173,25 @@ const GlobalMarketSection = () => {
   }, [view]);
 
   useEffect(() => {
-    const refreshVisibleView = () => {
+    const refreshQuotes = () => {
       if (document.visibilityState !== "visible") return;
-      if (view === "overview") loadPulse(true);
-      if (view === "research") researchCompany(companySymbol, true);
-      if (view === "outlook") analyzeSymbol(symbol, true);
+      if (view === "overview") refreshOverviewQuotes();
     };
-    const intervalId = window.setInterval(refreshVisibleView, 120000);
+    const refreshSupportingData = () => {
+      if (document.visibilityState !== "visible") return;
+      if (view === "overview") loadPulse(false, false);
+      if (view === "research") researchCompany(companySymbol, false);
+      if (view === "outlook") analyzeSymbol(symbol, false);
+    };
+    const quoteIntervalId = window.setInterval(refreshQuotes, QUOTE_REFRESH_MS);
+    const supportingIntervalId = window.setInterval(refreshSupportingData, SUPPORTING_DATA_REFRESH_MS);
     const handleVisibility = () => {
-      if (document.visibilityState === "visible") refreshVisibleView();
+      if (document.visibilityState === "visible") refreshSupportingData();
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
-      window.clearInterval(intervalId);
+      window.clearInterval(quoteIntervalId);
+      window.clearInterval(supportingIntervalId);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -220,10 +244,10 @@ const GlobalMarketSection = () => {
   const sourcePresentation = sourceMode === "loading"
     ? { label: "Checking data source", color: "default", background: "action.hover", border: "divider", action: "Check now", message: "Checking the FinTrack backend and latest published analytics snapshot." }
     : sourceMode === "live"
-    ? { label: "FinTrack backend feed", color: "success", background: "success.50", border: "success.100", action: "Refresh live feed", message: `Backend data fetched ${formatTime(generatedAt)}. It refreshes while this page is open; exchange delays may still apply.` }
+    ? { label: "Auto-updating backend feed", color: "success", background: "success.50", border: "success.100", action: "Refresh now", message: `Latest response ${formatTime(generatedAt)}. Quotes update in the page while it stays open; provider and exchange delays may apply.` }
     : sourceMode === "browser-cache"
-      ? { label: "Last successful backend cache", color: "warning", background: "warning.50", border: "warning.100", action: "Retry backend", message: `The live backend is unavailable. Showing the last successful response from ${formatTime(generatedAt)} and retrying every 2 minutes.` }
-      : { label: "Hourly analytics snapshot - not live", color: "warning", background: "warning.50", border: "warning.100", action: "Check latest snapshot", message: `The public backend is unavailable. Analytics below were generated ${formatTime(generatedAt)}; the page checks every 2 minutes for a newer published snapshot.` };
+      ? { label: "Last successful backend cache", color: "warning", background: "warning.50", border: "warning.100", action: "Retry backend", message: `The backend is unavailable. Showing the last successful response from ${formatTime(generatedAt)} and retrying automatically.` }
+      : { label: "Hourly analytics snapshot - not live", color: "warning", background: "warning.50", border: "warning.100", action: "Retry live backend", message: `The backend is unavailable, so these values are the snapshot from ${formatTime(generatedAt)}. Start/wake the API for changing intraday quotes.` };
   const openCompanyResearch = (nextSymbol) => {
     setView("research");
     researchCompany(nextSymbol);
@@ -313,9 +337,17 @@ const GlobalMarketSection = () => {
 
 const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode, generatedAt, onOpenAnalysis, onOpenCompany }) => {
   if (loading && !overview) return <LinearProgress />;
+  const boardQuotes = overview?.watchlist?.length
+    ? overview.watchlist
+    : (overview?.markets || []).filter((market) => ["^NSEI", "^BSESN"].includes(market.symbol));
   return (
     <Stack spacing={2.5}>
-      <TradingViewTickerTape />
+      <MarketTickerBoard
+        quotes={boardQuotes}
+        sourceMode={sourceMode}
+        onOpenAnalysis={onOpenAnalysis}
+        onOpenCompany={onOpenCompany}
+      />
 
       <Box component="section">
         <SectionTitle
@@ -327,7 +359,7 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
           {(overview?.markets || []).map((market) => <IndexTile key={market.symbol} market={market} onClick={() => onOpenAnalysis(market.symbol)} />)}
         </Box>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-          Analytics data as of {formatTime(generatedAt)}. Select an index to open the ML evidence view.
+          Latest API response {formatTime(generatedAt)}. Every card shows its quote timestamp; select an index to open the FinTrack ML evidence view.
         </Typography>
       </Box>
 
@@ -386,57 +418,92 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
   );
 };
 
-const TradingViewTickerTape = () => {
-  const containerRef = useRef(null);
-  const theme = useTheme();
+const MarketTickerBoard = ({ quotes, sourceMode, onOpenAnalysis, onOpenCompany }) => (
+  <Box component="section">
+    <SectionTitle
+      icon={<TrendingUpIcon />}
+      title="Current Market Board"
+      detail={sourceMode === "live" ? "Auto-updates about every 30 seconds" : "Snapshot fallback; waiting for backend"}
+    />
+    <Paper variant="outlined" sx={{ minHeight: 86, p: 0.75, borderRadius: 1, overflow: "hidden", bgcolor: "background.paper" }}>
+      <Box sx={{ display: "flex", alignItems: "stretch", overflowX: "auto", scrollbarWidth: "thin" }}>
+        {(quotes || []).map((quote) => (
+          <LiveQuoteButton
+            key={quote.symbol}
+            quote={quote}
+            onClick={() => quote.kind === "company" ? onOpenCompany(quote.symbol) : onOpenAnalysis(quote.symbol)}
+          />
+        ))}
+        {!quotes?.length && (
+          <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>Market quotes are temporarily unavailable.</Typography>
+        )}
+      </Box>
+    </Paper>
+    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
+      Quotes stay inside FinTrack and never redirect automatically. Select a quote to open its FinTrack research view. Data may be delayed and does not change while its exchange is closed.
+    </Typography>
+  </Box>
+);
+
+const LiveQuoteButton = ({ quote, onClick }) => {
+  const price = Number(quote.price);
+  const previousPriceRef = useRef(Number.isFinite(price) ? price : null);
+  const [flash, setFlash] = useState(null);
+  const available = quote.status === "available" && Number.isFinite(price);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return undefined;
-    container.replaceChildren();
-
-    const widget = document.createElement("div");
-    widget.className = "tradingview-widget-container__widget";
-    const script = document.createElement("script");
-    script.type = "text/javascript";
-    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
-    script.async = true;
-    script.text = JSON.stringify({
-      symbols: [
-        { proName: "NSE:BHARTIARTL", title: "Bharti Airtel" },
-        { proName: "NSE:RELIANCE", title: "Reliance" },
-        { proName: "NSE:HDFCBANK", title: "HDFC Bank" },
-        { proName: "NSE:INFY", title: "Infosys" },
-        { proName: "NSE:NIFTY", title: "Nifty 50" },
-        { proName: "BSE:SENSEX", title: "Sensex" },
-        { proName: "NASDAQ:AAPL", title: "Apple" },
-        { proName: "NASDAQ:MSFT", title: "Microsoft" },
-        { proName: "TVC:GOLD", title: "Gold" },
-        { proName: "TVC:USOIL", title: "Crude Oil" },
-        { proName: "FX_IDC:USDINR", title: "USD/INR" }
-      ],
-      showSymbolLogo: true,
-      isTransparent: true,
-      displayMode: "adaptive",
-      colorTheme: theme.palette.mode,
-      locale: "en"
-    });
-    container.append(widget, script);
-    return () => container.replaceChildren();
-  }, [theme.palette.mode]);
+    if (!Number.isFinite(price)) return undefined;
+    let timer;
+    if (previousPriceRef.current !== null && price !== previousPriceRef.current) {
+      setFlash(price > previousPriceRef.current ? "up" : "down");
+      timer = window.setTimeout(() => setFlash(null), 900);
+    }
+    previousPriceRef.current = price;
+    return () => window.clearTimeout(timer);
+  }, [price]);
 
   return (
-    <Box component="section">
-      <SectionTitle icon={<TrendingUpIcon />} title="Current Market Board" detail="TradingView feed; exchange delays may apply" />
-      <Paper variant="outlined" sx={{ minHeight: 84, p: 1, borderRadius: 1, overflow: "hidden", bgcolor: "background.paper" }}>
-        <Box ref={containerRef} className="tradingview-widget-container" sx={{ minHeight: 62 }} />
-      </Paper>
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
-        This board is loaded directly by the TradingView widget. FinTrack's ML, breadth and factor cards below use the separately timestamped analytics feed.
+    <ButtonBase
+      disabled={!available}
+      onClick={available ? onClick : undefined}
+      aria-label={available ? `Open ${quote.name} in FinTrack` : `${quote.name} quote unavailable`}
+      sx={{
+        minWidth: { xs: 178, sm: 205 },
+        px: 1.5,
+        py: 1,
+        display: "block",
+        textAlign: "left",
+        borderRight: "1px solid",
+        borderColor: "divider",
+        bgcolor: flash === "up" ? "success.50" : flash === "down" ? "error.50" : "transparent",
+        transition: "background-color 500ms ease",
+        "&:hover": { bgcolor: "action.hover" }
+      }}
+    >
+      <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="space-between">
+        <Typography variant="body2" noWrap sx={{ fontWeight: 900 }}>{quote.name}</Typography>
+        {sourceModeDot(quote.quoteMode)}
+      </Stack>
+      {available ? (
+        <Stack direction="row" spacing={0.8} alignItems="baseline" sx={{ mt: 0.5 }}>
+          <Typography sx={{ fontWeight: 900, whiteSpace: "nowrap" }}>{formatNumber(price)}</Typography>
+          <Typography variant="body2" sx={{ color: directionColor(quote.changePercent), fontWeight: 900, whiteSpace: "nowrap" }}>
+            {signed(quote.changePercent)}%
+          </Typography>
+        </Stack>
+      ) : <Typography variant="caption" color="text.secondary">Temporarily unavailable</Typography>}
+      <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block", mt: 0.25 }}>
+        {quote.symbol} | {quote.currency || "Local"}
       </Typography>
-    </Box>
+    </ButtonBase>
   );
 };
+
+const sourceModeDot = (quoteMode) => (
+  <Tooltip title={quoteMode === "intraday" ? "Minute quote when available" : "Latest end-of-day quote"}>
+    <Box component="span" sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: quoteMode === "intraday" ? "success.main" : "warning.main", flexShrink: 0 }} />
+  </Tooltip>
+);
 
 const StockResearch = ({ company, symbol, setSymbol, loading, onSearch, onQuickSearch }) => (
   <Stack spacing={1.5}>
@@ -663,6 +730,11 @@ const IndexTile = ({ market, onClick }) => {
           </Box>
         )}
       </Box>
+      {available && market.dataAsOf && (
+        <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block", mt: 0.65 }}>
+          Quote {formatTime(market.dataAsOf)}
+        </Typography>
+      )}
     </ButtonBase>
   );
 };

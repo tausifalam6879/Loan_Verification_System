@@ -8,6 +8,7 @@ param(
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $frontendRoot = Join-Path $projectRoot "frontend"
+$aiServiceLauncher = Join-Path $projectRoot "start-ai-service.bat"
 
 Set-Location $projectRoot
 
@@ -57,17 +58,25 @@ cd "$projectRoot"
 .\start-backend.ps1
 "@
 
+$aiServiceCommand = @"
+cd "$projectRoot"
+& "$aiServiceLauncher"
+"@
+
 $frontendCommand = @"
 cd "$frontendRoot"
 npm start
 "@
 
-Start-Process powershell.exe -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $backendCommand
+Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-ExecutionPolicy", "Bypass", "-Command", $aiServiceCommand
 Start-Sleep -Seconds 2
-Start-Process powershell.exe -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $frontendCommand
+Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-ExecutionPolicy", "Bypass", "-Command", $backendCommand
+Start-Sleep -Seconds 2
+Start-Process powershell.exe -WindowStyle Hidden -ArgumentList "-ExecutionPolicy", "Bypass", "-Command", $frontendCommand
 
-Write-Host "Started backend and frontend."
+Write-Host "Started AI market service, backend and frontend."
 Write-Host "Frontend: http://localhost:3000/Loan_Verification_System"
 Write-Host "Backend:  http://localhost:8081"
+Write-Host "Market AI: http://localhost:8000"
 Write-Host "LLM provider: $Provider"
 Write-Host "LLM model: $Model"

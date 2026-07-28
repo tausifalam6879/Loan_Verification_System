@@ -74,6 +74,8 @@ test("uses the scheduled market snapshot when the cloud backend is unavailable",
 
   expect(result.availableMarkets).toBe(1);
   expect(result.markets[0].price).toBe(23995.95);
+  expect(result.watchlist.map((item) => item.symbol)).toEqual(["RELIANCE.NS", "^NSEI"]);
+  expect(result.watchlist[0].kind).toBe("company");
   expect(result.__dataMeta.mode).toBe("scheduled-snapshot");
   expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining("/data/market-snapshot.json"), { cache: "no-store" });
 });
