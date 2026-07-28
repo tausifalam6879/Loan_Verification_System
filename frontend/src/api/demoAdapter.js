@@ -39,6 +39,10 @@ const normalizeExpenseTimestamps = (expenses = []) =>
   });
 
 const initialState = {
+  profile: {
+    fullName: "",
+    mobile: ""
+  },
   expenses: [
     { id: 1, amount: 8500, category: "Rent", description: "Monthly apartment rent", merchant: "Landlord", paymentMethod: "UPI", recurring: true, date: monthsAgo(0, 2), createdAt: timestampFor(monthsAgo(0, 2), 9) },
     { id: 2, amount: 2350, category: "Food", description: "Groceries and vegetables", merchant: "Reliance Fresh", paymentMethod: "Card", recurring: false, date: monthsAgo(0, 8), createdAt: timestampFor(monthsAgo(0, 8), 18) },
@@ -278,13 +282,45 @@ const demoAdapter = async (config) => {
         ? window.localStorage.getItem("role") || "USER"
         : "USER";
 
+    const submittedScores = state.applications
+      .map((application) => Number(application.creditScore))
+      .filter((score) => Number.isFinite(score));
+
     return response(config, {
       id: 101,
-      fullName: email.includes("@") ? email.split("@")[0].replace(/[._-]+/g, " ") : "Demo User",
+      fullName: state.profile?.fullName || (email.includes("@") ? email.split("@")[0].replace(/[._-]+/g, " ") : "Demo User"),
+      email,
+      mobile: state.profile?.mobile || "",
+      role,
+      totalApplications: state.applications.length,
+      creditScore: submittedScores.length ? Math.max(...submittedScores) : null
+    });
+  }
+
+  if (path === "/users/me" && method === "patch") {
+    state.profile = {
+      fullName: String(body.fullName || "").trim(),
+      mobile: String(body.mobile || "").replace(/[\s-]/g, "")
+    };
+    writeState(state);
+
+    const email = typeof window !== "undefined"
+      ? window.localStorage.getItem("email") || "demo@fintrack.in"
+      : "demo@fintrack.in";
+    const role = typeof window !== "undefined"
+      ? window.localStorage.getItem("role") || "USER"
+      : "USER";
+    const submittedScores = state.applications
+      .map((application) => Number(application.creditScore))
+      .filter((score) => Number.isFinite(score));
+
+    return response(config, {
+      id: 101,
+      ...state.profile,
       email,
       role,
       totalApplications: state.applications.length,
-      creditScore: 735
+      creditScore: submittedScores.length ? Math.max(...submittedScores) : null
     });
   }
 

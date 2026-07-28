@@ -6,6 +6,7 @@ import com.loan.VerificationSystem.dto.OtpRequestDTO;
 import com.loan.VerificationSystem.dto.OtpResponseDTO;
 import com.loan.VerificationSystem.dto.OtpVerifyRequestDTO;
 import com.loan.VerificationSystem.dto.UserRequestDTO;
+import com.loan.VerificationSystem.dto.UserProfileUpdateDTO;
 import com.loan.VerificationSystem.dto.UserResponseDTO;
 import com.loan.VerificationSystem.service.UserService;
 import jakarta.validation.Valid;
@@ -68,5 +69,10 @@ public class UserController {
     @GetMapping("/me")
     public UserResponseDTO getCurrentUser() {
         return userService.getCurrentUser();
+    }
+
+    @PatchMapping("/me")
+    public UserResponseDTO updateCurrentUser(@Valid @RequestBody UserProfileUpdateDTO request) {
+        return userService.updateCurrentUser(request);
     }
 }

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import App from './App';
 
 beforeEach(() => {
@@ -51,4 +51,30 @@ test('renders the authenticated loan application center route', async () => {
 
   expect(await screen.findByRole("heading", { name: /Loan Application Center/i })).toBeInTheDocument();
   expect(await screen.findByRole("heading", { name: /Your applications/i })).toBeInTheDocument();
+});
+
+test('opens saved applications from the loan marketplace', async () => {
+  localStorage.setItem("token", "test-token");
+  localStorage.setItem("role", "USER");
+  localStorage.setItem("email", "user@example.com");
+  window.location.hash = "#/loans";
+
+  render(<App />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /Open saved applications page/i }));
+
+  expect(await screen.findByRole("heading", { name: /Loan Application Center/i })).toBeInTheDocument();
+  expect(window.location.hash).toBe("#/applications");
+});
+
+test('renders the authenticated profile command center route', async () => {
+  localStorage.setItem("token", "test-token");
+  localStorage.setItem("role", "USER");
+  localStorage.setItem("email", "user@example.com");
+  window.location.hash = "#/profile";
+
+  render(<App />);
+
+  expect(await screen.findByText(/Account command center/i)).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /Financial snapshot/i })).toBeInTheDocument();
 });

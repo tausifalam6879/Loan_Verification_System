@@ -504,6 +504,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
             <LoanSection
               balance={balance}
               onRecordPayment={handleGatewayPayment}
+              onOpenApplications={() => openWorkspace("applications")}
               view={activeWorkspace}
             />
           )}

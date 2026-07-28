@@ -73,7 +73,7 @@ const iconMap = {
   gold: SavingsIcon
 };
 
-const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
+const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = "loans" }) => {
   const [offers, setOffers] = useState([]);
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [applications, setApplications] = useState([]);
@@ -690,9 +690,17 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
     }
   };
 
-  const scrollToSavedApplications = () => {
+  const openSavedApplications = () => {
     setApplicationOpen(false);
     setPaymentOpen(false);
+
+    if (view === "loans" && typeof onOpenApplications === "function") {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      onOpenApplications();
+      return;
+    }
+
     window.setTimeout(() => {
       document.getElementById("loan-applications")?.scrollIntoView({
         behavior: "smooth",
@@ -766,10 +774,20 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
         </Box>
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ alignSelf: { xs: "flex-start", md: "center" } }}>
+          {view === "loans" && (
+            <Button
+              variant="outlined"
+              onClick={openSavedApplications}
+              aria-label="Open saved applications page"
+              sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
+            >
+              Saved applications
+            </Button>
+          )}
           {showSavedApplications && view !== "applications" && (
             <Button
               variant="outlined"
-              onClick={scrollToSavedApplications}
+              onClick={openSavedApplications}
               sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
             >
               View Saved Applications
@@ -1518,7 +1536,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, view = "loans" }) => {
                         </Button>
                         <Button
                           variant="outlined"
-                          onClick={scrollToSavedApplications}
+                          onClick={openSavedApplications}
                           sx={{ alignSelf: "flex-start", borderRadius: 2, textTransform: "none", fontWeight: 900 }}
                         >
                           Open Saved Applications

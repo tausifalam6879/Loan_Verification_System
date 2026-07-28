@@ -6,6 +6,7 @@ import com.loan.VerificationSystem.dto.OtpRequestDTO;
 import com.loan.VerificationSystem.dto.OtpResponseDTO;
 import com.loan.VerificationSystem.dto.OtpVerifyRequestDTO;
 import com.loan.VerificationSystem.dto.UserRequestDTO;
+import com.loan.VerificationSystem.dto.UserProfileUpdateDTO;
 import com.loan.VerificationSystem.dto.UserResponseDTO;
 import com.loan.VerificationSystem.entity.User;
 import com.loan.VerificationSystem.repository.UserRepository;
@@ -149,17 +150,23 @@ public class UserService {
     }
 
     public UserResponseDTO getCurrentUser() {
-        String email = org.springframework.security.core.context.SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getName();
+        return mapToResponse(getAuthenticatedUser());
+    }
 
-        User user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new RuntimeException("Authenticated user not found");
+    public UserResponseDTO updateCurrentUser(UserProfileUpdateDTO request) {
+        User user = getAuthenticatedUser();
+        String normalizedMobile = normalizeMobile(request.getMobile());
+
+        if (hasText(normalizedMobile)) {
+            User mobileOwner = userRepository.findByMobile(normalizedMobile);
+            if (mobileOwner != null && !mobileOwner.getId().equals(user.getId())) {
+                throw new RuntimeException("Mobile number already registered");
+            }
         }
 
-        return mapToResponse(user);
+        user.setFullName(request.getFullName().trim());
+        user.setMobile(hasText(normalizedMobile) ? normalizedMobile : null);
+        return mapToResponse(userRepository.save(user));
     }
 
     private UserResponseDTO mapToResponse(User user) {
@@ -187,6 +194,18 @@ public class UserService {
         }
 
         return userRepository.findByEmail(request.getEmail());
+    }
+
+    private User getAuthenticatedUser() {
+        String email = org.springframework.security.core.context.SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new RuntimeException("Authenticated user not found");
+        }
+        return user;
     }
 
     private String normalizeChannel(String channel) {
