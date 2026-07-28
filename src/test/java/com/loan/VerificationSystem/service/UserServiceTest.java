@@ -2,6 +2,8 @@ package com.loan.VerificationSystem.service;
 
 import com.loan.VerificationSystem.dto.UserProfileUpdateDTO;
 import com.loan.VerificationSystem.dto.UserResponseDTO;
+import com.loan.VerificationSystem.dto.OtpRequestDTO;
+import com.loan.VerificationSystem.dto.OtpVerifyRequestDTO;
 import com.loan.VerificationSystem.entity.User;
 import com.loan.VerificationSystem.repository.UserRepository;
 import com.loan.VerificationSystem.security.JwtService;
@@ -19,8 +21,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.ArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -80,5 +84,54 @@ class UserServiceTest {
         assertThat(response.getMobile()).isEqualTo("9876543210");
         assertThat(response.getEmail()).isEqualTo("user@example.com");
         verify(userRepository).save(user);
+    }
+
+    @Test
+    void rejectsLoginOtpRequestForUnknownEmailBeforeGeneratingOtp() {
+        OtpRequestDTO request = new OtpRequestDTO();
+        request.setEmail("  unknown@example.com ");
+        request.setChannel("EMAIL");
+        request.setPurpose("LOGIN");
+
+        when(userRepository.findByEmail("unknown@example.com")).thenReturn(null);
+
+        assertThatThrownBy(() -> userService.requestOtp(request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Unable to process OTP for the provided login details");
+
+        verifyNoInteractions(otpService);
+    }
+
+    @Test
+    void rejectsLoginOtpVerificationForUnknownMobileBeforeCheckingOtp() {
+        OtpVerifyRequestDTO request = new OtpVerifyRequestDTO();
+        request.setMobile("98765 00000");
+        request.setChannel("MOBILE");
+        request.setPurpose("LOGIN");
+        request.setOtp("123456");
+
+        when(userRepository.findByMobile("9876500000")).thenReturn(null);
+
+        assertThatThrownBy(() -> userService.verifyOtp(request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Unable to process OTP for the provided login details");
+
+        verifyNoInteractions(otpService);
+    }
+
+    @Test
+    void rejectsRegistrationOtpForAnAlreadyRegisteredEmailWithClearGuidance() {
+        OtpRequestDTO request = new OtpRequestDTO();
+        request.setEmail("registered@example.com");
+        request.setChannel("EMAIL");
+        request.setPurpose("REGISTER");
+
+        when(userRepository.findByEmail("registered@example.com")).thenReturn(new User());
+
+        assertThatThrownBy(() -> userService.requestOtp(request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Email already registered. Please use Login instead.");
+
+        verifyNoInteractions(otpService);
     }
 }

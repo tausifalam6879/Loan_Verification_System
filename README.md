@@ -42,7 +42,7 @@ Demo URL:
 https://tausifalam6879.github.io/Loan_Verification_System
 ```
 
-On GitHub Pages, choose **Explore Market Demo Instantly** to enter the market workspace without starting Java, Python or a database. The hosted demo adapter keeps sample account/application data in that browser, while the market workspace uses the timestamped public snapshot. A separately deployed backend is still required for persistent multi-user production accounts and arbitrary live research requests.
+On GitHub Pages, register a browser-demo account and then sign in with the same email/mobile and password or verified demo OTP. Private routes validate a short-lived browser session before rendering, and saved demo data is isolated by registered account. The market workspace still uses the timestamped public snapshot without requiring Java, Python or a database. A separately deployed backend is required for persistent multi-user production accounts and arbitrary live research requests.
 
 ## Tech Stack
 

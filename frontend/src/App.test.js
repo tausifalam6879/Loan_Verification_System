@@ -1,8 +1,24 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import App from './App';
+import { validateSession } from './services/authService';
+
+jest.mock('./services/authService', () => {
+  const actual = jest.requireActual('./services/authService');
+  return {
+    ...actual,
+    validateSession: jest.fn(async () => ({
+      email: global.localStorage.getItem('email'),
+      role: global.localStorage.getItem('role') || 'USER'
+    }))
+  };
+});
 
 beforeEach(() => {
   localStorage.clear();
+  validateSession.mockImplementation(async () => ({
+    email: localStorage.getItem('email'),
+    role: localStorage.getItem('role') || 'USER'
+  }));
 });
 
 afterEach(() => {

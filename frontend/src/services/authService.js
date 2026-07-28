@@ -1,9 +1,19 @@
 import api from "../api/axiosConfig";
+import { revokeDemoSession } from "../api/demoAdapter";
+
+export const clearAuthSession = () => {
+  const token = localStorage.getItem("token");
+  revokeDemoSession(token);
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  localStorage.removeItem("email");
+};
 
 export const login = async (credentials) => {
   const response = await api.post("/users/login", credentials);
   const { token, role, email } = response.data;
 
+  clearAuthSession();
   localStorage.setItem("token", token);
   localStorage.setItem("role", role || "USER");
   localStorage.setItem("email", email || credentials.email);
@@ -32,9 +42,7 @@ export const getAuthConfig = async () => {
 };
 
 export const logout = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("role");
-  localStorage.removeItem("email");
+  clearAuthSession();
 };
 
 export const getCurrentAuth = () => ({
@@ -46,6 +54,17 @@ export const getCurrentAuth = () => ({
 export const getProfile = async () => {
   const response = await api.get("/users/me");
   return response.data;
+};
+
+export const validateSession = async () => {
+  if (!localStorage.getItem("token")) {
+    throw new Error("Authentication is required");
+  }
+
+  const profile = await getProfile();
+  localStorage.setItem("role", profile.role || "USER");
+  localStorage.setItem("email", profile.email || "");
+  return profile;
 };
 
 export const updateProfile = async (profile) => {

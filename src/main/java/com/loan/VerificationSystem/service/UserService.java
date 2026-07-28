@@ -37,17 +37,19 @@ public class UserService {
     }
 
     public UserResponseDTO registerUser(UserRequestDTO request) {
+        String normalizedEmail = normalizeEmail(request.getEmail());
+        String normalizedMobile = normalizeMobile(request.getMobile());
+
         if (hasText(request.getOtpToken())) {
-            otpService.validateToken(request.getEmail(), request.getMobile(), "REGISTER", request.getOtpToken(), tokenChannel(normalizeChannel(request.getOtpChannel())));
+            otpService.validateToken(normalizedEmail, normalizedMobile, "REGISTER", request.getOtpToken(), tokenChannel(normalizeChannel(request.getOtpChannel())));
         }
 
-        User existingUser = userRepository.findByEmail(request.getEmail());
+        User existingUser = userRepository.findByEmail(normalizedEmail);
 
         if (existingUser != null) {
             throw new RuntimeException("Email already registered");
         }
 
-        String normalizedMobile = normalizeMobile(request.getMobile());
         if (hasText(normalizedMobile) && userRepository.findByMobile(normalizedMobile) != null) {
             throw new RuntimeException("Mobile number already registered");
         }
@@ -55,7 +57,7 @@ public class UserService {
         User user = new User();
 
         user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
+        user.setEmail(normalizedEmail);
         user.setMobile(hasText(normalizedMobile) ? normalizedMobile : null);
         user.setPassword(
                 passwordEncoder.encode(request.getPassword())
@@ -82,7 +84,7 @@ public class UserService {
         }
 
         if (hasText(request.getOtpToken())) {
-            otpService.validateToken(request.getEmail(), request.getMobile(), "LOGIN", request.getOtpToken(), tokenChannel(channel));
+            otpService.validateToken(normalizeEmail(request.getEmail()), normalizeMobile(request.getMobile()), "LOGIN", request.getOtpToken(), tokenChannel(channel));
             return buildLoginResponse(user);
         }
 
@@ -114,9 +116,10 @@ public class UserService {
     }
 
     public OtpResponseDTO requestOtp(OtpRequestDTO request) {
+        ensureOtpIdentityAllowed(request.getEmail(), request.getMobile(), request.getPurpose(), request.getChannel());
         OtpService.OtpDeliveryResult delivery = otpService.sendOtp(
-                request.getEmail(),
-                request.getMobile(),
+                normalizeEmail(request.getEmail()),
+                normalizeMobile(request.getMobile()),
                 request.getPurpose(),
                 request.getChannel()
         );
@@ -132,9 +135,10 @@ public class UserService {
     }
 
     public OtpResponseDTO verifyOtp(OtpVerifyRequestDTO request) {
+        ensureOtpIdentityAllowed(request.getEmail(), request.getMobile(), request.getPurpose(), request.getChannel());
         String token = otpService.verifyOtp(
-                request.getEmail(),
-                request.getMobile(),
+                normalizeEmail(request.getEmail()),
+                normalizeMobile(request.getMobile()),
                 request.getPurpose(),
                 request.getOtp(),
                 request.getChannel()
@@ -193,7 +197,32 @@ public class UserService {
             return userRepository.findByMobile(normalizeMobile(request.getMobile()));
         }
 
-        return userRepository.findByEmail(request.getEmail());
+        return userRepository.findByEmail(normalizeEmail(request.getEmail()));
+    }
+
+    private void ensureOtpIdentityAllowed(String email, String mobile, String purpose, String channel) {
+        String normalizedPurpose = purpose == null ? "" : purpose.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!"LOGIN".equals(normalizedPurpose) && !"REGISTER".equals(normalizedPurpose)) {
+            return;
+        }
+
+        String normalizedChannel = normalizeChannel(channel);
+        User user;
+        if ("MOBILE".equals(normalizedChannel) || "WHATSAPP".equals(normalizedChannel)) {
+            String normalizedMobile = normalizeMobile(mobile);
+            user = hasText(normalizedMobile) ? userRepository.findByMobile(normalizedMobile) : null;
+        } else {
+            String normalizedEmail = normalizeEmail(email);
+            user = hasText(normalizedEmail) ? userRepository.findByEmail(normalizedEmail) : null;
+        }
+
+        if ("LOGIN".equals(normalizedPurpose) && user == null) {
+            throw new RuntimeException("Unable to process OTP for the provided login details");
+        }
+        if ("REGISTER".equals(normalizedPurpose) && user != null) {
+            String identityLabel = "EMAIL".equals(normalizedChannel) ? "Email" : "Mobile number";
+            throw new RuntimeException(identityLabel + " already registered. Please use Login instead.");
+        }
     }
 
     private User getAuthenticatedUser() {
@@ -228,5 +257,9 @@ public class UserService {
 
     private String normalizeMobile(String mobile) {
         return mobile == null ? "" : mobile.replaceAll("[\\s-]", "");
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase(java.util.Locale.ROOT);
     }
 }
