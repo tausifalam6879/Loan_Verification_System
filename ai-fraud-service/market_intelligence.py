@@ -35,12 +35,30 @@ GLOBAL_INDICES = {
 }
 
 MARKET_BOARD = {
-    "RELIANCE.NS": {"name": "Reliance", "region": "India", "currency": "INR", "kind": "company"},
-    "HDFCBANK.NS": {"name": "HDFC Bank", "region": "India", "currency": "INR", "kind": "company"},
-    "INFY.NS": {"name": "Infosys", "region": "India", "currency": "INR", "kind": "company"},
-    "^NSEI": {"name": "Nifty 50", "region": "India", "currency": "INR", "kind": "index"},
-    "^BSESN": {"name": "BSE Sensex", "region": "India", "currency": "INR", "kind": "index"},
-    "AAPL": {"name": "Apple", "region": "United States", "currency": "USD", "kind": "company"},
+    "^NSEI": {"name": "Nifty 50", "region": "India", "currency": "INR", "kind": "index", "sector": "Indices"},
+    "^BSESN": {"name": "BSE Sensex", "region": "India", "currency": "INR", "kind": "index", "sector": "Indices"},
+    "RELIANCE.NS": {"name": "Reliance", "region": "India", "currency": "INR", "kind": "company", "sector": "Energy"},
+    "ONGC.NS": {"name": "ONGC", "region": "India", "currency": "INR", "kind": "company", "sector": "Energy"},
+    "HDFCBANK.NS": {"name": "HDFC Bank", "region": "India", "currency": "INR", "kind": "company", "sector": "Banking"},
+    "ICICIBANK.NS": {"name": "ICICI Bank", "region": "India", "currency": "INR", "kind": "company", "sector": "Banking"},
+    "SBIN.NS": {"name": "SBI", "region": "India", "currency": "INR", "kind": "company", "sector": "Banking"},
+    "INFY.NS": {"name": "Infosys", "region": "India", "currency": "INR", "kind": "company", "sector": "Technology"},
+    "TCS.NS": {"name": "TCS", "region": "India", "currency": "INR", "kind": "company", "sector": "Technology"},
+    "WIPRO.NS": {"name": "Wipro", "region": "India", "currency": "INR", "kind": "company", "sector": "Technology"},
+    "AAPL": {"name": "Apple", "region": "United States", "currency": "USD", "kind": "company", "sector": "Technology"},
+    "MSFT": {"name": "Microsoft", "region": "United States", "currency": "USD", "kind": "company", "sector": "Technology"},
+    "GOOGL": {"name": "Alphabet", "region": "United States", "currency": "USD", "kind": "company", "sector": "Technology"},
+    "MARUTI.NS": {"name": "Maruti Suzuki", "region": "India", "currency": "INR", "kind": "company", "sector": "Automobile"},
+    "EICHERMOT.NS": {"name": "Eicher Motors", "region": "India", "currency": "INR", "kind": "company", "sector": "Automobile"},
+    "BAJAJ-AUTO.NS": {"name": "Bajaj Auto", "region": "India", "currency": "INR", "kind": "company", "sector": "Automobile"},
+    "TSLA": {"name": "Tesla", "region": "United States", "currency": "USD", "kind": "company", "sector": "Automobile"},
+    "ITC.NS": {"name": "ITC", "region": "India", "currency": "INR", "kind": "company", "sector": "Consumer"},
+    "HINDUNILVR.NS": {"name": "Hindustan Unilever", "region": "India", "currency": "INR", "kind": "company", "sector": "Consumer"},
+    "AMZN": {"name": "Amazon", "region": "United States", "currency": "USD", "kind": "company", "sector": "Consumer"},
+    "SUNPHARMA.NS": {"name": "Sun Pharma", "region": "India", "currency": "INR", "kind": "company", "sector": "Healthcare"},
+    "BHARTIARTL.NS": {"name": "Bharti Airtel", "region": "India", "currency": "INR", "kind": "company", "sector": "Telecom"},
+    "NETWORK18.NS": {"name": "Network18", "region": "India", "currency": "INR", "kind": "company", "sector": "Media"},
+    "NYT": {"name": "New York Times", "region": "United States", "currency": "USD", "kind": "company", "sector": "Media"},
 }
 
 MACRO_FACTORS = {
@@ -364,7 +382,7 @@ def global_overview() -> Dict[str, Any]:
                 }
     snapshots = [quotes_by_symbol[symbol] for symbol in GLOBAL_INDICES]
     watchlist = [
-        {**quotes_by_symbol[symbol], "kind": metadata["kind"]}
+        {**quotes_by_symbol[symbol], "kind": metadata["kind"], "sector": metadata["sector"]}
         for symbol, metadata in MARKET_BOARD.items()
     ]
     available = [item for item in snapshots if item["status"] == "available"]
@@ -522,7 +540,10 @@ def company_research(symbol: str) -> Dict[str, Any]:
 
 
 def market_news_feed(limit: int = 12) -> Dict[str, Any]:
-    source_symbols = ["^NSEI", "^GSPC", "GC=F", "CL=F", "INR=X"]
+    source_symbols = [
+        "^NSEI", "^GSPC", "GC=F", "CL=F", "INR=X",
+        "INFY.NS", "MARUTI.NS", "SUNPHARMA.NS", "NETWORK18.NS", "AAPL", "TSLA",
+    ]
     articles: List[Dict[str, Any]] = []
     seen = set()
     with ThreadPoolExecutor(max_workers=5) as executor:
@@ -540,7 +561,10 @@ def market_news_feed(limit: int = 12) -> Dict[str, Any]:
     articles.sort(key=lambda item: str(item.get("publishedAt") or ""), reverse=True)
     return {
         "articles": articles[:max(1, min(limit, 20))],
-        "topics": ["India", "Global equities", "Gold", "Crude oil", "USD/INR"],
+        "topics": [
+            "India", "Global equities", "Technology", "Automobile", "Healthcare",
+            "Media", "Gold", "Crude oil", "USD/INR",
+        ],
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "source": "Yahoo Finance headlines via yfinance",
     }

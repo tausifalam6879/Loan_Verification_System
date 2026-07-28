@@ -2,7 +2,7 @@ name: Deploy frontend to GitHub Pages
 
 on:
   schedule:
-    - cron: "17 * * * *"
+    - cron: "7,22,37,52 * * * *"
   push:
     branches:
       - main

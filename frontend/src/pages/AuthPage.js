@@ -20,8 +20,10 @@ import EmailIcon from "@mui/icons-material/Email";
 import LoginIcon from "@mui/icons-material/Login";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import PhoneAndroidIcon from "@mui/icons-material/PhoneAndroid";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import { demoMode } from "../api/demoAdapter";
 import { getAuthConfig, login, register, requestOtp, verifyOtp } from "../services/authService";
 
 const AuthPage = ({ mode = "login" }) => {
@@ -217,6 +219,19 @@ const AuthPage = ({ mode = "login" }) => {
     setForm((current) => ({ ...current, otp: "", otpToken: "" }));
   };
 
+  const handleInterviewDemo = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      await login({ email: "interviewer@fintrack.demo", password: "demo-access" });
+      navigate("/markets", { replace: true });
+    } catch (error) {
+      setError("Interview demo could not start. Refresh the page and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <CssBaseline />
@@ -260,7 +275,7 @@ const AuthPage = ({ mode = "login" }) => {
                   {isRegister ? "Create Account" : "Login"}
                 </Typography>
                 <Typography variant="body2" sx={{ color: "#64748b" }}>
-                  Connect React dashboard with Spring Boot JWT APIs.
+                  {demoMode ? "Zero-setup interview demo with browser-safe sample account." : "Connect React dashboard with Spring Boot JWT APIs."}
                 </Typography>
               </Box>
             </Box>
@@ -269,6 +284,23 @@ const AuthPage = ({ mode = "login" }) => {
               {error && <Alert severity="error">{error}</Alert>}
               {warning && <Alert severity="warning">{warning}</Alert>}
               {success && <Alert severity="success">{success}</Alert>}
+
+              {!isRegister && demoMode && (
+                <>
+                  <Button
+                    type="button"
+                    variant="contained"
+                    color="secondary"
+                    startIcon={<ShowChartIcon />}
+                    onClick={handleInterviewDemo}
+                    disabled={loading}
+                    sx={{ py: 1.2, textTransform: "none", fontWeight: 900 }}
+                  >
+                    Explore Market Demo Instantly
+                  </Button>
+                  <Divider>or use a demo sign-in method</Divider>
+                </>
+              )}
 
               <ToggleButtonGroup
                 exclusive

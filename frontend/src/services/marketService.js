@@ -2,20 +2,40 @@ import api from "../api/axiosConfig";
 
 const REQUEST_TIMEOUT_MS = 8000;
 const QUOTE_REQUEST_TIMEOUT_MS = 20000;
+const SNAPSHOT_RECHECK_MS = 60000;
 const CACHE_PREFIX = "fintrack.market.v3";
 const SNAPSHOT_URL = `${process.env.PUBLIC_URL || ""}/data/market-snapshot.json`;
 
 const MARKET_BOARD = [
-  { symbol: "RELIANCE.NS", name: "Reliance", kind: "company" },
-  { symbol: "HDFCBANK.NS", name: "HDFC Bank", kind: "company" },
-  { symbol: "INFY.NS", name: "Infosys", kind: "company" },
-  { symbol: "^NSEI", name: "Nifty 50", kind: "index" },
-  { symbol: "^BSESN", name: "BSE Sensex", kind: "index" },
-  { symbol: "AAPL", name: "Apple", kind: "company" }
+  { symbol: "^NSEI", name: "Nifty 50", kind: "index", sector: "Indices" },
+  { symbol: "^BSESN", name: "BSE Sensex", kind: "index", sector: "Indices" },
+  { symbol: "RELIANCE.NS", name: "Reliance", kind: "company", sector: "Energy" },
+  { symbol: "ONGC.NS", name: "ONGC", kind: "company", sector: "Energy" },
+  { symbol: "HDFCBANK.NS", name: "HDFC Bank", kind: "company", sector: "Banking" },
+  { symbol: "ICICIBANK.NS", name: "ICICI Bank", kind: "company", sector: "Banking" },
+  { symbol: "SBIN.NS", name: "SBI", kind: "company", sector: "Banking" },
+  { symbol: "INFY.NS", name: "Infosys", kind: "company", sector: "Technology" },
+  { symbol: "TCS.NS", name: "TCS", kind: "company", sector: "Technology" },
+  { symbol: "WIPRO.NS", name: "Wipro", kind: "company", sector: "Technology" },
+  { symbol: "AAPL", name: "Apple", kind: "company", sector: "Technology" },
+  { symbol: "MSFT", name: "Microsoft", kind: "company", sector: "Technology" },
+  { symbol: "GOOGL", name: "Alphabet", kind: "company", sector: "Technology" },
+  { symbol: "MARUTI.NS", name: "Maruti Suzuki", kind: "company", sector: "Automobile" },
+  { symbol: "EICHERMOT.NS", name: "Eicher Motors", kind: "company", sector: "Automobile" },
+  { symbol: "BAJAJ-AUTO.NS", name: "Bajaj Auto", kind: "company", sector: "Automobile" },
+  { symbol: "TSLA", name: "Tesla", kind: "company", sector: "Automobile" },
+  { symbol: "ITC.NS", name: "ITC", kind: "company", sector: "Consumer" },
+  { symbol: "HINDUNILVR.NS", name: "Hindustan Unilever", kind: "company", sector: "Consumer" },
+  { symbol: "AMZN", name: "Amazon", kind: "company", sector: "Consumer" },
+  { symbol: "SUNPHARMA.NS", name: "Sun Pharma", kind: "company", sector: "Healthcare" },
+  { symbol: "BHARTIARTL.NS", name: "Bharti Airtel", kind: "company", sector: "Telecom" },
+  { symbol: "NETWORK18.NS", name: "Network18", kind: "company", sector: "Media" },
+  { symbol: "NYT", name: "New York Times", kind: "company", sector: "Media" }
 ];
 
 let snapshotPromise;
 let lastForcedSnapshotAt = 0;
+let snapshotLoadedAt = 0;
 
 const normaliseSymbol = (symbol) => String(symbol || "").trim().toUpperCase();
 
@@ -53,12 +73,16 @@ const loadScheduledSnapshot = async (force = false) => {
     snapshotPromise = undefined;
     lastForcedSnapshotAt = now;
   }
+  if (!force && snapshotPromise && now - snapshotLoadedAt >= SNAPSHOT_RECHECK_MS) {
+    snapshotPromise = undefined;
+  }
   if (!snapshotPromise) {
     const separator = SNAPSHOT_URL.includes("?") ? "&" : "?";
     const requestUrl = force ? `${SNAPSHOT_URL}${separator}refresh=${now}` : SNAPSHOT_URL;
     snapshotPromise = fetch(requestUrl, { cache: "no-store" })
       .then((response) => {
         if (!response.ok) throw new Error(`Snapshot request failed (${response.status})`);
+        snapshotLoadedAt = Date.now();
         return response.json();
       })
       .catch((error) => {
@@ -154,7 +178,7 @@ const overviewFromSnapshot = (snapshot) => {
   const watchlist = MARKET_BOARD.map((definition) => {
     const company = companies[definition.symbol];
     const quote = indices.get(definition.symbol) || company?.quote;
-    return quote ? { ...quote, symbol: definition.symbol, name: definition.name, kind: definition.kind } : null;
+    return quote ? { ...quote, symbol: definition.symbol, name: definition.name, kind: definition.kind, sector: definition.sector } : null;
   }).filter(Boolean);
   return { ...overview, watchlist };
 };
@@ -278,4 +302,5 @@ export const askMarketAgent = async ({ message, symbol, recentMessages = [] }) =
 export const resetMarketFallbackStateForTests = () => {
   snapshotPromise = undefined;
   lastForcedSnapshotAt = 0;
+  snapshotLoadedAt = 0;
 };

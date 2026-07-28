@@ -23,10 +23,14 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import InsightsIcon from "@mui/icons-material/Insights";
 import NewspaperIcon from "@mui/icons-material/Newspaper";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PublicIcon from "@mui/icons-material/Public";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import SendIcon from "@mui/icons-material/Send";
+import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import TrendingFlatIcon from "@mui/icons-material/TrendingFlat";
@@ -79,6 +83,42 @@ const directionColor = (value) => Number(value) >= 0 ? "#15803d" : "#dc2626";
 const outlookColor = (outlook) => outlook === "BULLISH" ? "#15803d" : outlook === "BEARISH" ? "#dc2626" : "#b45309";
 const QUOTE_REFRESH_MS = 30000;
 const SUPPORTING_DATA_REFRESH_MS = 120000;
+const MARKET_ALERT_STORAGE_KEY = "fintrack.market.notified-alerts.v1";
+
+const quoteSourceUrl = (symbol) => `https://finance.yahoo.com/quote/${encodeURIComponent(symbol || "")}`;
+
+export const buildMarketAlerts = (quotes) => {
+  const seen = new Set();
+  const alerts = [];
+  (quotes || []).forEach((quote) => {
+    if (!quote?.symbol || seen.has(quote.symbol) || quote.status !== "available" || quote.changePercent === null || quote.changePercent === undefined) return;
+    seen.add(quote.symbol);
+    const move = Number(quote.changePercent);
+    if (!Number.isFinite(move)) return;
+    const isIndex = quote.kind === "index" || String(quote.symbol).startsWith("^");
+    const thresholds = isIndex
+      ? { warningDown: -1, criticalDown: -2.5, strongUp: 1.5 }
+      : { warningDown: -2, criticalDown: -4, strongUp: 3 };
+    let signal;
+    if (move <= thresholds.criticalDown) {
+      signal = { level: "critical", severity: "error", title: "Critical downside move" };
+    } else if (move <= thresholds.warningDown) {
+      signal = { level: "warning", severity: "warning", title: "Downside watch" };
+    } else if (move >= thresholds.strongUp) {
+      signal = { level: "upside", severity: "success", title: "Strong upside move" };
+    }
+    if (!signal) return;
+    alerts.push({
+      ...signal,
+      id: `${quote.symbol}:${signal.level}`,
+      move,
+      quote,
+      detail: `${quote.name} is ${Math.abs(move).toFixed(2)}% ${move < 0 ? "down" : "up"} versus its previous close.`
+    });
+  });
+  const priority = { critical: 0, warning: 1, upside: 2 };
+  return alerts.sort((left, right) => priority[left.level] - priority[right.level] || Math.abs(right.move) - Math.abs(left.move));
+};
 
 const GlobalMarketSection = () => {
   const [view, setView] = useState("overview");
@@ -247,7 +287,7 @@ const GlobalMarketSection = () => {
     ? { label: "Auto-updating backend feed", color: "success", background: "success.50", border: "success.100", action: "Refresh now", message: `Latest response ${formatTime(generatedAt)}. Quotes update in the page while it stays open; provider and exchange delays may apply.` }
     : sourceMode === "browser-cache"
       ? { label: "Last successful backend cache", color: "warning", background: "warning.50", border: "warning.100", action: "Retry backend", message: `The backend is unavailable. Showing the last successful response from ${formatTime(generatedAt)} and retrying automatically.` }
-      : { label: "Hourly analytics snapshot - not live", color: "warning", background: "warning.50", border: "warning.100", action: "Retry live backend", message: `The backend is unavailable, so these values are the snapshot from ${formatTime(generatedAt)}. Start/wake the API for changing intraday quotes.` };
+      : { label: "Scheduled public snapshot - not streaming", color: "warning", background: "warning.50", border: "warning.100", action: "Check newest snapshot", message: `Zero-setup public snapshot generated ${formatTime(generatedAt)}. GitHub targets a refresh every 15 minutes; scheduling, upstream and exchange delays may apply.` };
   const openCompanyResearch = (nextSymbol) => {
     setView("research");
     researchCompany(nextSymbol);
@@ -340,6 +380,11 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
   const boardQuotes = overview?.watchlist?.length
     ? overview.watchlist
     : (overview?.markets || []).filter((market) => ["^NSEI", "^BSESN"].includes(market.symbol));
+  const alertQuotes = Array.from(new Map(
+    [...(overview?.markets || []).map((market) => ({ ...market, kind: "index", sector: "Indices" })), ...boardQuotes]
+      .map((quote) => [quote.symbol, quote])
+  ).values());
+  const openQuote = (quote) => quote.kind === "company" ? onOpenCompany(quote.symbol) : onOpenAnalysis(quote.symbol);
   return (
     <Stack spacing={2.5}>
       <MarketTickerBoard
@@ -348,6 +393,8 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
         onOpenAnalysis={onOpenAnalysis}
         onOpenCompany={onOpenCompany}
       />
+
+      <MarketAlertCenter quotes={alertQuotes} sourceMode={sourceMode} onOpenQuote={openQuote} />
 
       <Box component="section">
         <SectionTitle
@@ -399,7 +446,7 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
           <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1, height: "100%" }}>
             <SectionTitle icon={<NewspaperIcon />} title="Market News" detail="Multi-asset feed" compact />
             <Stack divider={<Divider flexItem />}>
-              {(newsFeed?.articles || []).slice(0, 6).map((item, index) => (
+              {(newsFeed?.articles || []).slice(0, 8).map((item, index) => (
                 <Box key={`${item.title}-${index}`} sx={{ py: 1 }}>
                   <Link href={item.url || undefined} target="_blank" rel="noreferrer" underline="hover" color="inherit" sx={{ fontWeight: 700, fontSize: 14 }}>
                     {item.title}
@@ -418,68 +465,223 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
   );
 };
 
-const MarketTickerBoard = ({ quotes, sourceMode, onOpenAnalysis, onOpenCompany }) => (
-  <Box component="section">
-    <SectionTitle
-      icon={<TrendingUpIcon />}
-      title="Current Market Board"
-      detail={sourceMode === "live" ? "Auto-updates about every 30 seconds" : "Snapshot fallback; waiting for backend"}
-    />
-    <Paper variant="outlined" sx={{ minHeight: 86, p: 0.75, borderRadius: 1, overflow: "hidden", bgcolor: "background.paper" }}>
-      <Box
-        sx={{
-          overflow: "hidden",
-          "@keyframes marketTickerLeftToRight": {
-            "0%": { transform: "translateX(-50%)" },
-            "100%": { transform: "translateX(0)" }
-          },
-          "&:hover .market-ticker-track, &:focus-within .market-ticker-track": { animationPlayState: "paused" },
-          "@media (prefers-reduced-motion: reduce)": {
-            overflowX: "auto",
-            scrollbarWidth: "thin",
-            "& .market-ticker-track": { animation: "none", transform: "none" },
-            "& .market-ticker-copy": { display: "none" }
-          }
-        }}
-      >
+const MarketTickerBoard = ({ quotes, sourceMode, onOpenAnalysis, onOpenCompany }) => {
+  const sectors = useMemo(() => ["All", ...new Set((quotes || []).map((quote) => quote.sector).filter(Boolean))], [quotes]);
+  const [sector, setSector] = useState("All");
+  const filteredQuotes = useMemo(
+    () => sector === "All" ? (quotes || []) : (quotes || []).filter((quote) => quote.sector === sector),
+    [quotes, sector]
+  );
+
+  useEffect(() => {
+    if (!sectors.includes(sector)) setSector("All");
+  }, [sector, sectors]);
+
+  const animationSeconds = Math.max(28, filteredQuotes.length * 2.25);
+  return (
+    <Box component="section">
+      <SectionTitle
+        icon={<TrendingUpIcon />}
+        title="Current Market Board"
+        detail={`${filteredQuotes.length} quotes | ${sourceMode === "live" ? "30-second page polling" : "scheduled public snapshot"}`}
+      />
+      <Stack direction="row" spacing={0.75} sx={{ mb: 1, overflowX: "auto", pb: 0.25 }}>
+        {sectors.map((item) => (
+          <Chip
+            key={item}
+            size="small"
+            label={item}
+            color={sector === item ? "primary" : "default"}
+            variant={sector === item ? "filled" : "outlined"}
+            onClick={() => setSector(item)}
+          />
+        ))}
+      </Stack>
+      <Paper variant="outlined" sx={{ minHeight: 86, p: 0.75, borderRadius: 1, overflow: "hidden", bgcolor: "background.paper" }}>
         <Box
-          className="market-ticker-track"
           sx={{
-            display: "flex",
-            alignItems: "stretch",
-            width: "max-content",
-            willChange: "transform",
-            animation: quotes?.length ? "marketTickerLeftToRight 28s linear infinite" : "none"
+            overflow: "hidden",
+            "@keyframes marketTickerLeftToRight": {
+              "0%": { transform: "translateX(-50%)" },
+              "100%": { transform: "translateX(0)" }
+            },
+            "&:hover .market-ticker-track, &:focus-within .market-ticker-track": { animationPlayState: "paused" },
+            "@media (prefers-reduced-motion: reduce)": {
+              overflowX: "auto",
+              scrollbarWidth: "thin",
+              "& .market-ticker-track": { animation: "none", transform: "none" },
+              "& .market-ticker-copy": { display: "none" }
+            }
           }}
         >
-          {[0, 1].map((copyIndex) => (
-            <Box
-              key={copyIndex}
-              className={copyIndex === 1 ? "market-ticker-copy" : undefined}
-              aria-hidden={copyIndex === 1 ? "true" : undefined}
-              sx={{ display: "flex", alignItems: "stretch" }}
-            >
-              {(quotes || []).map((quote) => (
-                <LiveQuoteButton
-                  key={`${copyIndex}-${quote.symbol}`}
-                  quote={quote}
-                  tabIndex={copyIndex === 1 ? -1 : 0}
-                  onClick={() => quote.kind === "company" ? onOpenCompany(quote.symbol) : onOpenAnalysis(quote.symbol)}
-                />
-              ))}
-            </Box>
-          ))}
+          <Box
+            className="market-ticker-track"
+            sx={{
+              display: "flex",
+              alignItems: "stretch",
+              width: "max-content",
+              willChange: "transform",
+              animation: filteredQuotes.length ? `marketTickerLeftToRight ${animationSeconds}s linear infinite` : "none"
+            }}
+          >
+            {[0, 1].map((copyIndex) => (
+              <Box
+                key={copyIndex}
+                className={copyIndex === 1 ? "market-ticker-copy" : undefined}
+                aria-hidden={copyIndex === 1 ? "true" : undefined}
+                sx={{ display: "flex", alignItems: "stretch" }}
+              >
+                {filteredQuotes.map((quote) => (
+                  <LiveQuoteButton
+                    key={`${copyIndex}-${quote.symbol}`}
+                    quote={quote}
+                    tabIndex={copyIndex === 1 ? -1 : 0}
+                    onClick={() => quote.kind === "company" ? onOpenCompany(quote.symbol) : onOpenAnalysis(quote.symbol)}
+                  />
+                ))}
+              </Box>
+            ))}
+          </Box>
+          {!filteredQuotes.length && (
+            <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>Market quotes are temporarily unavailable.</Typography>
+          )}
         </Box>
-        {!quotes?.length && (
-          <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>Market quotes are temporarily unavailable.</Typography>
-        )}
-      </Box>
+      </Paper>
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
+        Select a sector, pause the ticker on hover, or open a quote inside FinTrack. Data remains timestamped and may be delayed or unchanged while its exchange is closed.
+      </Typography>
+    </Box>
+  );
+};
+
+const MarketAlertCenter = ({ quotes, sourceMode, onOpenQuote }) => {
+  const alerts = useMemo(() => buildMarketAlerts(quotes), [quotes]);
+  const notificationSupported = typeof window !== "undefined" && "Notification" in window;
+  const [notificationPermission, setNotificationPermission] = useState(
+    () => notificationSupported ? window.Notification.permission : "unsupported"
+  );
+  const hasCriticalAlert = alerts.some((alert) => alert.level === "critical");
+
+  const enableBrowserAlerts = async () => {
+    if (!notificationSupported) return;
+    try {
+      setNotificationPermission(await window.Notification.requestPermission());
+    } catch (error) {
+      setNotificationPermission("unsupported");
+    }
+  };
+
+  useEffect(() => {
+    if (!notificationSupported || notificationPermission !== "granted" || !alerts.length) return;
+    let notifiedAt = {};
+    try {
+      notifiedAt = JSON.parse(window.localStorage.getItem(MARKET_ALERT_STORAGE_KEY) || "{}");
+    } catch (error) {
+      notifiedAt = {};
+    }
+    const now = Date.now();
+    let changed = false;
+    alerts.slice(0, 5).forEach((alert) => {
+      const lastSentAt = Number(notifiedAt[alert.id] || 0);
+      if (now - lastSentAt < 30 * 60 * 1000) return;
+      try {
+        const notification = new window.Notification(`FinTrack: ${alert.title}`, {
+          body: `${alert.detail} Verify the timestamp and source before taking action.`,
+          tag: `fintrack-${alert.id}`
+        });
+        notification.onclick = () => {
+          window.focus();
+          onOpenQuote(alert.quote);
+          notification.close();
+        };
+        notifiedAt[alert.id] = now;
+        changed = true;
+      } catch (error) {
+        // In-app alerts remain available when the browser blocks system notifications.
+      }
+    });
+    if (changed) {
+      try {
+        window.localStorage.setItem(MARKET_ALERT_STORAGE_KEY, JSON.stringify(notifiedAt));
+      } catch (error) {
+        // Private browsing can disable storage; notifications still work for the current render.
+      }
+    }
+  }, [alerts, notificationPermission, notificationSupported, onOpenQuote]);
+
+  const notificationLabel = notificationPermission === "granted"
+    ? "Browser alerts enabled"
+    : notificationPermission === "denied"
+      ? "Notifications blocked"
+      : notificationPermission === "unsupported"
+        ? "Browser alerts unavailable"
+        : "Enable browser alerts";
+
+  return (
+    <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1 }}>
+      <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", md: "center" }} gap={1.25}>
+        <Box>
+          <Stack direction="row" spacing={0.75} alignItems="center">
+            <NotificationsActiveIcon sx={{ color: alerts.length ? "warning.main" : "text.secondary" }} />
+            <Typography variant="h6" sx={{ fontWeight: 900 }}>Market Risk Alerts</Typography>
+            <Chip size="small" label={`${alerts.length} active`} color={hasCriticalAlert ? "error" : alerts.length ? "warning" : "default"} />
+          </Stack>
+          <Typography variant="caption" color="text.secondary">
+            In-app alerts are always on. Browser alerts work while this page is open and require permission. Source: {sourceMode === "live" ? "backend quote feed" : "scheduled public snapshot"}.
+          </Typography>
+        </Box>
+        <Button
+          size="small"
+          variant={notificationPermission === "granted" ? "outlined" : "contained"}
+          color={notificationPermission === "denied" ? "warning" : "primary"}
+          startIcon={notificationPermission === "granted" ? <NotificationsActiveIcon /> : <NotificationsNoneIcon />}
+          onClick={enableBrowserAlerts}
+          disabled={notificationPermission === "granted" || notificationPermission === "denied" || notificationPermission === "unsupported"}
+        >
+          {notificationLabel}
+        </Button>
+      </Stack>
+
+      <Divider sx={{ my: 1.5 }} />
+      {!alerts.length ? (
+        <Alert severity="info">No configured large-move threshold is active in the latest quote set.</Alert>
+      ) : (
+        <Grid container spacing={1.25}>
+          {alerts.slice(0, 6).map((alert) => (
+            <Grid key={alert.id} size={{ xs: 12, md: 6, lg: 4 }}>
+              <Alert severity={alert.severity} variant="outlined" sx={{ height: "100%", alignItems: "flex-start" }}>
+                <Typography variant="body2" sx={{ fontWeight: 900 }}>{alert.title}: {alert.quote.name}</Typography>
+                <Typography variant="body2" sx={{ mt: 0.35 }}>{alert.detail}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                  {alert.quote.sector || alert.quote.region || "Market"} | Quote {formatTime(alert.quote.dataAsOf)}
+                </Typography>
+                <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mt: 0.8 }}>
+                  <Button size="small" variant="text" onClick={() => onOpenQuote(alert.quote)} sx={{ minWidth: 0, p: 0 }}>Open research</Button>
+                  <Link href={quoteSourceUrl(alert.quote.symbol)} target="_blank" rel="noreferrer" underline="hover" sx={{ display: "inline-flex", alignItems: "center", gap: 0.25, fontSize: 12, fontWeight: 800 }}>
+                    Verify source <OpenInNewIcon sx={{ fontSize: 13 }} />
+                  </Link>
+                </Stack>
+              </Alert>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+
+      {hasCriticalAlert && (
+        <Alert severity="error" variant="outlined" icon={<ShieldOutlinedIcon />} sx={{ mt: 1.5 }}>
+          <Typography variant="body2" sx={{ fontWeight: 900 }}>Critical-move exit-risk checklist — not an automatic sell instruction</Typography>
+          <Box component="ol" sx={{ my: 0.75, pl: 2.25, "& li": { mb: 0.35, fontSize: 13 } }}>
+            <li>Verify the quote timestamp and original source; stale, delayed or bad ticks can occur.</li>
+            <li>Check whether the move is company-specific or part of a broader index/sector fall.</li>
+            <li>Review position size, planned stop-loss, liquidity, taxes and your original investment horizon.</li>
+            <li>If reducing risk fits your pre-decided plan, consider a staged exit or consult a SEBI-registered adviser instead of panic selling.</li>
+          </Box>
+          <Typography variant="caption">FinTrack does not know the user's holdings or risk capacity and therefore does not place trades or issue personalized withdrawal commands.</Typography>
+        </Alert>
+      )}
     </Paper>
-    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
-      Quotes stay inside FinTrack and never redirect automatically. Select a quote to open its FinTrack research view. Data may be delayed and does not change while its exchange is closed.
-    </Typography>
-  </Box>
-);
+  );
+};
 
 const LiveQuoteButton = ({ quote, onClick, tabIndex = 0 }) => {
   const price = Number(quote.price);
@@ -530,7 +732,7 @@ const LiveQuoteButton = ({ quote, onClick, tabIndex = 0 }) => {
         </Stack>
       ) : <Typography variant="caption" color="text.secondary">Temporarily unavailable</Typography>}
       <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block", mt: 0.25 }}>
-        {quote.symbol} | {quote.currency || "Local"}
+        {quote.symbol} | {quote.sector || quote.region || quote.currency || "Market"}
       </Typography>
     </ButtonBase>
   );
