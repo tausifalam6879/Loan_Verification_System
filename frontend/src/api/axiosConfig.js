@@ -9,6 +9,15 @@ const api = axios.create({
   }
 });
 
+// Public market data intentionally bypasses the browser-demo adapter. In local/full-stack
+// mode it reaches Spring Boot; on GitHub Pages it falls back to the timestamped snapshot.
+export const marketApi = axios.create({
+  baseURL: process.env.REACT_APP_API_BASE_URL || "http://localhost:8081/api",
+  headers: {
+    "Content-Type": "application/json"
+  }
+});
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 

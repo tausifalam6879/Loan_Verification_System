@@ -83,6 +83,7 @@ const outlookColor = (outlook) => outlook === "BULLISH" ? "#15803d" : outlook ==
 const QUOTE_REFRESH_MS = 30000;
 const SUPPORTING_DATA_REFRESH_MS = 120000;
 const MARKET_ALERT_STORAGE_KEY = "fintrack.market.notified-alerts.v1";
+const isLiveQuoteSource = (mode) => mode === "live" || mode === "browser-live";
 
 const quoteSourceUrl = (symbol) => `https://finance.yahoo.com/quote/${encodeURIComponent(symbol || "")}`;
 
@@ -282,6 +283,8 @@ const GlobalMarketSection = () => {
   const sourceMode = dataMeta?.mode || "loading";
   const sourcePresentation = sourceMode === "loading"
     ? { label: "Checking data source", color: "default", background: "action.hover", border: "divider", action: "Check now", message: "Checking the FinTrack backend and latest published analytics snapshot." }
+    : sourceMode === "browser-live"
+    ? { label: "Live browser quote feed", color: "success", background: "success.50", border: "success.100", action: "Refresh live quotes", message: `Direct Yahoo Finance quote check ${formatTime(generatedAt)}. The board polls every 30 seconds while this page is open; exchange and provider delays may apply.` }
     : sourceMode === "live"
     ? { label: "Auto-updating backend feed", color: "success", background: "success.50", border: "success.100", action: "Refresh now", message: `Latest response ${formatTime(generatedAt)}. Quotes update in the page while it stays open; provider and exchange delays may apply.` }
     : sourceMode === "browser-cache"
@@ -399,7 +402,7 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
         <SectionTitle
           icon={<PublicIcon />}
           title="Major Global Indices"
-          detail={`${overview?.availableMarkets || 0}/${overview?.totalMarkets || 0} in ${sourceMode === "live" ? "backend feed" : "analytics snapshot"}`}
+          detail={`${overview?.availableMarkets || 0}/${overview?.totalMarkets || 0} in ${isLiveQuoteSource(sourceMode) ? "live quote feed" : "analytics snapshot"}`}
         />
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(3, minmax(0, 1fr))" }, gap: 1.5 }}>
           {(overview?.markets || []).map((market) => <IndexTile key={market.symbol} market={market} onClick={() => onOpenAnalysis(market.symbol)} />)}
@@ -482,7 +485,7 @@ const MarketTickerBoard = ({ quotes, sourceMode, onOpenAnalysis, onOpenCompany }
       <SectionTitle
         icon={<TrendingUpIcon />}
         title="Current Market Board"
-        detail={`${filteredQuotes.length} quotes | ${sourceMode === "live" ? "30-second page polling" : "scheduled public snapshot"}`}
+        detail={`${filteredQuotes.length} quotes | ${isLiveQuoteSource(sourceMode) ? "30-second page polling" : "scheduled public snapshot"}`}
       />
       <Stack direction="row" spacing={0.75} sx={{ mb: 1, overflowX: "auto", pb: 0.25 }}>
         {sectors.map((item) => (
@@ -554,7 +557,11 @@ const MarketTickerBoard = ({ quotes, sourceMode, onOpenAnalysis, onOpenCompany }
 };
 
 const MarketAlertCenter = ({ quotes, sourceMode, onOpenQuote }) => {
-  const alerts = useMemo(() => buildMarketAlerts(quotes), [quotes]);
+  const canAlertFromCurrentQuotes = isLiveQuoteSource(sourceMode);
+  const alerts = useMemo(
+    () => canAlertFromCurrentQuotes ? buildMarketAlerts(quotes) : [],
+    [canAlertFromCurrentQuotes, quotes]
+  );
   const notificationSupported = typeof window !== "undefined" && "Notification" in window;
   const [notificationPermission, setNotificationPermission] = useState(
     () => notificationSupported ? window.Notification.permission : "unsupported"
@@ -626,7 +633,7 @@ const MarketAlertCenter = ({ quotes, sourceMode, onOpenQuote }) => {
             <Chip size="small" label={`${alerts.length} active`} color={hasCriticalAlert ? "error" : alerts.length ? "warning" : "default"} />
           </Stack>
           <Typography variant="caption" color="text.secondary">
-            In-app alerts are always on. Browser alerts work while this page is open and require permission. Source: {sourceMode === "live" ? "backend quote feed" : "scheduled public snapshot"}.
+            In-app alerts are always on. Browser alerts work while this page is open and require permission. Source: {isLiveQuoteSource(sourceMode) ? "live quote feed" : "scheduled public snapshot"}.
           </Typography>
         </Box>
         <Button
@@ -642,7 +649,9 @@ const MarketAlertCenter = ({ quotes, sourceMode, onOpenQuote }) => {
       </Stack>
 
       <Divider sx={{ my: 1.5 }} />
-      {!alerts.length ? (
+      {!canAlertFromCurrentQuotes ? (
+        <Alert severity="info">Live quotes are unavailable, so market-move alerts are paused. The scheduled snapshot remains visible for research only and will not create a misleading real-time alert.</Alert>
+      ) : !alerts.length ? (
         <Alert severity="info">No configured large-move threshold is active in the latest quote set.</Alert>
       ) : (
         <Grid container spacing={1.25}>

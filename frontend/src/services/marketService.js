@@ -1,9 +1,12 @@
-import api from "../api/axiosConfig";
+import { marketApi } from "../api/axiosConfig";
 
 const REQUEST_TIMEOUT_MS = 8000;
+// Agent answers run several grounded tools (quote, technical history, news and
+// macro factors), so they need a longer budget than a single market quote.
+const AGENT_REQUEST_TIMEOUT_MS = 90000;
 const QUOTE_REQUEST_TIMEOUT_MS = 20000;
 const SNAPSHOT_RECHECK_MS = 60000;
-const CACHE_PREFIX = "fintrack.market.v3";
+const CACHE_PREFIX = "fintrack.market.v4";
 const SNAPSHOT_URL = `${process.env.PUBLIC_URL || ""}/data/market-snapshot.json`;
 
 const MARKET_BOARD = [
@@ -157,7 +160,7 @@ const requestWithFallback = async ({ cacheKey, liveRequest, selectSnapshot, isUs
 };
 
 const getLive = async (url, params, timeout = REQUEST_TIMEOUT_MS) => {
-  const response = await api.get(url, { params, timeout });
+  const response = await marketApi.get(url, { params, timeout });
   return response.data;
 };
 
@@ -184,13 +187,13 @@ const overviewFromSnapshot = (snapshot) => {
 };
 
 export const getGlobalMarketOverview = (refresh = false) => requestWithFallback({
-  cacheKey: "overview",
-  liveRequest: () => getLive("/market/overview", { refresh }, QUOTE_REQUEST_TIMEOUT_MS),
-  selectSnapshot: overviewFromSnapshot,
-  isUsable: validOverview,
-  unavailableMessage: "Market overview is temporarily unavailable from both the live API and the scheduled snapshot.",
-  refreshSnapshot: refresh
-});
+    cacheKey: "overview",
+    liveRequest: () => getLive("/market/overview", { refresh }, QUOTE_REQUEST_TIMEOUT_MS),
+    selectSnapshot: overviewFromSnapshot,
+    isUsable: validOverview,
+    unavailableMessage: "Market overview is temporarily unavailable from both the live API and the scheduled snapshot.",
+    refreshSnapshot: refresh
+  });
 
 export const getMarketAnalysis = (symbol, refresh = false) => {
   const cleaned = normaliseSymbol(symbol);
@@ -274,11 +277,11 @@ const buildSnapshotAgentAnswer = (message, symbol, snapshot) => {
 
 export const askMarketAgent = async ({ message, symbol, recentMessages = [] }) => {
   try {
-    const response = await api.post("/market/agent", {
+    const response = await marketApi.post("/market/agent", {
       message,
       symbol,
       recentMessages: recentMessages.map(({ role, content }) => ({ role, content }))
-    }, { timeout: REQUEST_TIMEOUT_MS });
+    }, { timeout: AGENT_REQUEST_TIMEOUT_MS });
     return response.data;
   } catch (liveError) {
     try {

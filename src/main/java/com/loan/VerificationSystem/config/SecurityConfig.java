@@ -62,6 +62,7 @@ public class SecurityConfig {
                                 "/api/users/verify-otp",
                                 "/api/users/auth-config",
                                 "/api/users/test",
+                                "/api/market/**",
                                 "/h2-console/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
@@ -76,8 +77,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/loans/**",
                                 "/api/expenses/**",
-                                "/api/ai/**",
-                                "/api/market/**"
+                                "/api/ai/**"
                         )
                         .hasAnyRole("USER", "ADMIN")
 

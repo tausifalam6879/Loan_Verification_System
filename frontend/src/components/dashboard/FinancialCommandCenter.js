@@ -27,6 +27,7 @@ import SavingsIcon from "@mui/icons-material/Savings";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import LiveExchangeRatesCard from "./LiveExchangeRatesCard";
 import {
   Area,
   Bar,
@@ -216,6 +217,8 @@ const FinancialCommandCenter = ({
           </Grid>
         ))}
       </Grid>
+
+      <LiveExchangeRatesCard onOpenMarkets={() => onOpen("markets")} />
 
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, lg: 4 }}>

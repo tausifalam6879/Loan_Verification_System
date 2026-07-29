@@ -27,6 +27,11 @@ public class MarketController {
         return marketIntelligenceService.getOverview(refresh);
     }
 
+    @GetMapping("/currencies")
+    public Map<String, Object> currencies(@RequestParam(defaultValue = "false") boolean refresh) {
+        return marketIntelligenceService.getCurrencies(refresh);
+    }
+
     @GetMapping("/analysis")
     public Map<String, Object> analysis(
             @RequestParam(defaultValue = "^NSEI") String symbol,

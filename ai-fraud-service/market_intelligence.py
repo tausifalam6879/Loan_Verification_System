@@ -61,6 +61,21 @@ MARKET_BOARD = {
     "NYT": {"name": "New York Times", "region": "United States", "currency": "USD", "kind": "company", "sector": "Media"},
 }
 
+# The dashboard keeps a small, clearly labelled live INR board.  A full
+# provider currency directory is added as reference data below; only these
+# liquid pairs are requested intraday so a page refresh does not make hundreds
+# of upstream requests.
+INR_CURRENCY_BOARD = {
+    "USDINR=X": {"code": "USD", "name": "US Dollar", "country": "United States", "digits": 2},
+    "EURINR=X": {"code": "EUR", "name": "Euro", "country": "Eurozone", "digits": 2},
+    "GBPINR=X": {"code": "GBP", "name": "British Pound", "country": "United Kingdom", "digits": 2},
+    "AEDINR=X": {"code": "AED", "name": "UAE Dirham", "country": "United Arab Emirates", "digits": 2},
+    "JPYINR=X": {"code": "JPY", "name": "Japanese Yen", "country": "Japan", "digits": 4},
+    "SGDINR=X": {"code": "SGD", "name": "Singapore Dollar", "country": "Singapore", "digits": 2},
+    "AUDINR=X": {"code": "AUD", "name": "Australian Dollar", "country": "Australia", "digits": 2},
+    "CADINR=X": {"code": "CAD", "name": "Canadian Dollar", "country": "Canada", "digits": 2},
+}
+
 MACRO_FACTORS = {
     "GC=F": {
         "name": "Gold",
@@ -395,6 +410,71 @@ def global_overview() -> Dict[str, Any]:
         "refreshIntervalSeconds": QUOTE_CACHE_TTL_SECONDS,
         "dataDelayNotice": "Minute quotes update while markets are open, but may be delayed by the upstream provider and exchange rules.",
     }
+
+
+def _reference_inr_rates() -> Dict[str, float]:
+    """Read the broad currency directory server-side, avoiding browser CORS/proxy failures."""
+    cached = _cache_get("inr-reference-rates", 60 * 60)
+    if cached is not None:
+        return cached
+    request = UrlRequest(
+        "https://open.er-api.com/v6/latest/INR",
+        headers={"User-Agent": "FinTrack-market-service/1.0"},
+    )
+    with urlopen(request, timeout=8) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    rates = payload.get("rates", {}) if payload.get("result") == "success" else {}
+    usable = {str(code).upper(): float(rate) for code, rate in rates.items() if _round(rate) and float(rate) > 0}
+    return _cache_put("inr-reference-rates", usable)
+
+
+def inr_currency_rates(refresh: bool = False) -> Dict[str, Any]:
+    if refresh:
+        _cache.pop("inr-currency-rates", None)
+    cached = _cache_get("inr-currency-rates", QUOTE_CACHE_TTL_SECONDS)
+    if cached is not None:
+        return cached
+
+    try:
+        reference_rates = _reference_inr_rates()
+    except Exception:
+        reference_rates = {}
+
+    quotes_by_symbol: Dict[str, Dict[str, Any]] = {}
+    with ThreadPoolExecutor(max_workers=len(INR_CURRENCY_BOARD)) as executor:
+        jobs = {executor.submit(market_snapshot, symbol, False): symbol for symbol in INR_CURRENCY_BOARD}
+        for job in as_completed(jobs):
+            symbol = jobs[job]
+            try:
+                quotes_by_symbol[symbol] = job.result()
+            except Exception:
+                continue
+
+    currencies = []
+    for symbol, metadata in INR_CURRENCY_BOARD.items():
+        quote = quotes_by_symbol.get(symbol)
+        price = _round(quote.get("price")) if quote else None
+        reference_rate = _round(1 / reference_rates[metadata["code"]]) if reference_rates.get(metadata["code"]) else None
+        currencies.append({
+            **metadata,
+            "symbol": symbol,
+            "inrValue": price or reference_rate,
+            "quoteMode": "intraday" if price else "reference",
+            "dataAsOf": quote.get("dataAsOf") if quote else None,
+            "source": quote.get("source") if quote else "ExchangeRate-API reference",
+            "status": "available" if (price or reference_rate) else "unavailable",
+        })
+
+    result = {
+        "baseCurrency": "INR",
+        "currencies": currencies,
+        "referenceRates": reference_rates,
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "refreshIntervalSeconds": QUOTE_CACHE_TTL_SECONDS,
+        "source": "Yahoo Finance via yfinance for featured pairs; ExchangeRate-API reference directory",
+        "dataDelayNotice": "Currency quotes may be delayed by the upstream provider and are not bank conversion rates.",
+    }
+    return _cache_put("inr-currency-rates", result)
 
 
 def _rsi(close: pd.Series, period: int = 14) -> pd.Series:
@@ -929,6 +1009,11 @@ def get_global_market_overview(refresh: bool = False):
     if refresh:
         clear_market_cache()
     return global_overview()
+
+
+@router.get("/currencies")
+def get_inr_currency_rates(refresh: bool = False):
+    return inr_currency_rates(refresh)
 
 
 @router.get("/analysis")

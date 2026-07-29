@@ -46,6 +46,10 @@ public class MarketIntelligenceService {
         return get("/market/overview", Map.of("refresh", refresh));
     }
 
+    public Map<String, Object> getCurrencies(boolean refresh) {
+        return get("/market/currencies", Map.of("refresh", refresh));
+    }
+
     public Map<String, Object> getAnalysis(String symbol, boolean refresh) {
         return get("/market/analysis", Map.of("symbol", symbol, "refresh", refresh));
     }
