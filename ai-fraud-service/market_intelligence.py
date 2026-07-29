@@ -834,7 +834,7 @@ def _gemini_chat(messages: List[Dict[str, str]]) -> str:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("Gemini is not configured. Set GEMINI_API_KEY on the Python backend.")
-    model = os.getenv("LLM_MODEL", "gemini-3.5-flash").strip()
+    model = os.getenv("LLM_MODEL", "gemini-2.5-flash").strip()
     timeout = max(5, int(os.getenv("LLM_TIMEOUT_MS", "15000")) // 1000)
     system_text = "\n".join(item["content"] for item in messages if item.get("role") == "system")
     contents = []

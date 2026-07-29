@@ -145,7 +145,7 @@ For a hosted Gemini explanation layer, configure only the Python backend:
 ```env
 LLM_PROVIDER=gemini
 GEMINI_API_KEY=your-server-side-key
-LLM_MODEL=gemini-3.5-flash
+LLM_MODEL=gemini-2.5-flash
 LLM_TIMEOUT_MS=15000
 ```
 
