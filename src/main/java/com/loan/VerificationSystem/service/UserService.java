@@ -185,12 +185,11 @@ public class UserService {
         response.setEmail(user.getEmail());
         response.setMobile(user.getMobile());
         response.setRole(user.getRole());
-        response.setTotalApplications((long) user.getLoanApplications().size());
-        response.setCreditScore(user.getLoanApplications().stream()
-                .map(com.loan.VerificationSystem.entity.LoanApplication::getCreditScore)
-                .filter(java.util.Objects::nonNull)
-                .max(Integer::compareTo)
-                .orElse(null));
+        // Authentication must not depend on loan history. A newly provisioned cloud
+        // database may not yet contain application-history tables, and profile totals
+        // are loaded by the dedicated loan dashboard after the session is established.
+        response.setTotalApplications(0L);
+        response.setCreditScore(null);
 
         return response;
     }
