@@ -9,6 +9,10 @@ services:
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
+      # Render currently defaults new Python services to 3.14; the pinned ML
+      # stack has stable binary wheels on Python 3.12.
+      - key: PYTHON_VERSION
+        value: "3.12.10"
       - key: MARKET_CACHE_TTL_SECONDS
         value: "120"
       - key: MARKET_QUOTE_CACHE_TTL_SECONDS
