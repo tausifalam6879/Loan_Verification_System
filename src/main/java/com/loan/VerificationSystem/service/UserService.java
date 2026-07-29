@@ -13,6 +13,7 @@ import com.loan.VerificationSystem.repository.UserRepository;
 import com.loan.VerificationSystem.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
@@ -153,10 +154,12 @@ public class UserService {
         return otpService.isOtpEnabled();
     }
 
+    @Transactional(readOnly = true)
     public UserResponseDTO getCurrentUser() {
         return mapToResponse(getAuthenticatedUser());
     }
 
+    @Transactional
     public UserResponseDTO updateCurrentUser(UserProfileUpdateDTO request) {
         User user = getAuthenticatedUser();
         String normalizedMobile = normalizeMobile(request.getMobile());
