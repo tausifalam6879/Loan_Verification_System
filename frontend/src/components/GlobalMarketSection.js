@@ -80,8 +80,11 @@ const formatTime = (value) => {
 
 const directionColor = (value) => Number(value) >= 0 ? "#15803d" : "#dc2626";
 const outlookColor = (outlook) => outlook === "BULLISH" ? "#15803d" : outlook === "BEARISH" ? "#dc2626" : "#b45309";
-const QUOTE_REFRESH_MS = 60000;
-const SUPPORTING_DATA_REFRESH_MS = 180000;
+// Live calls remain available through the explicit Refresh button. Background
+// polling is intentionally gentle so a public demo does not keep waking free
+// cloud services or slow down an active user session.
+const QUOTE_REFRESH_MS = 15 * 60 * 1000;
+const SUPPORTING_DATA_REFRESH_MS = 15 * 60 * 1000;
 const MARKET_ALERT_STORAGE_KEY = "fintrack.market.notified-alerts.v1";
 const isLiveQuoteSource = (mode) => mode === "live" || mode === "browser-live";
 
@@ -130,6 +133,7 @@ const GlobalMarketSection = () => {
   const [company, setCompany] = useState(null);
   const [symbol, setSymbol] = useState("^NSEI");
   const [companySymbol, setCompanySymbol] = useState("RELIANCE.NS");
+  const [selectedQuote, setSelectedQuote] = useState(null);
   const [loadingPulse, setLoadingPulse] = useState(true);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [loadingCompany, setLoadingCompany] = useState(false);
@@ -301,11 +305,18 @@ const GlobalMarketSection = () => {
     : sourceMode === "browser-cache"
       ? { label: "Last successful backend cache", color: "warning", background: "warning.50", border: "warning.100", action: "Retry backend", message: `The backend is unavailable. Showing the last successful response from ${formatTime(generatedAt)} and retrying automatically.` }
       : { label: "Scheduled public snapshot - not streaming", color: "warning", background: "warning.50", border: "warning.100", action: "Check newest snapshot", message: `Zero-setup public snapshot generated ${formatTime(generatedAt)}. GitHub targets a refresh every 15 minutes; scheduling, upstream and exchange delays may apply.` };
+  const findVisibleQuote = (nextSymbol) => [
+    ...(overview?.watchlist || []),
+    ...(overview?.markets || [])
+  ].find((quote) => quote.symbol === nextSymbol) || null;
+
   const openCompanyResearch = (nextSymbol) => {
+    setSelectedQuote(findVisibleQuote(nextSymbol));
     setView("research");
     researchCompany(nextSymbol);
   };
   const openMarketOutlook = (nextSymbol) => {
+    setSelectedQuote(findVisibleQuote(nextSymbol));
     setView("outlook");
     analyzeSymbol(nextSymbol);
   };
@@ -362,6 +373,7 @@ const GlobalMarketSection = () => {
       {view === "research" && (
         <StockResearch
           company={company}
+          quotePreview={selectedQuote}
           symbol={companySymbol}
           setSymbol={setCompanySymbol}
           loading={loadingCompany}
@@ -372,6 +384,7 @@ const GlobalMarketSection = () => {
       {view === "outlook" && (
         <ModelWorkspace
           analysis={analysis}
+          quotePreview={selectedQuote}
           symbol={symbol}
           setSymbol={setSymbol}
           loading={loadingAnalysis}
@@ -763,10 +776,28 @@ const sourceModeDot = (quoteMode) => (
   </Tooltip>
 );
 
-const StockResearch = ({ company, symbol, setSymbol, loading, onSearch, onQuickSearch }) => (
+const QuotePreview = ({ quote, title = "Current market quote" }) => quote && (
+  <Paper component="section" variant="outlined" sx={{ p: 2, borderRadius: 1, bgcolor: "action.hover" }}>
+    <Stack direction={{ xs: "column", sm: "row" }} sx={{ justifyContent: "space-between", gap: 1, alignItems: { sm: "center" } }}>
+      <Box>
+        <Typography variant="overline" color="text.secondary">{title}</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 900 }}>{quote.name}</Typography>
+        <Typography variant="caption" color="text.secondary">{quote.symbol} | {quote.sector || quote.region || "Market"}</Typography>
+      </Box>
+      <Box sx={{ textAlign: { sm: "right" } }}>
+        <Typography variant="h5" sx={{ fontWeight: 900 }}>{formatNumber(quote.price)}</Typography>
+        <Typography sx={{ color: directionColor(quote.changePercent), fontWeight: 900 }}>{signed(quote.changePercent)}%</Typography>
+      </Box>
+    </Stack>
+    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>Full research is loading in the background. The visible quote above remains available immediately.</Typography>
+  </Paper>
+);
+
+const StockResearch = ({ company, quotePreview, symbol, setSymbol, loading, onSearch, onQuickSearch }) => (
   <Stack spacing={1.5}>
     <SearchBar symbol={symbol} setSymbol={setSymbol} onSubmit={onSearch} onQuick={onQuickSearch} buttonLabel="Research" />
-    {loading ? <Box sx={{ py: 8, textAlign: "center" }}><CircularProgress /></Box> : company && (
+    {loading && <Stack spacing={1.25}><QuotePreview quote={quotePreview} title="Current company quote" /><Box sx={{ py: quotePreview ? 2 : 8, textAlign: "center" }}><CircularProgress size={quotePreview ? 28 : 40} /></Box></Stack>}
+    {!loading && company && (
       <>
         <Paper component="section" variant="outlined" sx={{ p: 2, borderRadius: 1 }}>
           <Grid container spacing={2} sx={{ alignItems: "flex-start" }}>
@@ -847,7 +878,7 @@ const StockResearch = ({ company, symbol, setSymbol, loading, onSearch, onQuickS
   </Stack>
 );
 
-const ModelWorkspace = ({ analysis, symbol, setSymbol, loading, onAnalyze, onQuickAnalyze, question, setQuestion, messages, agentLoading, onSubmit }) => {
+const ModelWorkspace = ({ analysis, quotePreview, symbol, setSymbol, loading, onAnalyze, onQuickAnalyze, question, setQuestion, messages, agentLoading, onSubmit }) => {
   const confidenceGap = Math.abs(Number(analysis?.probabilityUp || 50) - 50);
   return (
     <Stack spacing={1.5}>
@@ -855,7 +886,8 @@ const ModelWorkspace = ({ analysis, symbol, setSymbol, loading, onAnalyze, onQui
       <Alert severity="warning" sx={{ borderRadius: 1 }}>
         This is a next-session probability experiment, not a target price or buy/sell call. A backtest near 50% has weak predictive value.
       </Alert>
-      {loading ? <Box sx={{ py: 8, textAlign: "center" }}><CircularProgress /></Box> : analysis && (
+      {loading && <Stack spacing={1.25}><QuotePreview quote={quotePreview} title="Current index quote" /><Box sx={{ py: quotePreview ? 2 : 8, textAlign: "center" }}><CircularProgress size={quotePreview ? 28 : 40} /></Box></Stack>}
+      {!loading && analysis && (
         <>
           <Grid container spacing={1.25}>
             <ModelMetric label="Outlook" value={analysis.outlook} color={outlookColor(analysis.outlook)} />

@@ -9,7 +9,9 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import { marketApi } from "../../api/axiosConfig";
 
 const CACHE_KEY = "fintrack.inr-exchange-rates.v4";
-const REFRESH_INTERVAL_MS = 60 * 1000;
+// Manual Refresh remains available for an immediate update. A 15-minute
+// background interval avoids unnecessary cloud wake-ups in the public demo.
+const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 8000;
 // A hosted Render API can be asleep on an interviewer's first visit.  Waiting
 // for it is more honest than instantly rendering empty rates as an outage.
