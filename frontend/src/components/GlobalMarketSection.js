@@ -47,6 +47,7 @@ import {
   askMarketAgent,
   getCompanyResearch,
   getGlobalMarketOverview,
+  getMarketOverviewPreview,
   getMarketAnalysis,
   getMarketBreadth,
   getMarketFactors,
@@ -152,6 +153,17 @@ const GlobalMarketSection = () => {
     pulseRequestInFlight.current = true;
     if (showLoading) setLoadingPulse(true);
     try {
+      // Paint a verified snapshot/cache first. The slower live request still
+      // runs below and replaces this state as soon as Render is ready.
+      if (showLoading && !overview) {
+        try {
+          setOverview(await getMarketOverviewPreview());
+          setLoadingPulse(false);
+        } catch (previewError) {
+          // The live request below remains the last resort when the static
+          // snapshot cannot be reached (for example, an offline browser).
+        }
+      }
       // Show the primary market board first. Supporting data is then fetched
       // without competing with it during a cold start.
       const [overviewResult] = await Promise.allSettled([getGlobalMarketOverview(refresh)]);

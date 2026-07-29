@@ -194,6 +194,30 @@ const overviewFromSnapshot = (snapshot) => {
   return { ...overview, watchlist };
 };
 
+// A public GitHub Pages visit must not render an empty market workspace while
+// Render wakes from sleep. Return the last verified browser data (or the
+// bundled scheduled snapshot) immediately; callers can refresh the live
+// endpoint in the background and replace it when it arrives.
+export const getMarketOverviewPreview = async () => {
+  const cached = readCache("overview");
+  if (cached?.data && validOverview(cached.data)) {
+    return withMeta(cached.data, {
+      mode: "browser-cache",
+      source: cached.data.source || "Last successful backend response",
+      fetchedAt: cached.savedAt
+    });
+  }
+
+  const snapshot = await loadScheduledSnapshot();
+  const data = overviewFromSnapshot(snapshot);
+  if (!validOverview(data)) throw new Error("The scheduled market snapshot is incomplete.");
+  return withMeta(data, {
+    mode: "scheduled-snapshot",
+    source: snapshot.source || "Yahoo Finance via scheduled GitHub refresh",
+    fetchedAt: snapshot.generatedAt
+  });
+};
+
 export const getGlobalMarketOverview = (refresh = false) => requestWithFallback({
     cacheKey: "overview",
     liveRequest: () => getLive("/market/overview", { refresh }, QUOTE_REQUEST_TIMEOUT_MS),
