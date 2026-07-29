@@ -1,6 +1,10 @@
 import { marketApi } from "../api/axiosConfig";
 
 const REQUEST_TIMEOUT_MS = 8000;
+// Render's free instances sleep after inactivity.  A first request can need
+// enough time to start both the API and its market-data service, so a hosted
+// deployment must not be downgraded to the scheduled snapshot after 8–20 sec.
+const HOSTED_LIVE_TIMEOUT_MS = 125000;
 // Agent answers run several grounded tools (quote, technical history, news and
 // macro factors), so they need a longer budget than a single market quote.
 const AGENT_REQUEST_TIMEOUT_MS = 90000;
@@ -8,6 +12,7 @@ const QUOTE_REQUEST_TIMEOUT_MS = 20000;
 const SNAPSHOT_RECHECK_MS = 60000;
 const CACHE_PREFIX = "fintrack.market.v4";
 const SNAPSHOT_URL = `${process.env.PUBLIC_URL || ""}/data/market-snapshot.json`;
+const isHostedBackend = /^https?:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/i.test(process.env.REACT_APP_API_BASE_URL || "");
 
 const MARKET_BOARD = [
   { symbol: "^NSEI", name: "Nifty 50", kind: "index", sector: "Indices" },
@@ -160,7 +165,10 @@ const requestWithFallback = async ({ cacheKey, liveRequest, selectSnapshot, isUs
 };
 
 const getLive = async (url, params, timeout = REQUEST_TIMEOUT_MS) => {
-  const response = await marketApi.get(url, { params, timeout });
+  const response = await marketApi.get(url, {
+    params,
+    timeout: isHostedBackend ? Math.max(timeout, HOSTED_LIVE_TIMEOUT_MS) : timeout
+  });
   return response.data;
 };
 

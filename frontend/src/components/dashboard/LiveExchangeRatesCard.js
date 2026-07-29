@@ -11,6 +11,10 @@ import { marketApi } from "../../api/axiosConfig";
 const CACHE_KEY = "fintrack.inr-exchange-rates.v4";
 const REFRESH_INTERVAL_MS = 60 * 1000;
 const REQUEST_TIMEOUT_MS = 8000;
+// A hosted Render API can be asleep on an interviewer's first visit.  Waiting
+// for it is more honest than instantly rendering empty rates as an outage.
+const HOSTED_CURRENCY_TIMEOUT_MS = 125000;
+const isHostedBackend = /^https?:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/i.test(process.env.REACT_APP_API_BASE_URL || "");
 
 const featuredCurrencies = [
   { code: "USD", country: "United States", name: "US Dollar", yahooSymbol: "USDINR=X", digits: 2 },
@@ -36,12 +40,15 @@ const saveRates = (data) => { try { window.localStorage.setItem(CACHE_KEY, JSON.
 const LiveExchangeRatesCard = ({ onOpenMarkets }) => {
   const [showAll, setShowAll] = useState(false);
   const [search, setSearch] = useState("");
-  const [state, setState] = useState(() => readCachedRates() || ({ currencies: featuredCurrencies, referenceRates: {}, updatedAt: "", source: "Loading currency market feed", loading: true, error: "" }));
+  const [state, setState] = useState(() => readCachedRates() || ({ currencies: featuredCurrencies, referenceRates: {}, updatedAt: "", source: "Connecting to live currency feed", loading: true, error: "" }));
 
   const refreshRates = useCallback(async () => {
     setState((current) => ({ ...current, loading: true, error: "" }));
     try {
-      const response = await marketApi.get("/market/currencies", { params: { refresh: true }, timeout: REQUEST_TIMEOUT_MS });
+      const response = await marketApi.get("/market/currencies", {
+        params: { refresh: true },
+        timeout: isHostedBackend ? HOSTED_CURRENCY_TIMEOUT_MS : REQUEST_TIMEOUT_MS
+      });
       const payload = response.data;
       if (!Array.isArray(payload?.currencies) || !payload.currencies.length) throw new Error("Currency service returned no rates.");
       const nextState = {
@@ -55,7 +62,7 @@ const LiveExchangeRatesCard = ({ onOpenMarkets }) => {
       const cached = readCachedRates();
       setState(cached
         ? { ...cached, loading: false, error: "Currency service is unavailable. Showing the last verified values." }
-        : { currencies: featuredCurrencies, referenceRates: {}, updatedAt: "", source: "Currency service unavailable", loading: false, error: "Start the FinTrack backend to load current currency rates." });
+        : { currencies: featuredCurrencies, referenceRates: {}, updatedAt: "", source: "Currency service unavailable", loading: false, error: "The live currency service did not respond after the connection wait. Use Refresh now to retry." });
     }
   }, []);
 
@@ -90,7 +97,7 @@ const LiveExchangeRatesCard = ({ onOpenMarkets }) => {
               <Box><Typography variant="h6" sx={{ fontWeight: 900 }}>Live INR exchange rates</Typography><Typography variant="body2" color="text.secondary">Major currency-market quotes against INR, checked every minute while this page is open.</Typography></Box>
             </Stack>
             <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.75 }}>
-              <Chip size="small" label={hasLiveFeed ? "Live currency market feed" : state.source} color={hasLiveFeed ? "success" : "warning"} sx={{ fontWeight: 800 }} />
+              <Chip size="small" label={state.loading ? "Connecting to live feed" : hasLiveFeed ? "Live currency market feed" : state.source} color={hasLiveFeed ? "success" : "warning"} sx={{ fontWeight: 800 }} />
               <Button size="small" startIcon={state.loading ? <CircularProgress size={14} /> : <RefreshIcon />} onClick={refreshRates} disabled={state.loading} sx={buttonStyle}>Refresh now</Button>
             </Stack>
           </Stack>
@@ -107,7 +114,7 @@ const LiveExchangeRatesCard = ({ onOpenMarkets }) => {
           </Box>
 
           <Stack direction={{ xs: "column", sm: "row" }} sx={{ justifyContent: "space-between", gap: 1, mt: 1.75, alignItems: { sm: "center" } }}>
-            <Typography variant="caption" color={state.error ? "warning.main" : "text.secondary"}>{state.error || `Checked ${updatedLabel}. Bank, card and remittance providers may add their own margin.`}</Typography>
+            <Typography variant="caption" color={state.error ? "warning.main" : "text.secondary"}>{state.error || (state.loading ? "Connecting to current currency quotes. A first cloud request can take up to two minutes after inactivity." : `Checked ${updatedLabel}. Bank, card and remittance providers may add their own margin.`)}</Typography>
             <Stack direction="row" spacing={0.5}><Button size="small" onClick={() => setShowAll(true)} sx={buttonStyle}>View all currencies ({Object.keys(state.referenceRates || {}).length})</Button><Button size="small" endIcon={<OpenInNewIcon />} onClick={onOpenMarkets} sx={buttonStyle}>Open market intelligence</Button></Stack>
           </Stack>
         </CardContent>
