@@ -325,6 +325,7 @@ const AuthPage = ({ mode = "login" }) => {
                   label="Full name"
                   value={form.fullName}
                   onChange={(event) => updateForm("fullName", event.target.value)}
+                  autoComplete="name"
                   required
                   fullWidth
                 />
@@ -336,6 +337,8 @@ const AuthPage = ({ mode = "login" }) => {
                   type="email"
                   value={form.email}
                   onChange={(event) => updateForm("email", event.target.value)}
+                  autoComplete={isRegister ? "email" : "off"}
+                  inputProps={{ name: isRegister ? "email" : "fintrack-login-email" }}
                   required
                   fullWidth
                 />
@@ -346,6 +349,7 @@ const AuthPage = ({ mode = "login" }) => {
                   label={authMethod === "whatsappOtp" ? "WhatsApp number" : "Mobile number"}
                   value={form.mobile}
                   onChange={(event) => updateForm("mobile", event.target.value)}
+                  autoComplete="tel"
                   fullWidth
                   required={["mobileOtp", "whatsappOtp"].includes(authMethod)}
                 />
@@ -357,6 +361,9 @@ const AuthPage = ({ mode = "login" }) => {
                   type="password"
                   value={form.password}
                   onChange={(event) => updateForm("password", event.target.value)}
+                  // Avoid showing a previous user's saved credentials on a shared demo browser.
+                  autoComplete="new-password"
+                  inputProps={{ name: isRegister ? "new-password" : "fintrack-login-password" }}
                   required={authMethod === "password" || isRegister}
                   fullWidth
                 />
