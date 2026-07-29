@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 import os
 import re
@@ -21,6 +22,7 @@ from sklearn.preprocessing import StandardScaler
 
 
 router = APIRouter(prefix="/market", tags=["Global Market Intelligence"])
+logger = logging.getLogger(__name__)
 
 GLOBAL_INDICES = {
     "^GSPC": {"name": "S&P 500", "region": "United States", "currency": "USD"},
@@ -862,7 +864,13 @@ def _gemini_chat(messages: List[Dict[str, str]]) -> str:
             payload = json.loads(response.read().decode("utf-8"))
             parts = payload.get("candidates", [{}])[0].get("content", {}).get("parts", [])
             return "\n".join(str(part.get("text", "")) for part in parts).strip()
-    except (HTTPError, URLError, TimeoutError, OSError, json.JSONDecodeError, IndexError) as error:
+    except HTTPError as error:
+        # Do not log headers or the key.  The status is enough to distinguish
+        # an invalid/blocked key (401/403), quota limits (429), or model issues.
+        logger.warning("Gemini generateContent request rejected with HTTP %s", error.code)
+        raise RuntimeError(f"Gemini request rejected (HTTP {error.code}).") from error
+    except (URLError, TimeoutError, OSError, json.JSONDecodeError, IndexError) as error:
+        logger.warning("Gemini generateContent request failed: %s", type(error).__name__)
         raise RuntimeError("Gemini service is unavailable or rejected the request.") from error
 
 
@@ -1200,7 +1208,8 @@ async def market_agent(request: FastApiRequest):
                 context["macroFactors"],
                 context.get("breadth"),
             )
-    except RuntimeError:
+    except RuntimeError as error:
+        logger.warning("Configured market LLM unavailable; returning verified tool answer: %s", error)
         llm_used = False
         llm_status = "offline"
         llm_answer_accepted = False
