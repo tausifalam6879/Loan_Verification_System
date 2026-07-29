@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Box, Button, Card, CardContent, Chip, CircularProgress, Dialog,
   DialogContent, DialogTitle, Divider, Stack, TextField, Typography
@@ -41,8 +41,13 @@ const LiveExchangeRatesCard = ({ onOpenMarkets }) => {
   const [showAll, setShowAll] = useState(false);
   const [search, setSearch] = useState("");
   const [state, setState] = useState(() => readCachedRates() || ({ currencies: featuredCurrencies, referenceRates: {}, updatedAt: "", source: "Connecting to live currency feed", loading: true, error: "" }));
+  const requestInFlight = useRef(false);
 
   const refreshRates = useCallback(async () => {
+    // A sleeping Render instance can take longer than the refresh interval to
+    // wake up. Do not queue multiple identical currency requests behind it.
+    if (requestInFlight.current) return;
+    requestInFlight.current = true;
     setState((current) => ({ ...current, loading: true, error: "" }));
     try {
       const response = await marketApi.get("/market/currencies", {
@@ -63,6 +68,8 @@ const LiveExchangeRatesCard = ({ onOpenMarkets }) => {
       setState(cached
         ? { ...cached, loading: false, error: "Currency service is unavailable. Showing the last verified values." }
         : { currencies: featuredCurrencies, referenceRates: {}, updatedAt: "", source: "Currency service unavailable", loading: false, error: "The live currency service did not respond after the connection wait. Use Refresh now to retry." });
+    } finally {
+      requestInFlight.current = false;
     }
   }, []);
 

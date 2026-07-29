@@ -80,8 +80,8 @@ const formatTime = (value) => {
 
 const directionColor = (value) => Number(value) >= 0 ? "#15803d" : "#dc2626";
 const outlookColor = (outlook) => outlook === "BULLISH" ? "#15803d" : outlook === "BEARISH" ? "#dc2626" : "#b45309";
-const QUOTE_REFRESH_MS = 30000;
-const SUPPORTING_DATA_REFRESH_MS = 120000;
+const QUOTE_REFRESH_MS = 60000;
+const SUPPORTING_DATA_REFRESH_MS = 180000;
 const MARKET_ALERT_STORAGE_KEY = "fintrack.market.notified-alerts.v1";
 const isLiveQuoteSource = (mode) => mode === "live" || mode === "browser-live";
 
@@ -131,41 +131,52 @@ const GlobalMarketSection = () => {
   const [symbol, setSymbol] = useState("^NSEI");
   const [companySymbol, setCompanySymbol] = useState("RELIANCE.NS");
   const [loadingPulse, setLoadingPulse] = useState(true);
-  const [loadingAnalysis, setLoadingAnalysis] = useState(true);
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [loadingCompany, setLoadingCompany] = useState(false);
   const [error, setError] = useState("");
   const [question, setQuestion] = useState("Kal Nifty ko kaun se real-world factors affect kar sakte hain?");
   const [agentLoading, setAgentLoading] = useState(false);
   const [agentMessages, setAgentMessages] = useState([]);
+  const pulseRequestInFlight = useRef(false);
+  const overviewRequestInFlight = useRef(false);
 
   const loadPulse = async (refresh = false, showLoading = true) => {
+    // Initial market loading fans out to several endpoints. A Render free
+    // service may still be starting, so prevent intervals and tab changes
+    // from creating a growing queue of duplicate requests.
+    if (pulseRequestInFlight.current) return;
+    pulseRequestInFlight.current = true;
     if (showLoading) setLoadingPulse(true);
-    let results;
-    if (refresh) {
-      const [overviewResult] = await Promise.allSettled([getGlobalMarketOverview(true)]);
+    try {
+      // Show the primary market board first. Supporting data is then fetched
+      // without competing with it during a cold start.
+      const [overviewResult] = await Promise.allSettled([getGlobalMarketOverview(refresh)]);
+      if (overviewResult.status === "fulfilled") setOverview(overviewResult.value);
+      if (showLoading) setLoadingPulse(false);
+
       const supportingResults = await Promise.allSettled([
         getMarketFactors(false), getMarketBreadth(false), getMarketNewsFeed(false)
       ]);
-      results = [overviewResult, ...supportingResults];
-    } else {
-      results = await Promise.allSettled([
-        getGlobalMarketOverview(false), getMarketFactors(false), getMarketBreadth(false), getMarketNewsFeed(false)
-      ]);
+      if (supportingResults[0].status === "fulfilled") setFactors(supportingResults[0].value);
+      if (supportingResults[1].status === "fulfilled") setBreadth(supportingResults[1].value);
+      if (supportingResults[2].status === "fulfilled") setNewsFeed(supportingResults[2].value);
+      const failed = overviewResult.status === "rejected" || supportingResults.some((result) => result.status === "rejected");
+      setError(failed ? "Some market feeds could not be refreshed. Available sections still show their source and timestamp." : "");
+    } finally {
+      if (showLoading) setLoadingPulse(false);
+      pulseRequestInFlight.current = false;
     }
-    if (results[0].status === "fulfilled") setOverview(results[0].value);
-    if (results[1].status === "fulfilled") setFactors(results[1].value);
-    if (results[2].status === "fulfilled") setBreadth(results[2].value);
-    if (results[3].status === "fulfilled") setNewsFeed(results[3].value);
-    const failed = results.find((result) => result.status === "rejected");
-    setError(failed ? "Some market feeds could not be refreshed. Available sections still show their source and timestamp." : "");
-    if (showLoading) setLoadingPulse(false);
   };
 
   const refreshOverviewQuotes = async () => {
+    if (overviewRequestInFlight.current || pulseRequestInFlight.current) return;
+    overviewRequestInFlight.current = true;
     try {
       setOverview(await getGlobalMarketOverview(false));
     } catch (requestError) {
       // Keep the last successful board on screen; the slower full refresh reports persistent failures.
+    } finally {
+      overviewRequestInFlight.current = false;
     }
   };
 
@@ -203,12 +214,12 @@ const GlobalMarketSection = () => {
 
   useEffect(() => {
     loadPulse();
-    analyzeSymbol("^NSEI");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (view === "research" && !company && !loadingCompany) researchCompany("RELIANCE.NS");
+    if (view === "outlook" && !analysis && !loadingAnalysis) analyzeSymbol("^NSEI");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
 
