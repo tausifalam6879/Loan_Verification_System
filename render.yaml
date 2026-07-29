@@ -38,10 +38,9 @@ services:
       - key: SPRING_PROFILES_ACTIVE
         value: production
       - key: AI_SERVICE_URL
-        fromService:
-          type: web
-          name: fintrack-market-ai
-          property: hostport
+        # Use the public HTTPS service URL. This keeps the Docker API able to
+        # reach the Python market service reliably on Render's free instances.
+        value: https://fintrack-market-ai.onrender.com
       - key: APP_CORS_ALLOWED_ORIGIN_PATTERNS
         value: https://tausifalam6879.github.io
       - key: APP_OTP_ENABLED
