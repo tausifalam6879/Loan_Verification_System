@@ -1,10 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
-import { clearAuthSession, validateSession } from "../services/authService";
+import { clearAuthSession, hasFreshSession, validateSession } from "../services/authService";
 
 jest.mock("../services/authService", () => ({
   validateSession: jest.fn(),
+  hasFreshSession: jest.fn(() => false),
   clearAuthSession: jest.fn(() => {
     global.localStorage.removeItem("token");
     global.localStorage.removeItem("role");
@@ -25,7 +26,7 @@ beforeEach(() => {
 test("does not render private content when a stored token fails server validation", async () => {
   localStorage.setItem("token", "forged-or-expired-token");
   localStorage.setItem("email", "previous-user@example.com");
-  validateSession.mockRejectedValueOnce(new Error("Unauthorized"));
+  validateSession.mockRejectedValueOnce({ response: { status: 401 } });
 
   render(
     <MemoryRouter initialEntries={["/markets"]}>

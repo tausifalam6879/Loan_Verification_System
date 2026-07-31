@@ -23,7 +23,7 @@ import PhoneAndroidIcon from "@mui/icons-material/PhoneAndroid";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { demoMode } from "../api/demoAdapter";
-import { getAuthConfig, login, register, requestOtp, verifyOtp } from "../services/authService";
+import { login, register, requestOtp, verifyOtp, warmUpAuthService } from "../services/authService";
 
 const AuthPage = ({ mode = "login" }) => {
   const navigate = useNavigate();
@@ -51,19 +51,21 @@ const AuthPage = ({ mode = "login" }) => {
     passwordLoginEnabled: true
   });
   const [authMethod, setAuthMethod] = useState("password");
+  const [connectionState, setConnectionState] = useState(demoMode ? "ready" : "connecting");
 
   const otpPurpose = isRegister ? "REGISTER" : "LOGIN";
 
   useEffect(() => {
     let isMounted = true;
 
-    getAuthConfig()
+    warmUpAuthService()
       .then((config) => {
         if (isMounted) {
           setAuthConfig((current) => ({
             ...current,
             ...config
           }));
+          setConnectionState("ready");
         }
       })
       .catch(() => {
@@ -75,6 +77,7 @@ const AuthPage = ({ mode = "login" }) => {
             mobileOtpEnabled: true,
             whatsappOtpEnabled: true
           }));
+          setConnectionState("unavailable");
         }
       });
 
@@ -89,7 +92,7 @@ const AuthPage = ({ mode = "login" }) => {
 
   const getErrorMessage = (error) => {
     if (!error.response) {
-      return "Backend is not reachable on http://localhost:8081. Start Spring Boot backend first.";
+      return "Secure server is taking longer than expected. Please retry in a moment.";
     }
 
     return error.response?.data?.message || "Authentication failed. Check email, password and backend.";
@@ -271,6 +274,18 @@ const AuthPage = ({ mode = "login" }) => {
               {warning && <Alert severity="warning">{warning}</Alert>}
               {success && <Alert severity="success">{success}</Alert>}
 
+              {!demoMode && connectionState === "connecting" && (
+                <Alert severity="info">
+                  Preparing the secure server connection. You can enter your details while it starts.
+                </Alert>
+              )}
+
+              {!demoMode && connectionState === "unavailable" && (
+                <Alert severity="warning">
+                  Secure server is taking longer than expected. Login will retry the connection.
+                </Alert>
+              )}
+
               {!isRegister && demoMode && (
                 <Alert severity="info">
                   Dashboard and market data are private. Sign in with a registered account to continue.
@@ -418,11 +433,17 @@ const AuthPage = ({ mode = "login" }) => {
               <Button
                 type="submit"
                 variant="contained"
-                disabled={loading}
+                disabled={loading || (!demoMode && connectionState === "connecting")}
                 startIcon={isRegister ? <PersonAddIcon /> : <LoginIcon />}
                 sx={{ borderRadius: 2, py: 1.2, textTransform: "none", fontWeight: 900 }}
               >
-                {loading ? "Please wait..." : isRegister ? "Register" : "Login"}
+                {loading
+                  ? "Please wait..."
+                  : !demoMode && connectionState === "connecting"
+                    ? "Preparing secure server..."
+                    : isRegister
+                      ? "Register"
+                      : "Login"}
               </Button>
 
               <Typography variant="body2" sx={{ textAlign: "center", color: "#64748b" }}>

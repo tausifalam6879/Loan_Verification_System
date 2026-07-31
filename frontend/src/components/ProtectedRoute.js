@@ -1,11 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Box, CircularProgress, Typography } from "@mui/material";
-import { clearAuthSession, validateSession } from "../services/authService";
+import { clearAuthSession, hasFreshSession, validateSession } from "../services/authService";
+
+const localRole = () => localStorage.getItem("role") || "USER";
+const isAuthenticationError = (error) => [401, 403].includes(error?.response?.status);
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const token = localStorage.getItem("token");
-  const [session, setSession] = useState({ status: token ? "checking" : "missing", role: null });
+  const [session, setSession] = useState(() => ({
+    status: token ? (hasFreshSession() ? "valid" : "checking") : "missing",
+    role: token ? localRole() : null
+  }));
 
   useEffect(() => {
     let active = true;
@@ -16,17 +22,24 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
       };
     }
 
-    setSession({ status: "checking", role: null });
+    const freshlyAuthenticated = hasFreshSession();
+    setSession({ status: freshlyAuthenticated ? "valid" : "checking", role: localRole() });
     validateSession()
       .then((profile) => {
         if (active) {
           setSession({ status: "valid", role: profile.role || "USER" });
         }
       })
-      .catch(() => {
-        clearAuthSession();
-        if (active) {
-          setSession({ status: "invalid", role: null });
+      .catch((error) => {
+        // A sleeping free-tier server or a brief network failure must not log a
+        // legitimate user out. Only the server's explicit 401/403 invalidates a JWT.
+        if (isAuthenticationError(error)) {
+          clearAuthSession();
+          if (active) {
+            setSession({ status: "invalid", role: null });
+          }
+        } else if (active) {
+          setSession({ status: "valid", role: localRole() });
         }
       });
 
