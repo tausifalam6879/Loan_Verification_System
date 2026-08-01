@@ -16,7 +16,8 @@ const REQUEST_TIMEOUT_MS = 8000;
 // A hosted Render API can be asleep on an interviewer's first visit.  Waiting
 // for it is more honest than instantly rendering empty rates as an outage.
 const HOSTED_CURRENCY_TIMEOUT_MS = 125000;
-const isHostedBackend = /^https?:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/i.test(process.env.REACT_APP_API_BASE_URL || "");
+const marketApiBaseUrl = process.env.REACT_APP_MARKET_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || "";
+const isHostedBackend = /^https?:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/i.test(marketApiBaseUrl);
 
 const featuredCurrencies = [
   { code: "USD", country: "United States", name: "US Dollar", yahooSymbol: "USDINR=X", digits: 2 },

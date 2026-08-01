@@ -4,6 +4,7 @@ from statistics import mean
 from typing import Dict, List, Literal, Optional
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import joblib
 import pandas as pd
@@ -117,6 +118,17 @@ app = FastAPI(
     version="0.2.0",
     description="Python ML service for loan fraud scoring, expense categorization, forecasting, anomaly detection, and saving advice.",
     lifespan=lifespan,
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://tausifalam6879.github.io",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 app.include_router(market_router)
 

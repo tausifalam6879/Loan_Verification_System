@@ -1,18 +1,21 @@
 import axios from "axios";
 import { demoAdapter, demoMode, revokeDemoSession } from "./demoAdapter";
 
+const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || "http://localhost:8081/api";
+const marketApiBaseUrl = process.env.REACT_APP_MARKET_API_BASE_URL || apiBaseUrl;
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || "http://localhost:8081/api",
+  baseURL: apiBaseUrl,
   adapter: demoMode ? demoAdapter : undefined,
   headers: {
     "Content-Type": "application/json"
   }
 });
 
-// Public market data intentionally bypasses the browser-demo adapter. In local/full-stack
-// mode it reaches Spring Boot; on GitHub Pages it falls back to the timestamped snapshot.
+// Public market data intentionally bypasses the browser-demo adapter. Production can call
+// the Python market service directly, avoiding a second Render cold start through Spring.
 export const marketApi = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || "http://localhost:8081/api",
+  baseURL: marketApiBaseUrl,
   headers: {
     "Content-Type": "application/json"
   }

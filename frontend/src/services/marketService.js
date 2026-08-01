@@ -12,7 +12,8 @@ const QUOTE_REQUEST_TIMEOUT_MS = 20000;
 const SNAPSHOT_RECHECK_MS = 60000;
 const CACHE_PREFIX = "fintrack.market.v4";
 const SNAPSHOT_URL = `${process.env.PUBLIC_URL || ""}/data/market-snapshot.json`;
-const isHostedBackend = /^https?:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/i.test(process.env.REACT_APP_API_BASE_URL || "");
+const marketApiBaseUrl = process.env.REACT_APP_MARKET_API_BASE_URL || process.env.REACT_APP_API_BASE_URL || "";
+const isHostedBackend = /^https?:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/i.test(marketApiBaseUrl);
 
 const MARKET_BOARD = [
   { symbol: "^NSEI", name: "Nifty 50", kind: "index", sector: "Indices" },

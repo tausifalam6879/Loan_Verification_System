@@ -6,6 +6,7 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
+from threading import Lock
 from typing import Any, Dict, List, Optional
 from urllib.error import HTTPError, URLError
 from urllib.request import Request as UrlRequest, urlopen
@@ -181,7 +182,9 @@ NEGATIVE_WORDS = {
 
 CACHE_TTL_SECONDS = int(os.getenv("MARKET_CACHE_TTL_SECONDS", "120"))
 QUOTE_CACHE_TTL_SECONDS = int(os.getenv("MARKET_QUOTE_CACHE_TTL_SECONDS", "15"))
+OVERVIEW_CACHE_TTL_SECONDS = int(os.getenv("MARKET_OVERVIEW_CACHE_TTL_SECONDS", "900"))
 _cache: Dict[str, Dict[str, Any]] = {}
+_overview_lock = Lock()
 
 
 class MarketAgentRequest(BaseModel):
@@ -257,17 +260,14 @@ def _round(value: Any, digits: int = 2) -> Optional[float]:
         return None
 
 
-def market_snapshot(symbol: str, include_average_volume: bool = True) -> Dict[str, Any]:
-    symbol = _sanitize_symbol(symbol)
-    daily_frame: Optional[pd.DataFrame] = None
-    quote_mode = "end-of-day"
-    try:
-        frame = _intraday_history(symbol)
-        quote_mode = "intraday"
-    except Exception:
-        daily_frame = _history(symbol, "1mo")
-        frame = daily_frame
-
+def _snapshot_from_frame(
+    symbol: str,
+    frame: pd.DataFrame,
+    quote_mode: str,
+    include_average_volume: bool = True,
+    daily_frame: Optional[pd.DataFrame] = None,
+) -> Dict[str, Any]:
+    """Build the common quote payload from an already downloaded price frame."""
     latest = frame.iloc[-1]
     latest_date = frame.index[-1].date()
     session_mask = [index.date() == latest_date for index in frame.index]
@@ -309,6 +309,20 @@ def market_snapshot(symbol: str, include_average_volume: bool = True) -> Dict[st
         "quoteMode": quote_mode,
         "status": "available",
     }
+
+
+def market_snapshot(symbol: str, include_average_volume: bool = True) -> Dict[str, Any]:
+    symbol = _sanitize_symbol(symbol)
+    daily_frame: Optional[pd.DataFrame] = None
+    quote_mode = "end-of-day"
+    try:
+        frame = _intraday_history(symbol)
+        quote_mode = "intraday"
+    except Exception:
+        daily_frame = _history(symbol, "1mo")
+        frame = daily_frame
+
+    return _snapshot_from_frame(symbol, frame, quote_mode, include_average_volume, daily_frame)
 
 
 def macro_factors() -> Dict[str, Any]:
@@ -378,40 +392,87 @@ def market_breadth() -> Dict[str, Any]:
     }
 
 
+def _download_overview_frames(symbols: List[str]) -> Dict[str, pd.DataFrame]:
+    """Download dashboard quotes in one batch instead of one upstream request per card."""
+    downloaded = yf.download(
+        tickers=" ".join(symbols),
+        period="5d",
+        interval="5m",
+        group_by="ticker",
+        auto_adjust=False,
+        prepost=False,
+        threads=True,
+        progress=False,
+        timeout=8,
+    )
+    if downloaded is None or downloaded.empty:
+        raise ValueError("The market quote provider returned an empty overview response.")
+
+    frames: Dict[str, pd.DataFrame] = {}
+    for symbol in symbols:
+        try:
+            frame = downloaded[symbol] if isinstance(downloaded.columns, pd.MultiIndex) else downloaded
+            frame = frame.dropna(subset=["Close"]).copy()
+            if not frame.empty:
+                frames[symbol] = frame
+        except (KeyError, TypeError, ValueError):
+            continue
+    return frames
+
+
 def global_overview() -> Dict[str, Any]:
+    cached = _cache_get("global-overview", OVERVIEW_CACHE_TTL_SECONDS)
+    if cached is not None:
+        return cached
+
+    # FastAPI may receive the dashboard and a Spring proxy request together.
+    # Only one request should perform the relatively expensive Yahoo download.
+    with _overview_lock:
+        cached = _cache_get("global-overview", OVERVIEW_CACHE_TTL_SECONDS)
+        if cached is not None:
+            return cached
+
+        return _build_global_overview()
+
+
+def _build_global_overview() -> Dict[str, Any]:
     quotes_by_symbol: Dict[str, Dict[str, Any]] = {}
     requested_symbols = list(dict.fromkeys([*GLOBAL_INDICES, *MARKET_BOARD]))
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        jobs = {executor.submit(market_snapshot, symbol, False): symbol for symbol in requested_symbols}
-        for job in as_completed(jobs):
-            symbol = jobs[job]
-            try:
-                quotes_by_symbol[symbol] = job.result()
-            except Exception as error:
-                metadata = GLOBAL_INDICES.get(symbol) or MARKET_BOARD[symbol]
-                quotes_by_symbol[symbol] = {
-                    "symbol": symbol,
-                    "name": metadata["name"],
-                    "region": metadata["region"],
-                    "currency": metadata["currency"],
-                    "status": "unavailable",
-                    "error": str(error),
-                }
+    frames = _download_overview_frames(requested_symbols)
+    for symbol in requested_symbols:
+        try:
+            quotes_by_symbol[symbol] = _snapshot_from_frame(
+                symbol,
+                frames[symbol],
+                quote_mode="intraday-5-minute",
+                include_average_volume=False,
+            )
+        except Exception as error:
+            metadata = GLOBAL_INDICES.get(symbol) or MARKET_BOARD[symbol]
+            quotes_by_symbol[symbol] = {
+                "symbol": symbol,
+                "name": metadata["name"],
+                "region": metadata["region"],
+                "currency": metadata["currency"],
+                "status": "unavailable",
+                "error": str(error),
+            }
     snapshots = [quotes_by_symbol[symbol] for symbol in GLOBAL_INDICES]
     watchlist = [
         {**quotes_by_symbol[symbol], "kind": metadata["kind"], "sector": metadata["sector"]}
         for symbol, metadata in MARKET_BOARD.items()
     ]
     available = [item for item in snapshots if item["status"] == "available"]
-    return {
+    result = {
         "markets": snapshots,
         "watchlist": watchlist,
         "availableMarkets": len(available),
         "totalMarkets": len(snapshots),
         "generatedAt": datetime.now(timezone.utc).isoformat(),
-        "refreshIntervalSeconds": QUOTE_CACHE_TTL_SECONDS,
-        "dataDelayNotice": "Minute quotes update while markets are open, but may be delayed by the upstream provider and exchange rules.",
+        "refreshIntervalSeconds": OVERVIEW_CACHE_TTL_SECONDS,
+        "dataDelayNotice": "Five-minute dashboard quotes refresh every 15 minutes or on request, and may be delayed by the upstream provider and exchange rules.",
     }
+    return _cache_put("global-overview", result)
 
 
 def _reference_inr_rates() -> Dict[str, float]:
@@ -1015,7 +1076,7 @@ def _llm_grounding_issue(answer: str, message: str, prediction: Dict[str, Any], 
 @router.get("/overview")
 def get_global_market_overview(refresh: bool = False):
     if refresh:
-        clear_market_cache()
+        _cache.pop("global-overview", None)
     return global_overview()
 
 

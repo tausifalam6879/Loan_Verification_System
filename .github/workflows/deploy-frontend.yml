@@ -9,6 +9,7 @@ on:
     paths:
       - "frontend/**"
       - "ai-fraud-service/market_intelligence.py"
+      - "ai-fraud-service/main.py"
       - "ai-fraud-service/requirements.txt"
       - "scripts/generate_market_snapshot.py"
       - ".github/workflows/deploy-frontend.yml"
@@ -70,6 +71,7 @@ jobs:
         env:
           REACT_APP_DEMO_MODE: ${{ vars.REACT_APP_API_BASE_URL == '' && 'true' || 'false' }}
           REACT_APP_API_BASE_URL: ${{ vars.REACT_APP_API_BASE_URL || 'http://localhost:8081/api' }}
+          REACT_APP_MARKET_API_BASE_URL: ${{ vars.REACT_APP_MARKET_API_BASE_URL || 'https://fintrack-market-ai.onrender.com' }}
           CI: "false"
 
       - name: Configure Pages
