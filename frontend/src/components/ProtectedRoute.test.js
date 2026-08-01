@@ -1,11 +1,12 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
-import { clearAuthSession, hasFreshSession, validateSession } from "../services/authService";
+import { clearAuthSession, hasFreshSession, hasTrustedSession, validateSession } from "../services/authService";
 
 jest.mock("../services/authService", () => ({
   validateSession: jest.fn(),
   hasFreshSession: jest.fn(() => false),
+  hasTrustedSession: jest.fn(() => false),
   clearAuthSession: jest.fn(() => {
     global.localStorage.removeItem("token");
     global.localStorage.removeItem("role");
@@ -16,11 +17,51 @@ jest.mock("../services/authService", () => ({
 beforeEach(() => {
   localStorage.clear();
   jest.clearAllMocks();
+  hasFreshSession.mockReturnValue(false);
+  hasTrustedSession.mockReturnValue(false);
   clearAuthSession.mockImplementation(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("email");
   });
+});
+
+test("renders a freshly authenticated session without another blocking validation request", () => {
+  localStorage.setItem("token", "server-issued-token");
+  localStorage.setItem("role", "USER");
+  hasFreshSession.mockReturnValue(true);
+
+  render(
+    <MemoryRouter>
+      <ProtectedRoute>
+        <div>Private dashboard</div>
+      </ProtectedRoute>
+    </MemoryRouter>
+  );
+
+  expect(screen.getByText("Private dashboard")).toBeInTheDocument();
+  expect(screen.queryByText("Verifying secure session...")).not.toBeInTheDocument();
+  expect(validateSession).not.toHaveBeenCalled();
+});
+
+test("renders a known older session while refreshing its proof in the background", async () => {
+  localStorage.setItem("token", "known-server-token");
+  localStorage.setItem("role", "USER");
+  hasFreshSession.mockReturnValue(false);
+  hasTrustedSession.mockReturnValue(true);
+  validateSession.mockResolvedValueOnce({ email: "user@example.com", role: "USER" });
+
+  render(
+    <MemoryRouter>
+      <ProtectedRoute>
+        <div>Private dashboard</div>
+      </ProtectedRoute>
+    </MemoryRouter>
+  );
+
+  expect(screen.getByText("Private dashboard")).toBeInTheDocument();
+  expect(screen.queryByText("Verifying secure session...")).not.toBeInTheDocument();
+  await waitFor(() => expect(validateSession).toHaveBeenCalledTimes(1));
 });
 
 test("does not render private content when a stored token fails server validation", async () => {

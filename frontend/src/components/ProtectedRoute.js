@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Box, CircularProgress, Typography } from "@mui/material";
-import { clearAuthSession, hasFreshSession, validateSession } from "../services/authService";
+import {
+  clearAuthSession,
+  hasFreshSession,
+  hasTrustedSession,
+  validateSession
+} from "../services/authService";
 
 const localRole = () => localStorage.getItem("role") || "USER";
 const isAuthenticationError = (error) => [401, 403].includes(error?.response?.status);
@@ -9,7 +14,7 @@ const isAuthenticationError = (error) => [401, 403].includes(error?.response?.st
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const token = localStorage.getItem("token");
   const [session, setSession] = useState(() => ({
-    status: token ? (hasFreshSession() ? "valid" : "checking") : "missing",
+    status: token ? (hasFreshSession() || hasTrustedSession() ? "valid" : "checking") : "missing",
     role: token ? localRole() : null
   }));
 
@@ -23,7 +28,15 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     }
 
     const freshlyAuthenticated = hasFreshSession();
-    setSession({ status: freshlyAuthenticated ? "valid" : "checking", role: localRole() });
+    const trustedSession = hasTrustedSession();
+    setSession({ status: freshlyAuthenticated || trustedSession ? "valid" : "checking", role: localRole() });
+
+    if (freshlyAuthenticated) {
+      return () => {
+        active = false;
+      };
+    }
+
     validateSession()
       .then((profile) => {
         if (active) {

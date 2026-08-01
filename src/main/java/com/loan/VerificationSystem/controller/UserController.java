@@ -10,6 +10,7 @@ import com.loan.VerificationSystem.dto.UserProfileUpdateDTO;
 import com.loan.VerificationSystem.dto.UserResponseDTO;
 import com.loan.VerificationSystem.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -69,6 +70,18 @@ public class UserController {
     @GetMapping("/me")
     public UserResponseDTO getCurrentUser() {
         return userService.getCurrentUser();
+    }
+
+    @GetMapping("/session")
+    public Map<String, String> getCurrentSession(Authentication authentication) {
+        String role = authentication.getAuthorities().stream()
+                .map(authority -> authority.getAuthority().replaceFirst("^ROLE_", ""))
+                .findFirst()
+                .orElse("USER");
+        return Map.of(
+                "email", authentication.getName(),
+                "role", role
+        );
     }
 
     @PatchMapping("/me")

@@ -433,15 +433,13 @@ const AuthPage = ({ mode = "login" }) => {
               <Button
                 type="submit"
                 variant="contained"
-                disabled={loading || (!demoMode && connectionState === "connecting")}
+                disabled={loading}
                 startIcon={isRegister ? <PersonAddIcon /> : <LoginIcon />}
                 sx={{ borderRadius: 2, py: 1.2, textTransform: "none", fontWeight: 900 }}
               >
                 {loading
                   ? "Please wait..."
-                  : !demoMode && connectionState === "connecting"
-                    ? "Preparing secure server..."
-                    : isRegister
+                  : isRegister
                       ? "Register"
                       : "Login"}
               </Button>

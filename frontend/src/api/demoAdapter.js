@@ -618,6 +618,13 @@ const demoAdapter = async (config) => {
     });
   }
 
+  if (path === "/users/session" && method === "get") {
+    return response(config, {
+      email: account.email,
+      role: session.role
+    });
+  }
+
   if (path === "/users/me" && method === "get") {
     const submittedScores = state.applications
       .map((application) => Number(application.creditScore))

@@ -39,6 +39,8 @@ api.interceptors.response.use(
       localStorage.removeItem("token");
       localStorage.removeItem("role");
       localStorage.removeItem("email");
+      localStorage.removeItem("fintrack.session.issuedAt");
+      localStorage.removeItem("fintrack.session.validatedAt");
       if (typeof window !== "undefined" && !window.location.hash.includes("/login")) {
         window.location.hash = "#/login";
       }
