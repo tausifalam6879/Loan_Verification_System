@@ -6,6 +6,7 @@ from main import (
     generate_expense_insights,
     health,
 )
+from market_intelligence import _llm_failure_code
 
 
 def test_health_reports_training_data_and_model_version():
@@ -79,3 +80,10 @@ def test_expense_insights_returns_category_and_saving_context():
     assert response.top_category == "Food"
     assert response.recommendations
     assert all(anomaly.amount >= 0 for anomaly in response.anomalies)
+
+
+def test_llm_failure_codes_are_safe_and_actionable():
+    assert _llm_failure_code(RuntimeError("Gemini request rejected (HTTP 403).")) == "authentication_rejected"
+    assert _llm_failure_code(RuntimeError("Gemini request rejected (HTTP 429).")) == "quota_exceeded"
+    assert _llm_failure_code(RuntimeError("Gemini is not configured. Set GEMINI_API_KEY.")) == "missing_configuration"
+    assert _llm_failure_code(RuntimeError("Gemini request rejected (HTTP 404).")) == "model_unavailable"

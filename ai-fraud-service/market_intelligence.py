@@ -976,6 +976,30 @@ def _provider_chat(messages: List[Dict[str, str]]) -> tuple[str, str]:
     raise RuntimeError(f"Unsupported LLM_PROVIDER: {provider}")
 
 
+def _llm_failure_code(error: RuntimeError) -> str:
+    """Return a safe, user-actionable provider failure category.
+
+    Provider exceptions deliberately contain no credentials or response bodies,
+    so this value can be returned to the dashboard without exposing secrets.
+    """
+    message = str(error).lower()
+    if "not configured" in message:
+        return "missing_configuration"
+    if "http 401" in message or "http 403" in message:
+        return "authentication_rejected"
+    if "http 429" in message:
+        return "quota_exceeded"
+    if "http 404" in message:
+        return "model_unavailable"
+    if "http 400" in message:
+        return "request_rejected"
+    if "timeout" in message:
+        return "provider_timeout"
+    if "unavailable" in message:
+        return "provider_unavailable"
+    return "provider_error"
+
+
 def _verified_tool_answer(
     message: str,
     prediction: Dict[str, Any],
@@ -1253,6 +1277,7 @@ async def market_agent(request: FastApiRequest):
     llm_status = "connected"
     llm_answer_accepted = True
     grounding_issue = None
+    llm_failure = None
     llm_provider = os.getenv("LLM_PROVIDER", "ollama").strip().lower() or "ollama"
     try:
         answer, llm_provider = _provider_chat(messages)
@@ -1274,6 +1299,7 @@ async def market_agent(request: FastApiRequest):
         llm_used = False
         llm_status = "offline"
         llm_answer_accepted = False
+        llm_failure = _llm_failure_code(error)
         answer = _verified_tool_answer(
             payload.message,
             prediction,
@@ -1288,6 +1314,7 @@ async def market_agent(request: FastApiRequest):
         "llmUsed": llm_used,
         "llmProvider": llm_provider,
         "llmStatus": llm_status,
+        "llmFailure": llm_failure,
         "llmAnswerAccepted": llm_answer_accepted,
         "groundingIssue": grounding_issue,
         "toolsUsed": tools,

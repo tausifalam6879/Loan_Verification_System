@@ -288,6 +288,7 @@ const GlobalMarketSection = () => {
         role: "assistant",
         content: response.answer,
         llmStatus: response.llmStatus,
+        llmFailure: response.llmFailure,
         llmProvider: response.llmProvider,
         toolsUsed: response.toolsUsed || []
       }]);
@@ -962,7 +963,21 @@ const ModelWorkspace = ({ analysis, quotePreview, symbol, setSymbol, loading, on
                   <Chip
                     size="small"
                     icon={<AutoAwesomeIcon />}
-                    label={item.llmStatus === "connected" ? `${item.llmProvider || "LLM"} grounded` : item.llmStatus === "grounding_fallback" ? "LLM checked - tool answer used" : "LLM offline - verified tool answer"}
+                    label={item.llmStatus === "connected"
+                      ? `${item.llmProvider || "LLM"} grounded`
+                      : item.llmStatus === "grounding_fallback"
+                        ? "LLM checked - tool answer used"
+                        : item.llmFailure === "authentication_rejected"
+                          ? "Gemini key rejected - verified tool answer"
+                          : item.llmFailure === "quota_exceeded"
+                            ? "Gemini quota reached - verified tool answer"
+                            : item.llmFailure === "missing_configuration"
+                              ? "Gemini key missing - verified tool answer"
+                              : item.llmFailure === "model_unavailable"
+                                ? "Gemini model unavailable - verified tool answer"
+                                : item.llmFailure === "provider_timeout"
+                                  ? "Gemini timed out - verified tool answer"
+                                  : "LLM offline - verified tool answer"}
                   />
                   {(item.toolsUsed || []).map((tool) => <Chip key={tool} size="small" label={tool.replaceAll("_", " ")} variant="outlined" />)}
                 </Stack>
