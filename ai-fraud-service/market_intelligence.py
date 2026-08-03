@@ -893,11 +893,21 @@ def _ollama_chat(messages: List[Dict[str, str]]) -> str:
         raise RuntimeError("Local Ollama service is unavailable or the configured model is not loaded.") from error
 
 
+def _gemini_model_candidates(configured_model: str) -> List[str]:
+    candidates = [
+        configured_model.strip(),
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-flash-latest",
+    ]
+    return list(dict.fromkeys(model for model in candidates if model))
+
+
 def _gemini_chat(messages: List[Dict[str, str]]) -> str:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("Gemini is not configured. Set GEMINI_API_KEY on the Python backend.")
-    model = os.getenv("LLM_MODEL", "gemini-3.5-flash-lite").strip()
+    configured_model = os.getenv("LLM_MODEL", "gemini-3.5-flash-lite").strip()
     timeout = max(5, int(os.getenv("LLM_TIMEOUT_MS", "15000")) // 1000)
     system_text = "\n".join(item["content"] for item in messages if item.get("role") == "system")
     contents = []
@@ -917,25 +927,36 @@ def _gemini_chat(messages: List[Dict[str, str]]) -> str:
         # dashboard response length here.
         "generationConfig": {"maxOutputTokens": 320},
     }).encode("utf-8")
-    request = UrlRequest(
-        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-        data=body,
-        headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
-        method="POST",
-    )
-    try:
-        with urlopen(request, timeout=timeout) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-            parts = payload.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-            return "\n".join(str(part.get("text", "")) for part in parts).strip()
-    except HTTPError as error:
-        # Do not log headers or the key.  The status is enough to distinguish
-        # an invalid/blocked key (401/403), quota limits (429), or model issues.
-        logger.warning("Gemini generateContent request rejected with HTTP %s", error.code)
-        raise RuntimeError(f"Gemini request rejected (HTTP {error.code}).") from error
-    except (URLError, TimeoutError, OSError, json.JSONDecodeError, IndexError) as error:
-        logger.warning("Gemini generateContent request failed: %s", type(error).__name__)
-        raise RuntimeError("Gemini service is unavailable or rejected the request.") from error
+    last_model_error: Optional[HTTPError] = None
+    for model in _gemini_model_candidates(configured_model):
+        request = UrlRequest(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+            data=body,
+            headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=timeout) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+                parts = payload.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                logger.info("Gemini connected using model %s", model)
+                return "\n".join(str(part.get("text", "")) for part in parts).strip()
+        except HTTPError as error:
+            # A Blueprint may retain an older model environment value. Try
+            # current stable aliases only when Google says that model is not
+            # present; authentication, quota and request failures must remain
+            # visible and should not trigger duplicate paid calls.
+            if error.code == 404:
+                last_model_error = error
+                logger.warning("Gemini model %s is unavailable; trying a stable fallback", model)
+                continue
+            logger.warning("Gemini generateContent request rejected with HTTP %s", error.code)
+            raise RuntimeError(f"Gemini request rejected (HTTP {error.code}).") from error
+        except (URLError, TimeoutError, OSError, json.JSONDecodeError, IndexError) as error:
+            logger.warning("Gemini generateContent request failed: %s", type(error).__name__)
+            raise RuntimeError("Gemini service is unavailable or rejected the request.") from error
+
+    raise RuntimeError("Gemini request rejected (HTTP 404).") from last_model_error
 
 
 def _openai_compatible_chat(messages: List[Dict[str, str]], provider: str) -> str:

@@ -6,7 +6,7 @@ from main import (
     generate_expense_insights,
     health,
 )
-from market_intelligence import _llm_failure_code
+from market_intelligence import _gemini_model_candidates, _llm_failure_code
 
 
 def test_health_reports_training_data_and_model_version():
@@ -87,3 +87,12 @@ def test_llm_failure_codes_are_safe_and_actionable():
     assert _llm_failure_code(RuntimeError("Gemini request rejected (HTTP 429).")) == "quota_exceeded"
     assert _llm_failure_code(RuntimeError("Gemini is not configured. Set GEMINI_API_KEY.")) == "missing_configuration"
     assert _llm_failure_code(RuntimeError("Gemini request rejected (HTTP 404).")) == "model_unavailable"
+
+
+def test_gemini_model_candidates_keep_configured_model_and_stable_fallbacks_unique():
+    models = _gemini_model_candidates("gemini-2.5-flash")
+
+    assert models[0] == "gemini-2.5-flash"
+    assert "gemini-3.5-flash-lite" in models
+    assert "gemini-3.1-flash-lite" in models
+    assert len(models) == len(set(models))
