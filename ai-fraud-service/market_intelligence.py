@@ -897,7 +897,7 @@ def _gemini_chat(messages: List[Dict[str, str]]) -> str:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("Gemini is not configured. Set GEMINI_API_KEY on the Python backend.")
-    model = os.getenv("LLM_MODEL", "gemini-2.5-flash").strip()
+    model = os.getenv("LLM_MODEL", "gemini-3.5-flash-lite").strip()
     timeout = max(5, int(os.getenv("LLM_TIMEOUT_MS", "15000")) // 1000)
     system_text = "\n".join(item["content"] for item in messages if item.get("role") == "system")
     contents = []
@@ -912,7 +912,10 @@ def _gemini_chat(messages: List[Dict[str, str]]) -> str:
     body = json.dumps({
         "systemInstruction": {"parts": [{"text": system_text}]},
         "contents": contents,
-        "generationConfig": {"temperature": 0.1, "maxOutputTokens": 320},
+        # Gemini 3.x uses its default sampling behavior. Google deprecated
+        # temperature/top-p/top-k for current models, so only cap the concise
+        # dashboard response length here.
+        "generationConfig": {"maxOutputTokens": 320},
     }).encode("utf-8")
     request = UrlRequest(
         f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
