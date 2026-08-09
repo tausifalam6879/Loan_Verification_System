@@ -50,4 +50,20 @@ class OtpServiceTest {
         assertThat(otpService.isMobileOtpEnabled()).isFalse();
         assertThat(otpService.isWhatsappOtpEnabled()).isFalse();
     }
+
+    @Test
+    void externallyVerifiedTokenRemainsBoundToMobilePurposeAndChannel() {
+        EmailNotificationService emailService = mock(EmailNotificationService.class);
+        SmsNotificationService smsService = mock(SmsNotificationService.class);
+        OtpService otpService = new OtpService(emailService, smsService, true, false);
+
+        String token = otpService.issueExternallyVerifiedToken(
+                null,
+                "9876543210",
+                "REGISTER",
+                "MOBILE"
+        );
+
+        otpService.validateToken(null, "9876543210", "REGISTER", token, "MOBILE");
+    }
 }

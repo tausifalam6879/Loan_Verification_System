@@ -67,6 +67,18 @@ services:
         sync: false
       - key: GMAIL_REFRESH_TOKEN
         sync: false
+      # Firebase fictional phone numbers use a fixed test code and do not send
+      # a real SMS. These values are the public Web App configuration.
+      - key: APP_FIREBASE_PHONE_ENABLED
+        value: "false"
+      - key: FIREBASE_WEB_API_KEY
+        sync: false
+      - key: FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_APP_ID
+        sync: false
       # SMS and WhatsApp delivery use Twilio's HTTPS API.
       - key: APP_SMS_ENABLED
         value: "true"

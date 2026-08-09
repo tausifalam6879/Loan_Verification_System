@@ -60,6 +60,7 @@ public class SecurityConfig {
                                 "/api/users/login",
                                 "/api/users/request-otp",
                                 "/api/users/verify-otp",
+                                "/api/users/verify-firebase-phone",
                                 "/api/users/auth-config",
                                 "/api/users/test",
                                 "/api/market/**",

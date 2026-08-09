@@ -1,6 +1,7 @@
 package com.loan.VerificationSystem.controller;
 
 import com.loan.VerificationSystem.dto.LoginRequestDTO;
+import com.loan.VerificationSystem.dto.FirebasePhoneVerifyRequestDTO;
 import com.loan.VerificationSystem.dto.LoginResponseDTO;
 import com.loan.VerificationSystem.dto.OtpRequestDTO;
 import com.loan.VerificationSystem.dto.OtpResponseDTO;
@@ -14,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 @RestController
 @RequestMapping("/api/users")
@@ -55,16 +57,23 @@ public class UserController {
         return userService.verifyOtp(request);
     }
 
+    @PostMapping("/verify-firebase-phone")
+    public OtpResponseDTO verifyFirebasePhone(@Valid @RequestBody FirebasePhoneVerifyRequestDTO request) {
+        return userService.verifyFirebasePhone(request);
+    }
+
     @GetMapping("/auth-config")
     public Map<String, Object> getAuthConfig() {
         boolean otpEnabled = userService.isOtpEnabled();
-        return Map.of(
-                "otpEnabled", otpEnabled,
-                "emailOtpEnabled", userService.isEmailOtpEnabled(),
-                "mobileOtpEnabled", userService.isMobileOtpEnabled(),
-                "whatsappOtpEnabled", userService.isWhatsappOtpEnabled(),
-                "passwordLoginEnabled", true
-        );
+        Map<String, Object> config = new LinkedHashMap<>();
+        config.put("otpEnabled", otpEnabled);
+        config.put("emailOtpEnabled", userService.isEmailOtpEnabled());
+        config.put("mobileOtpEnabled", userService.isMobileOtpEnabled());
+        config.put("mobileOtpProvider", userService.getMobileOtpProvider());
+        config.put("firebasePhoneConfig", userService.getFirebasePhonePublicConfig());
+        config.put("whatsappOtpEnabled", userService.isWhatsappOtpEnabled());
+        config.put("passwordLoginEnabled", true);
+        return config;
     }
 
     @GetMapping("/me")

@@ -5,6 +5,7 @@ import com.loan.VerificationSystem.dto.LoginResponseDTO;
 import com.loan.VerificationSystem.dto.OtpRequestDTO;
 import com.loan.VerificationSystem.dto.OtpResponseDTO;
 import com.loan.VerificationSystem.dto.OtpVerifyRequestDTO;
+import com.loan.VerificationSystem.dto.FirebasePhoneVerifyRequestDTO;
 import com.loan.VerificationSystem.dto.UserRequestDTO;
 import com.loan.VerificationSystem.dto.UserProfileUpdateDTO;
 import com.loan.VerificationSystem.dto.UserResponseDTO;
@@ -15,6 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+
 @Service
 public class UserService {
 
@@ -23,18 +26,21 @@ public class UserService {
     private final JwtService jwtService;
     private final OtpService otpService;
     private final EmailNotificationService emailNotificationService;
+    private final FirebasePhoneAuthService firebasePhoneAuthService;
 
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
                        OtpService otpService,
-                       EmailNotificationService emailNotificationService) {
+                       EmailNotificationService emailNotificationService,
+                       FirebasePhoneAuthService firebasePhoneAuthService) {
 
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.otpService = otpService;
         this.emailNotificationService = emailNotificationService;
+        this.firebasePhoneAuthService = firebasePhoneAuthService;
     }
 
     public UserResponseDTO registerUser(UserRequestDTO request) {
@@ -150,6 +156,27 @@ public class UserService {
         return new OtpResponseDTO(message, otpService.isOtpEnabled(), token, normalizeChannel(request.getChannel()).toLowerCase(), null);
     }
 
+    public OtpResponseDTO verifyFirebasePhone(FirebasePhoneVerifyRequestDTO request) {
+        if (!otpService.isOtpEnabled() || !firebasePhoneAuthService.isEnabled()) {
+            throw new IllegalStateException("Firebase test phone verification is not configured.");
+        }
+
+        ensureOtpIdentityAllowed(null, request.getMobile(), request.getPurpose(), "MOBILE");
+        String submittedPhone = firebasePhoneAuthService.normalizePhone(request.getMobile());
+        String verifiedPhone = firebasePhoneAuthService.verifyIdTokenAndGetPhone(request.getIdToken());
+        if (!submittedPhone.equals(verifiedPhone)) {
+            throw new RuntimeException("Firebase verified a different mobile number.");
+        }
+
+        String token = otpService.issueExternallyVerifiedToken(
+                null,
+                normalizeMobile(request.getMobile()),
+                request.getPurpose(),
+                "MOBILE"
+        );
+        return new OtpResponseDTO("Firebase test mobile number verified.", true, token, "firebase-test", null);
+    }
+
     public boolean isOtpEnabled() {
         return otpService.isOtpEnabled();
     }
@@ -159,7 +186,19 @@ public class UserService {
     }
 
     public boolean isMobileOtpEnabled() {
-        return otpService.isMobileOtpEnabled();
+        return otpService.isMobileOtpEnabled()
+                || (otpService.isOtpEnabled() && firebasePhoneAuthService.isEnabled());
+    }
+
+    public String getMobileOtpProvider() {
+        if (otpService.isOtpEnabled() && firebasePhoneAuthService.isEnabled()) {
+            return "firebase-test";
+        }
+        return otpService.isMobileOtpEnabled() ? "backend" : "disabled";
+    }
+
+    public Map<String, String> getFirebasePhonePublicConfig() {
+        return firebasePhoneAuthService.getPublicWebConfig();
     }
 
     public boolean isWhatsappOtpEnabled() {

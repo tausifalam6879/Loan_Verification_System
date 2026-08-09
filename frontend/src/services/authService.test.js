@@ -1,5 +1,5 @@
 import api from "../api/axiosConfig";
-import { login, requestOtp, verifyOtp, warmUpAuthService } from "./authService";
+import { login, requestOtp, verifyFirebasePhone, verifyOtp, warmUpAuthService } from "./authService";
 
 jest.mock("../api/axiosConfig", () => ({
   __esModule: true,
@@ -31,11 +31,13 @@ test("login and OTP actions use bounded request timeouts", async () => {
   api.post
     .mockResolvedValueOnce({ data: { token: "jwt", role: "USER", email: "user@example.com" } })
     .mockResolvedValueOnce({ data: { otpRequired: true } })
-    .mockResolvedValueOnce({ data: { otpToken: "verified" } });
+    .mockResolvedValueOnce({ data: { otpToken: "verified" } })
+    .mockResolvedValueOnce({ data: { otpToken: "firebase-verified" } });
 
   await login({ email: "user@example.com", password: "secret" });
   await requestOtp({ email: "user@example.com", channel: "EMAIL", purpose: "LOGIN" });
   await verifyOtp({ email: "user@example.com", channel: "EMAIL", purpose: "LOGIN", otp: "123456" });
+  await verifyFirebasePhone({ mobile: "+919876543210", purpose: "LOGIN", idToken: "firebase-proof" });
 
   expect(api.post).toHaveBeenNthCalledWith(
     1,
@@ -52,6 +54,12 @@ test("login and OTP actions use bounded request timeouts", async () => {
   expect(api.post).toHaveBeenNthCalledWith(
     3,
     "/users/verify-otp",
+    expect.any(Object),
+    { timeout: 20000 }
+  );
+  expect(api.post).toHaveBeenNthCalledWith(
+    4,
+    "/users/verify-firebase-phone",
     expect.any(Object),
     { timeout: 20000 }
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Alert,
@@ -23,7 +23,19 @@ import PhoneAndroidIcon from "@mui/icons-material/PhoneAndroid";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { demoMode } from "../api/demoAdapter";
-import { login, register, requestOtp, verifyOtp, warmUpAuthService } from "../services/authService";
+import {
+  login,
+  register,
+  requestOtp,
+  verifyFirebasePhone,
+  verifyOtp,
+  warmUpAuthService
+} from "../services/authService";
+import {
+  clearFirebaseRecaptcha,
+  finishFirebasePhoneVerification,
+  startFirebasePhoneVerification
+} from "../services/firebasePhoneAuth";
 
 const AuthPage = ({ mode = "login" }) => {
   const navigate = useNavigate();
@@ -47,11 +59,14 @@ const AuthPage = ({ mode = "login" }) => {
     otpEnabled: false,
     emailOtpEnabled: false,
     mobileOtpEnabled: false,
+    mobileOtpProvider: "disabled",
+    firebasePhoneConfig: {},
     whatsappOtpEnabled: false,
     passwordLoginEnabled: true
   });
   const [authMethod, setAuthMethod] = useState("password");
   const [connectionState, setConnectionState] = useState(demoMode ? "ready" : "connecting");
+  const firebaseConfirmationRef = useRef(null);
 
   const otpPurpose = isRegister ? "REGISTER" : "LOGIN";
 
@@ -84,6 +99,7 @@ const AuthPage = ({ mode = "login" }) => {
     return () => {
       isMounted = false;
       window.clearTimeout(retryTimer);
+      clearFirebaseRecaptcha();
     };
   }, []);
 
@@ -99,7 +115,20 @@ const AuthPage = ({ mode = "login" }) => {
     return error.response?.data?.message || "Authentication failed. Check email, password and backend.";
   };
 
+  const getFirebaseErrorMessage = (error) => {
+    const firebaseMessages = {
+      "auth/invalid-phone-number": "Enter the exact fictional phone number configured in Firebase, including country code.",
+      "auth/invalid-verification-code": "The fixed Firebase test code is incorrect.",
+      "auth/code-expired": "Firebase test verification expired. Start it again.",
+      "auth/captcha-check-failed": "reCAPTCHA verification failed. Please retry.",
+      "auth/too-many-requests": "Firebase temporarily blocked repeated attempts. Please wait and retry."
+    };
+    return error.response?.data?.message || firebaseMessages[error.code] || error.message;
+  };
+
   const isOtpMethod = ["emailOtp", "mobileOtp", "whatsappOtp"].includes(authMethod);
+  const isFirebaseTestMobile = authMethod === "mobileOtp"
+    && authConfig.mobileOtpProvider === "firebase-test";
 
   const otpChannel = () => {
     if (authMethod === "mobileOtp") {
@@ -149,7 +178,9 @@ const AuthPage = ({ mode = "login" }) => {
         navigate(localStorage.getItem("role") === "ADMIN" ? "/admin" : "/", { replace: true });
       }
     } catch (error) {
-      setError(getErrorMessage(error));
+      setError(isFirebaseTestMobile
+        ? (getFirebaseErrorMessage(error) || "Firebase test verification could not start.")
+        : getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -162,6 +193,17 @@ const AuthPage = ({ mode = "login" }) => {
     setWarning("");
 
     try {
+      if (isFirebaseTestMobile) {
+        firebaseConfirmationRef.current = await startFirebasePhoneVerification(
+          authConfig.firebasePhoneConfig,
+          form.mobile,
+          "firebase-recaptcha-container"
+        );
+        setOtpRequired(true);
+        setSuccess("Firebase test verification started. Enter the fixed 6-digit code configured for this fictional number; no SMS will be sent.");
+        return;
+      }
+
       const response = await requestOtp({
         email: form.email,
         mobile: form.mobile,
@@ -175,7 +217,9 @@ const AuthPage = ({ mode = "login" }) => {
         setWarning(response.message || "Email OTP is disabled in backend configuration.");
       }
     } catch (error) {
-      setError(getErrorMessage(error));
+      setError(isFirebaseTestMobile
+        ? (getFirebaseErrorMessage(error) || "Firebase test verification could not start.")
+        : getErrorMessage(error));
     } finally {
       setOtpLoading(false);
     }
@@ -188,13 +232,28 @@ const AuthPage = ({ mode = "login" }) => {
     setWarning("");
 
     try {
-      const response = await verifyOtp({
-        email: form.email,
-        mobile: form.mobile,
-        channel: otpChannel(),
-        purpose: otpPurpose,
-        otp: form.otp
-      });
+      let response;
+      if (isFirebaseTestMobile) {
+        const firebaseProof = await finishFirebasePhoneVerification(
+          firebaseConfirmationRef.current,
+          form.otp
+        );
+        response = await verifyFirebasePhone({
+          mobile: form.mobile,
+          purpose: otpPurpose,
+          idToken: firebaseProof.idToken
+        });
+        firebaseConfirmationRef.current = null;
+        clearFirebaseRecaptcha();
+      } else {
+        response = await verifyOtp({
+          email: form.email,
+          mobile: form.mobile,
+          channel: otpChannel(),
+          purpose: otpPurpose,
+          otp: form.otp
+        });
+      }
       updateForm("otpToken", response.otpToken || "");
       setOtpRequired(response.otpRequired);
       if (response.otpRequired) {
@@ -203,7 +262,9 @@ const AuthPage = ({ mode = "login" }) => {
         setWarning(response.message || "Email OTP is disabled in backend configuration.");
       }
     } catch (error) {
-      setError(error.response?.data?.message || "OTP verification failed.");
+      setError(isFirebaseTestMobile
+        ? (getFirebaseErrorMessage(error) || "Firebase test verification failed.")
+        : (error.response?.data?.message || "OTP verification failed."));
     } finally {
       setOtpLoading(false);
     }
@@ -219,6 +280,8 @@ const AuthPage = ({ mode = "login" }) => {
     setSuccess("");
     setWarning("");
     setOtpRequired(false);
+    firebaseConfirmationRef.current = null;
+    clearFirebaseRecaptcha();
     setForm((current) => ({ ...current, otp: "", otpToken: "" }));
   };
 
@@ -339,6 +402,12 @@ const AuthPage = ({ mode = "login" }) => {
                 </Alert>
               )}
 
+              {isFirebaseTestMobile && (
+                <Alert severity="info">
+                  Test mode: use only a fictional number and its fixed code configured in Firebase. No real SMS is sent.
+                </Alert>
+              )}
+
               {isRegister && (
                 <TextField
                   label="Full name"
@@ -392,6 +461,12 @@ const AuthPage = ({ mode = "login" }) => {
               {isOtpMethod && (
                 <>
                   <Divider />
+                  {isFirebaseTestMobile && (
+                    <Box
+                      id="firebase-recaptcha-container"
+                      sx={{ minHeight: otpLoading ? 78 : 0 }}
+                    />
+                  )}
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                   <TextField
                     label={otpLabel()}
@@ -410,7 +485,7 @@ const AuthPage = ({ mode = "login" }) => {
                     }
                     sx={{ minWidth: 120, textTransform: "none", fontWeight: 900 }}
                   >
-                    Send OTP
+                    {isFirebaseTestMobile ? "Start Test" : "Send OTP"}
                   </Button>
                   <Button
                     type="button"

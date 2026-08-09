@@ -109,9 +109,17 @@ public class OtpService {
         }
 
         otpEntries.remove(otpKey);
-        String token = UUID.randomUUID().toString();
-        tokenEntries.put(token, new TokenEntry(destination, normalizedPurpose, normalizedChannel, Instant.now().plusSeconds(600)));
-        return token;
+        return issueToken(destination, normalizedPurpose, normalizedChannel);
+    }
+
+    public String issueExternallyVerifiedToken(String email, String mobile, String purpose, String channel) {
+        if (!otpEnabled) {
+            throw new IllegalStateException("OTP verification is disabled.");
+        }
+
+        String normalizedChannel = normalizeChannel(channel);
+        String destination = resolveDestination(email, mobile, normalizedChannel);
+        return issueToken(destination, normalizePurpose(purpose), normalizedChannel);
     }
 
     public void validateToken(String email, String mobile, String purpose, String otpToken, String channel) {
@@ -137,6 +145,12 @@ public class OtpService {
 
     private String key(String destination, String purpose, String channel) {
         return channel + ":" + destination + ":" + purpose;
+    }
+
+    private String issueToken(String destination, String purpose, String channel) {
+        String token = UUID.randomUUID().toString();
+        tokenEntries.put(token, new TokenEntry(destination, purpose, channel, Instant.now().plusSeconds(600)));
+        return token;
     }
 
     private String normalizeEmail(String email) {

@@ -4,6 +4,7 @@ import com.loan.VerificationSystem.dto.UserProfileUpdateDTO;
 import com.loan.VerificationSystem.dto.UserResponseDTO;
 import com.loan.VerificationSystem.dto.OtpRequestDTO;
 import com.loan.VerificationSystem.dto.OtpVerifyRequestDTO;
+import com.loan.VerificationSystem.dto.FirebasePhoneVerifyRequestDTO;
 import com.loan.VerificationSystem.entity.User;
 import com.loan.VerificationSystem.repository.UserRepository;
 import com.loan.VerificationSystem.security.JwtService;
@@ -44,6 +45,9 @@ class UserServiceTest {
 
     @Mock
     private EmailNotificationService emailNotificationService;
+
+    @Mock
+    private FirebasePhoneAuthService firebasePhoneAuthService;
 
     @InjectMocks
     private UserService userService;
@@ -133,5 +137,44 @@ class UserServiceTest {
                 .hasMessage("Email already registered. Please use Login instead.");
 
         verifyNoInteractions(otpService);
+    }
+
+    @Test
+    void acceptsFirebaseProofOnlyWhenItMatchesTheSubmittedMobile() {
+        FirebasePhoneVerifyRequestDTO request = new FirebasePhoneVerifyRequestDTO();
+        request.setMobile("98765 43210");
+        request.setPurpose("REGISTER");
+        request.setIdToken("signed-firebase-proof");
+
+        when(otpService.isOtpEnabled()).thenReturn(true);
+        when(firebasePhoneAuthService.isEnabled()).thenReturn(true);
+        when(userRepository.findByMobile("9876543210")).thenReturn(null);
+        when(firebasePhoneAuthService.normalizePhone("98765 43210")).thenReturn("+919876543210");
+        when(firebasePhoneAuthService.verifyIdTokenAndGetPhone("signed-firebase-proof"))
+                .thenReturn("+919876543210");
+        when(otpService.issueExternallyVerifiedToken(null, "9876543210", "REGISTER", "MOBILE"))
+                .thenReturn("fintrack-otp-token");
+
+        assertThat(userService.verifyFirebasePhone(request).getOtpToken())
+                .isEqualTo("fintrack-otp-token");
+    }
+
+    @Test
+    void rejectsFirebaseProofForADifferentMobile() {
+        FirebasePhoneVerifyRequestDTO request = new FirebasePhoneVerifyRequestDTO();
+        request.setMobile("9876543210");
+        request.setPurpose("REGISTER");
+        request.setIdToken("signed-firebase-proof");
+
+        when(otpService.isOtpEnabled()).thenReturn(true);
+        when(firebasePhoneAuthService.isEnabled()).thenReturn(true);
+        when(userRepository.findByMobile("9876543210")).thenReturn(null);
+        when(firebasePhoneAuthService.normalizePhone("9876543210")).thenReturn("+919876543210");
+        when(firebasePhoneAuthService.verifyIdTokenAndGetPhone("signed-firebase-proof"))
+                .thenReturn("+919999999999");
+
+        assertThatThrownBy(() -> userService.verifyFirebasePhone(request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Firebase verified a different mobile number.");
     }
 }

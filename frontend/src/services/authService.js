@@ -67,6 +67,15 @@ export const verifyOtp = async (payload) => {
   return response.data;
 };
 
+export const verifyFirebasePhone = async (payload) => {
+  const response = await api.post(
+    "/users/verify-firebase-phone",
+    payload,
+    { timeout: AUTH_ACTION_TIMEOUT_MS }
+  );
+  return response.data;
+};
+
 export const warmUpAuthService = () => {
   if (!authWarmupPromise) {
     authWarmupPromise = api
