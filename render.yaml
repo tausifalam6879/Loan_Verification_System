@@ -46,7 +46,34 @@ services:
       - key: APP_CORS_ALLOWED_ORIGIN_PATTERNS
         value: https://tausifalam6879.github.io
       - key: APP_OTP_ENABLED
+        value: "true"
+      - key: APP_OTP_CONSOLE_FALLBACK_ENABLED
         value: "false"
+      # Render Free blocks outbound SMTP ports, so production email OTP uses
+      # Resend's HTTPS API. Verify a sender domain before using a public address.
+      - key: APP_MAIL_ENABLED
+        value: "true"
+      - key: APP_MAIL_PROVIDER
+        value: resend
+      - key: APP_MAIL_FROM
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      # SMS and WhatsApp delivery use Twilio's HTTPS API.
+      - key: APP_SMS_ENABLED
+        value: "true"
+      - key: APP_WHATSAPP_ENABLED
+        value: "true"
+      - key: APP_SMS_DEFAULT_COUNTRY_CODE
+        value: "+91"
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_SMS_FROM
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: DB_HOST

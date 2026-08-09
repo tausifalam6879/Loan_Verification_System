@@ -44,10 +44,10 @@ const AuthPage = ({ mode = "login" }) => {
   const [otpRequired, setOtpRequired] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [authConfig, setAuthConfig] = useState({
-    otpEnabled: true,
-    emailOtpEnabled: true,
-    mobileOtpEnabled: true,
-    whatsappOtpEnabled: true,
+    otpEnabled: false,
+    emailOtpEnabled: false,
+    mobileOtpEnabled: false,
+    whatsappOtpEnabled: false,
     passwordLoginEnabled: true
   });
   const [authMethod, setAuthMethod] = useState("password");
@@ -57,9 +57,12 @@ const AuthPage = ({ mode = "login" }) => {
 
   useEffect(() => {
     let isMounted = true;
+    let retryTimer;
 
-    warmUpAuthService()
-      .then((config) => {
+    const loadAuthConfig = () => {
+      setConnectionState((current) => current === "ready" ? current : "connecting");
+      warmUpAuthService()
+        .then((config) => {
         if (isMounted) {
           setAuthConfig((current) => ({
             ...current,
@@ -70,19 +73,17 @@ const AuthPage = ({ mode = "login" }) => {
       })
       .catch(() => {
         if (isMounted) {
-          setAuthConfig((current) => ({
-            ...current,
-            otpEnabled: true,
-            emailOtpEnabled: true,
-            mobileOtpEnabled: true,
-            whatsappOtpEnabled: true
-          }));
           setConnectionState("unavailable");
+          retryTimer = window.setTimeout(loadAuthConfig, 5000);
         }
       });
+    };
+
+    loadAuthConfig();
 
     return () => {
       isMounted = false;
+      window.clearTimeout(retryTimer);
     };
   }, []);
 
@@ -92,7 +93,7 @@ const AuthPage = ({ mode = "login" }) => {
 
   const getErrorMessage = (error) => {
     if (!error.response) {
-      return "Secure server is taking longer than expected. Please retry in a moment.";
+      return "Secure server did not respond within 20 seconds. It may be waking up; please retry once.";
     }
 
     return error.response?.data?.message || "Authentication failed. Check email, password and backend.";
@@ -315,23 +316,26 @@ const AuthPage = ({ mode = "login" }) => {
                   <LoginIcon fontSize="small" sx={{ mr: 0.75 }} />
                   Password
                 </ToggleButton>
-                <ToggleButton value="emailOtp">
+                <ToggleButton value="emailOtp" disabled={!authConfig.emailOtpEnabled}>
                   <EmailIcon fontSize="small" sx={{ mr: 0.75 }} />
                   Email OTP
                 </ToggleButton>
-                <ToggleButton value="mobileOtp">
+                <ToggleButton value="mobileOtp" disabled={!authConfig.mobileOtpEnabled}>
                   <PhoneAndroidIcon fontSize="small" sx={{ mr: 0.75 }} />
                   Mobile
                 </ToggleButton>
-                <ToggleButton value="whatsappOtp">
+                <ToggleButton value="whatsappOtp" disabled={!authConfig.whatsappOtpEnabled}>
                   <WhatsAppIcon fontSize="small" sx={{ mr: 0.75 }} />
                   WhatsApp
                 </ToggleButton>
               </ToggleButtonGroup>
 
-              {isOtpMethod && !authConfig.otpEnabled && (
+              {connectionState === "ready" && authConfig.otpEnabled &&
+                !authConfig.emailOtpEnabled &&
+                !authConfig.mobileOtpEnabled &&
+                !authConfig.whatsappOtpEnabled && (
                 <Alert severity="info">
-                  OTP is available after starting backend with APP_OTP_ENABLED=true. Password login still works.
+                  OTP delivery providers are not configured yet. Password login is still available.
                 </Alert>
               )}
 
@@ -365,6 +369,7 @@ const AuthPage = ({ mode = "login" }) => {
                   value={form.mobile}
                   onChange={(event) => updateForm("mobile", event.target.value)}
                   autoComplete="tel"
+                  helperText="Use a country code (for example +91); plain 10-digit Indian numbers are also accepted."
                   fullWidth
                   required={["mobileOtp", "whatsappOtp"].includes(authMethod)}
                 />

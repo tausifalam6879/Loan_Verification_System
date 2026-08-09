@@ -112,6 +112,8 @@ $env:SMTP_PASSWORD="your-gmail-app-password"
 
 For Gmail, use an app password instead of your normal account password.
 
+Gmail SMTP is for local development. Render Free blocks SMTP ports; use the Resend HTTPS configuration in [Email OTP Setup](EMAIL_OTP.md) for the hosted API. SMS and WhatsApp delivery use Twilio's HTTPS API and require the Twilio sender credentials documented there.
+
 See [Email OTP Setup](EMAIL_OTP.md) for full steps.
 
 ## Optional Cloudinary Setup

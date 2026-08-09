@@ -39,6 +39,18 @@ public class OtpService {
         return otpEnabled;
     }
 
+    public boolean isEmailOtpEnabled() {
+        return otpEnabled && (emailNotificationService.isMailEnabled() || consoleFallbackEnabled);
+    }
+
+    public boolean isMobileOtpEnabled() {
+        return otpEnabled && (smsNotificationService.isSmsEnabled() || consoleFallbackEnabled);
+    }
+
+    public boolean isWhatsappOtpEnabled() {
+        return otpEnabled && (smsNotificationService.isWhatsappEnabled() || consoleFallbackEnabled);
+    }
+
     public OtpDeliveryResult sendOtp(String email, String mobile, String purpose, String channel) {
         if (!otpEnabled) {
             return new OtpDeliveryResult(false, "disabled", null);

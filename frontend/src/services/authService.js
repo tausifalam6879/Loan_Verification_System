@@ -1,7 +1,8 @@
 import api from "../api/axiosConfig";
 import { revokeDemoSession } from "../api/demoAdapter";
 
-const AUTH_WARMUP_TIMEOUT_MS = 90000;
+const AUTH_WARMUP_TIMEOUT_MS = 12000;
+const AUTH_ACTION_TIMEOUT_MS = 20000;
 const SESSION_VALIDATION_TIMEOUT_MS = 8000;
 const FRESH_SESSION_WINDOW_MS = 15 * 60 * 1000;
 const TRUSTED_SESSION_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -36,7 +37,7 @@ export const clearAuthSession = () => {
 };
 
 export const login = async (credentials) => {
-  const response = await api.post("/users/login", credentials);
+  const response = await api.post("/users/login", credentials, { timeout: AUTH_ACTION_TIMEOUT_MS });
   const { token, role, email } = response.data;
 
   clearAuthSession();
@@ -52,17 +53,17 @@ export const login = async (credentials) => {
 };
 
 export const register = async (payload) => {
-  const response = await api.post("/users/register", payload);
+  const response = await api.post("/users/register", payload, { timeout: AUTH_ACTION_TIMEOUT_MS });
   return response.data;
 };
 
 export const requestOtp = async (payload) => {
-  const response = await api.post("/users/request-otp", payload);
+  const response = await api.post("/users/request-otp", payload, { timeout: AUTH_ACTION_TIMEOUT_MS });
   return response.data;
 };
 
 export const verifyOtp = async (payload) => {
-  const response = await api.post("/users/verify-otp", payload);
+  const response = await api.post("/users/verify-otp", payload, { timeout: AUTH_ACTION_TIMEOUT_MS });
   return response.data;
 };
 

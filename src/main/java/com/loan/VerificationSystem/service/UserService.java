@@ -154,6 +154,18 @@ public class UserService {
         return otpService.isOtpEnabled();
     }
 
+    public boolean isEmailOtpEnabled() {
+        return otpService.isEmailOtpEnabled();
+    }
+
+    public boolean isMobileOtpEnabled() {
+        return otpService.isMobileOtpEnabled();
+    }
+
+    public boolean isWhatsappOtpEnabled() {
+        return otpService.isWhatsappOtpEnabled();
+    }
+
     @Transactional(readOnly = true)
     public UserResponseDTO getCurrentUser() {
         return mapToResponse(getAuthenticatedUser());

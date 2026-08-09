@@ -60,9 +60,9 @@ public class UserController {
         boolean otpEnabled = userService.isOtpEnabled();
         return Map.of(
                 "otpEnabled", otpEnabled,
-                "emailOtpEnabled", otpEnabled,
-                "mobileOtpEnabled", otpEnabled,
-                "whatsappOtpEnabled", otpEnabled,
+                "emailOtpEnabled", userService.isEmailOtpEnabled(),
+                "mobileOtpEnabled", userService.isMobileOtpEnabled(),
+                "whatsappOtpEnabled", userService.isWhatsappOtpEnabled(),
                 "passwordLoginEnabled", true
         );
     }

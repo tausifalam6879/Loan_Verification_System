@@ -53,7 +53,7 @@ In the default GitHub Pages browser-demo mode, register an account and then sign
 | Database | H2 (local default), MySQL (optional local profile), PostgreSQL (production) |
 | Auth | JWT |
 | AI/Data Science Service | Python, FastAPI, Pandas, Scikit-learn, TF-IDF, Logistic Regression, Joblib |
-| Optional Integrations | SMTP email, Cloudinary unsigned uploads |
+| Optional Integrations | SMTP/Resend email, Twilio SMS/WhatsApp, Cloudinary unsigned uploads |
 | Market GenAI | yfinance market history, Scikit-learn model, Ollama/Gemini/OpenAI-compatible backend provider |
 | Build/Test | Maven Wrapper, npm, React Testing Library |
 
@@ -64,7 +64,7 @@ flowchart LR
     user["User/Admin Browser"] --> react["React Frontend"]
     react --> api["Spring Boot REST API"]
     api --> database["H2 / MySQL / PostgreSQL"]
-    api -.optional.-> smtp["SMTP Email"]
+    api -.optional.-> notifications["Resend / SMTP / Twilio"]
     react -.optional.-> cloudinary["Cloudinary Upload API"]
     api --> ai["FastAPI AI/Data Science Service"]
     ai -.optional.-> llm["Ollama / Gemini / OpenAI-compatible LLM"]
@@ -167,6 +167,8 @@ $env:TWILIO_SMS_FROM="+1234567890"
 $env:TWILIO_WHATSAPP_FROM="whatsapp:+14155238886"
 .\start-backend.ps1
 ```
+
+The public Render service must use an HTTPS email provider because Render Free blocks outbound SMTP ports. `render.yaml` is prepared for Resend; add `APP_MAIL_FROM` and `RESEND_API_KEY` as Render secrets. The same Blueprint prompts for the four Twilio values required by Mobile and WhatsApp OTP. See [Email OTP Setup](docs/EMAIL_OTP.md).
 
 ### 3. Frontend
 
@@ -373,10 +375,10 @@ python -m pytest ai-fraud-service/tests -q
 
 - Public registration always creates `USER` accounts.
 - Admin accounts should be created or promoted manually by an owner/developer.
-- Keep `jwt.secret`, database credentials, SMTP password, and Cloudinary settings out of commits.
-- OTP is disabled by default. When OTP is enabled without SMTP, the development fallback logs the OTP in the backend console. For real email delivery, enable SMTP through environment variables.
+- Keep JWT/database credentials, SMTP passwords, Resend/Twilio keys, and Cloudinary settings out of commits.
+- Local OTP can use the console fallback. Production disables the fallback and exposes a channel only after its HTTPS/SMTP provider is fully configured.
 - CORS is open for local development; restrict origins before production deployment.
 
 ## Current Status
 
-Core application flow is implemented: authentication, user dashboard, profile, loan marketplace, application submission, admin review, charts, audit logs, OTP/email-ready backend, document upload helper, fraud scoring and market intelligence. GitHub Pages remains interview-ready in browser-demo mode without a backend. A complete public multi-user deployment still requires healthy Spring Boot, PostgreSQL and FastAPI services plus a configured `REACT_APP_API_BASE_URL`; optional SMTP, SMS/WhatsApp, Cloudinary and hosted LLM features require their own credentials.
+Core application flow is implemented: authentication, user dashboard, profile, loan marketplace, application submission, admin review, charts, audit logs, provider-aware Email/Mobile/WhatsApp OTP, document upload helper, fraud scoring and market intelligence. GitHub Pages remains interview-ready in browser-demo mode without a backend. A complete public multi-user deployment still requires healthy Spring Boot, PostgreSQL and FastAPI services plus a configured `REACT_APP_API_BASE_URL`; Resend/Twilio, Cloudinary and hosted LLM features require their own credentials.
