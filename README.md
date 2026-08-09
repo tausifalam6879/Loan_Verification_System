@@ -53,7 +53,7 @@ In the default GitHub Pages browser-demo mode, register an account and then sign
 | Database | H2 (local default), MySQL (optional local profile), PostgreSQL (production) |
 | Auth | JWT |
 | AI/Data Science Service | Python, FastAPI, Pandas, Scikit-learn, TF-IDF, Logistic Regression, Joblib |
-| Optional Integrations | SMTP/Resend email, Twilio SMS/WhatsApp, Cloudinary unsigned uploads |
+| Optional Integrations | SMTP/Resend/Gmail API email, Twilio SMS/WhatsApp, Cloudinary unsigned uploads |
 | Market GenAI | yfinance market history, Scikit-learn model, Ollama/Gemini/OpenAI-compatible backend provider |
 | Build/Test | Maven Wrapper, npm, React Testing Library |
 
@@ -64,7 +64,7 @@ flowchart LR
     user["User/Admin Browser"] --> react["React Frontend"]
     react --> api["Spring Boot REST API"]
     api --> database["H2 / MySQL / PostgreSQL"]
-    api -.optional.-> notifications["Resend / SMTP / Twilio"]
+    api -.optional.-> notifications["Resend / Gmail API / SMTP / Twilio"]
     react -.optional.-> cloudinary["Cloudinary Upload API"]
     api --> ai["FastAPI AI/Data Science Service"]
     ai -.optional.-> llm["Ollama / Gemini / OpenAI-compatible LLM"]
@@ -168,7 +168,7 @@ $env:TWILIO_WHATSAPP_FROM="whatsapp:+14155238886"
 .\start-backend.ps1
 ```
 
-The public Render service must use an HTTPS email provider because Render Free blocks outbound SMTP ports. `render.yaml` is prepared for Resend; add `APP_MAIL_FROM` and `RESEND_API_KEY` as Render secrets. The same Blueprint prompts for the four Twilio values required by Mobile and WhatsApp OTP. See [Email OTP Setup](docs/EMAIL_OTP.md).
+The public Render service must use an HTTPS email provider because Render Free blocks outbound SMTP ports. `render.yaml` supports Resend and a domain-free Gmail API OAuth provider. Add only the secrets for the selected provider, then set `APP_MAIL_PROVIDER` to `resend` or `gmail-api`. The same Blueprint prompts for the four Twilio values required by Mobile and WhatsApp OTP. See [Email OTP Setup](docs/EMAIL_OTP.md).
 
 ### 3. Frontend
 
