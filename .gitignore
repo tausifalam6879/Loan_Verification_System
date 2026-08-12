@@ -37,6 +37,7 @@ node_modules/
 __pycache__/
 *.py[cod]
 .venv/
+.venv*/
 ai-fraud-service/models/
 
 ### Runtime logs ###

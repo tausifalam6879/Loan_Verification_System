@@ -34,7 +34,7 @@ Public registration is locked to the `USER` role. Admin access must be assigned 
 
 ## Live Demo
 
-GitHub Pages hosts the React frontend in one of two explicit modes. If the repository variable `REACT_APP_API_BASE_URL` is not configured, the workflow publishes the account-scoped browser demo. If a valid Spring Boot API URL is configured, the workflow validates its health endpoint before publishing a full-stack build. Market screens also include a scheduled Yahoo Finance snapshot targeted every 15 minutes plus a browser last-known-good cache, so a sleeping or unavailable cloud backend does not leave the interview demo blank.
+GitHub Pages hosts the React frontend in one of two explicit modes. If the repository variable `REACT_APP_API_BASE_URL` is not configured, the workflow publishes the account-scoped browser demo. If a valid Spring Boot API URL is configured, the workflow validates its health endpoint before publishing a full-stack build. Market screens also include a Yahoo Finance snapshot refreshed during frontend deployments plus a browser last-known-good cache, so a sleeping or unavailable cloud backend does not leave the interview demo blank.
 
 Demo URL:
 
@@ -251,7 +251,7 @@ POST /api/market/agent
 
 The market page fetches Yahoo Finance research data through `yfinance` when it opens. Its native Current Market Board covers indices plus technology, banking, automobile, energy, consumer, healthcare, telecom and media companies, with sector filters and a continuous ticker. When a backend is available, quote cards poll it every 30 seconds and the backend reuses each minute quote for up to 15 seconds to avoid upstream rate-limit bursts. Supporting breadth, factors, news and research refresh every two minutes and whenever the browser tab becomes active. The Refresh control retries the newest source immediately. It shows whether the displayed data came from the live backend, browser cache, or scheduled public snapshot, together with its timestamp. Quote and index cards stay inside FinTrack and open an internal research view when selected; only explicit verification/news links open another website. This is not an exchange-grade streaming feed; official NSE real-time redistribution requires a licensed data provider.
 
-For interview reliability, `.github/workflows/deploy-frontend.yml` targets a public snapshot refresh every 15 minutes and publishes `frontend/public/data/market-snapshot.json` with the Pages artifact. GitHub schedules and upstream feeds can still be delayed. The page rechecks the published snapshot every minute, and its preference order is live backend, newest successful browser cache/scheduled snapshot, then a clear unavailable message. A provider timeout cannot silently produce fake zeroes or `N/A` cards. Popular indices, multi-sector quotes, macro factors, displayed movers, company research and deterministic market-agent evidence are included in the snapshot. Arbitrary tickers and a real LLM response still require the cloud backend.
+For interview reliability, `.github/workflows/deploy-frontend.yml` refreshes the public snapshot whenever the frontend is deployed and publishes `frontend/public/data/market-snapshot.json` with the Pages artifact. The page rechecks the published snapshot every minute, and its preference order is live backend, newest successful browser cache/deployment snapshot, then a clear unavailable message. A provider timeout cannot silently produce fake zeroes or `N/A` cards. Popular indices, multi-sector quotes, macro factors, displayed movers, company research and deterministic market-agent evidence are included in the snapshot. Arbitrary tickers and a real LLM response still require the cloud backend.
 
 The Market Risk Alerts section derives transparent large-move signals from timestamped percentage changes. In-app alerts are always visible; users can explicitly enable HTTPS browser notifications while the page remains open. Critical downside signals show a source-verification and exit-risk checklist, but the application does not place trades or issue personalized sell/withdraw instructions because it does not know a user's holdings, tax position or risk capacity.
 
@@ -306,8 +306,8 @@ Then run **Actions > Deploy frontend to GitHub Pages > Run workflow**, or push a
 ### Expected public behavior
 
 - Market data is fetched from the live backend when available. If it sleeps or fails, the newest browser cache or scheduled GitHub snapshot is displayed instead of an empty page.
-- A source badge identifies `Live backend`, `Last successful cache`, or `Scheduled public snapshot`; every mode shows its generation timestamp.
-- GitHub Actions targets a snapshot refresh every 15 minutes. If scheduling is delayed or Yahoo Finance has a transient symbol failure, the generator retains the previous successful value for that symbol.
+- A source badge identifies `Live backend`, `Last successful cache`, or `Deployment snapshot`; every mode shows its generation timestamp.
+- GitHub Actions refreshes the snapshot on frontend deployments. If Yahoo Finance has a transient symbol failure, the generator retains the previous successful value for that symbol.
 - Data can be delayed and is not an exchange-licensed tick-by-tick NSE feed.
 - PostgreSQL keeps accounts, expenses and applications across backend restarts.
 - Free hosting can sleep when idle, so the first request may be slower than local development.

@@ -155,7 +155,7 @@ const requestWithFallback = async ({ cacheKey, liveRequest, selectSnapshot, isUs
     if (snapshotData) {
       return withMeta(snapshotData, {
         mode: "scheduled-snapshot",
-        source: snapshot.source || "Yahoo Finance via scheduled GitHub refresh",
+        source: snapshot.source || "Yahoo Finance via GitHub deployment snapshot",
         fetchedAt: snapshot.generatedAt,
         fallbackReason: "The live backend did not respond."
       });
@@ -214,7 +214,7 @@ export const getMarketOverviewPreview = async () => {
   if (!validOverview(data)) throw new Error("The scheduled market snapshot is incomplete.");
   return withMeta(data, {
     mode: "scheduled-snapshot",
-    source: snapshot.source || "Yahoo Finance via scheduled GitHub refresh",
+    source: snapshot.source || "Yahoo Finance via GitHub deployment snapshot",
     fetchedAt: snapshot.generatedAt
   });
 };

@@ -317,7 +317,7 @@ const GlobalMarketSection = () => {
     ? { label: "Auto-updating backend feed", color: "success", background: "success.50", border: "success.100", action: "Refresh now", message: `Latest response ${formatTime(generatedAt)}. Quotes update in the page while it stays open; provider and exchange delays may apply.` }
     : sourceMode === "browser-cache"
       ? { label: "Last successful backend cache", color: "warning", background: "warning.50", border: "warning.100", action: "Retry backend", message: `The backend is unavailable. Showing the last successful response from ${formatTime(generatedAt)} and retrying automatically.` }
-      : { label: "Scheduled public snapshot - not streaming", color: "warning", background: "warning.50", border: "warning.100", action: "Check newest snapshot", message: `Zero-setup public snapshot generated ${formatTime(generatedAt)}. GitHub targets a refresh every 15 minutes; scheduling, upstream and exchange delays may apply.` };
+      : { label: "Deployment snapshot - not streaming", color: "warning", background: "warning.50", border: "warning.100", action: "Check newest snapshot", message: `Zero-setup public snapshot generated ${formatTime(generatedAt)}. It is refreshed during frontend deployments; upstream and exchange delays may apply.` };
   const findVisibleQuote = (nextSymbol) => [
     ...(overview?.watchlist || []),
     ...(overview?.markets || [])
