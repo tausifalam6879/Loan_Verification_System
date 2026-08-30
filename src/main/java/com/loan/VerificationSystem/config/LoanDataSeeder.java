@@ -13,11 +13,20 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class LoanDataSeeder {
 
+    private static final long COMPLETE_CATALOG_OFFER_COUNT = 9L;
+
     @Bean
     ApplicationRunner seedLoanData(BankRepository bankRepository,
                                    LoanTypeRepository loanTypeRepository,
                                    LoanOfferRepository loanOfferRepository) {
         return args -> {
+            // This runner executes on every Render cold start. Once the catalogue is
+            // present, one count query is enough; previously the application made more
+            // than twenty sequential existence queries before Render marked it ready.
+            if (loanOfferRepository.count() >= COMPLETE_CATALOG_OFFER_COUNT) {
+                return;
+            }
+
             Bank sbi = findOrCreateBank(bankRepository, "State Bank of India", "SBI", "#1d4ed8");
             Bank hdfc = findOrCreateBank(bankRepository, "HDFC Bank", "HDFC", "#0f766e");
             Bank indian = findOrCreateBank(bankRepository, "Indian Bank", "Indian Bank", "#f59e0b");

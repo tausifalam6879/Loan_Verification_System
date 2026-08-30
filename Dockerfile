@@ -13,4 +13,6 @@ WORKDIR /app
 COPY --from=build /app/target/VerificationSystem-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 10000
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# These JVM settings favour startup speed and a small memory footprint on
+# Render's free single-core instance. They do not change application behaviour.
+ENTRYPOINT ["java", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]

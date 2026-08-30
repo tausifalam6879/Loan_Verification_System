@@ -1,9 +1,12 @@
 import api from "../api/axiosConfig";
 import { revokeDemoSession } from "../api/demoAdapter";
 
-const AUTH_WARMUP_TIMEOUT_MS = 12000;
-const AUTH_ACTION_TIMEOUT_MS = 20000;
-const SESSION_VALIDATION_TIMEOUT_MS = 8000;
+// Render's free Spring service may need considerably longer than 20 seconds to
+// resume. Keep every request bounded, but give the first database-backed call
+// enough time to survive a normal cold start.
+const AUTH_WARMUP_TIMEOUT_MS = 90000;
+const AUTH_ACTION_TIMEOUT_MS = 90000;
+const SESSION_VALIDATION_TIMEOUT_MS = 20000;
 const FRESH_SESSION_WINDOW_MS = 15 * 60 * 1000;
 const TRUSTED_SESSION_WINDOW_MS = 24 * 60 * 60 * 1000;
 const SESSION_ISSUED_AT_KEY = "fintrack.session.issuedAt";
@@ -77,12 +80,25 @@ export const verifyFirebasePhone = async (payload) => {
 };
 
 export const warmUpAuthService = () => {
-  if (!authWarmupPromise) {
+  const earlyBrowserWarmup = typeof window !== "undefined"
+    ? window.__fintrackAuthWarmup
+    : null;
+
+  if (earlyBrowserWarmup) {
+    // Prefer the request started by public/index.html, even when this module was
+    // previously imported by another route.
+    authWarmupPromise = Promise.resolve(earlyBrowserWarmup)
+      .catch((error) => {
+        // Allow a later manual retry after a temporary cloud/network failure.
+        window.__fintrackAuthWarmup = null;
+        authWarmupPromise = null;
+        throw error;
+      });
+  } else if (!authWarmupPromise) {
     authWarmupPromise = api
       .get("/users/auth-config", { timeout: AUTH_WARMUP_TIMEOUT_MS })
       .then((response) => response.data)
       .catch((error) => {
-        // Allow a later manual retry after a temporary cloud/network failure.
         authWarmupPromise = null;
         throw error;
       });

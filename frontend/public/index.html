@@ -15,6 +15,31 @@
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <script>
+      // Start waking the hosted authentication API before the React/MUI bundle
+      // downloads and renders. CRA replaces these placeholders at build time.
+      // authService reuses this same promise, so this does not create a duplicate
+      // warm-up request.
+      (function () {
+        var apiBaseUrl = "%REACT_APP_API_BASE_URL%";
+        var demoMode = "%REACT_APP_DEMO_MODE%" === "true";
+        if (!demoMode && /^https:\/\//.test(apiBaseUrl)) {
+          window.__fintrackAuthWarmup = fetch(apiBaseUrl + "/users/auth-config", {
+            cache: "no-store",
+            headers: { Accept: "application/json" }
+          }).then(function (response) {
+            if (!response.ok) {
+              throw new Error("Authentication service warm-up failed");
+            }
+            return response.json();
+          });
+          // The React service attaches the real error handler when it mounts.
+          // This prevents a console-level unhandled rejection if another route
+          // renders first.
+          window.__fintrackAuthWarmup.catch(function () {});
+        }
+      })();
+    </script>
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.

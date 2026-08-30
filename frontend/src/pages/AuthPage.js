@@ -89,7 +89,7 @@ const AuthPage = ({ mode = "login" }) => {
       .catch(() => {
         if (isMounted) {
           setConnectionState("unavailable");
-          retryTimer = window.setTimeout(loadAuthConfig, 5000);
+          retryTimer = window.setTimeout(loadAuthConfig, 15000);
         }
       });
     };
@@ -109,7 +109,7 @@ const AuthPage = ({ mode = "login" }) => {
 
   const getErrorMessage = (error) => {
     if (!error.response) {
-      return "Secure server did not respond within 20 seconds. It may be waking up; please retry once.";
+      return "Secure backend did not respond within 90 seconds. Your password was not rejected; the deployed Spring Boot or database service is currently unavailable.";
     }
 
     return error.response?.data?.message || "Authentication failed. Check email, password and backend.";
@@ -340,13 +340,13 @@ const AuthPage = ({ mode = "login" }) => {
 
               {!demoMode && connectionState === "connecting" && (
                 <Alert severity="info">
-                  Preparing the secure server connection. You can enter your details while it starts.
+                  Preparing the secure server connection. A free cloud instance can take up to 90 seconds to resume; you can enter your details meanwhile.
                 </Alert>
               )}
 
               {!demoMode && connectionState === "unavailable" && (
                 <Alert severity="warning">
-                  Secure server is taking longer than expected. Login will retry the connection.
+                  Secure Spring Boot or database service is unavailable. The page will retry automatically; this is not an incorrect-password message.
                 </Alert>
               )}
 
