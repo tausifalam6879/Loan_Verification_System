@@ -168,6 +168,12 @@ $env:TWILIO_WHATSAPP_FROM="whatsapp:+14155238886"
 .\start-backend.ps1
 ```
 
+For a no-cold-start presentation, double-click `Start-FinTrack-Instant-Demo.cmd`.
+It starts the backend on port `8090`, waits until it is healthy, starts the
+frontend on port `3000`, and only then opens the login page. The local H2 data
+is file-backed, so accounts created in this mode survive computer restarts.
+Keep the launcher-started processes running throughout the presentation.
+
 The public Render service must use an HTTPS email provider because Render Free blocks outbound SMTP ports. `render.yaml` supports Resend and a domain-free Gmail API OAuth provider. Add only the secrets for the selected provider, then set `APP_MAIL_PROVIDER` to `resend` or `gmail-api`. The same Blueprint prompts for the four Twilio values required by Mobile and WhatsApp OTP. See [Email OTP Setup](docs/EMAIL_OTP.md).
 
 ### 3. Frontend

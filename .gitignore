@@ -43,6 +43,7 @@ ai-fraud-service/models/
 ### Runtime logs ###
 *.log
 logs/
+/data/fintrack-local*
 
 ### Generated project inventories ###
 frontend-structure.txt
