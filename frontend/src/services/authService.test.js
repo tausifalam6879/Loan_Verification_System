@@ -25,7 +25,7 @@ test("auth warm-up allows a bounded Render cold-start window", async () => {
 
   await expect(warmUpAuthService()).resolves.toEqual({ otpEnabled: true });
 
-  expect(api.get).toHaveBeenCalledWith("/users/auth-config", { timeout: 90000 });
+  expect(api.get).toHaveBeenCalledWith("/users/auth-config", { timeout: 20000 });
 });
 
 test("auth warm-up reuses the request started by the HTML shell", async () => {

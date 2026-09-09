@@ -109,7 +109,10 @@ const AuthPage = ({ mode = "login" }) => {
 
   const getErrorMessage = (error) => {
     if (!error.response) {
-      return "Secure backend did not respond within 90 seconds. Your password was not rejected; the deployed Spring Boot or database service is currently unavailable.";
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        return "You are offline. Reconnect to the internet, then try signing in again.";
+      }
+      return "We could not reach the sign-in service. This does not mean your password is incorrect. Please try again once the connection is restored.";
     }
 
     return error.response?.data?.message || "Authentication failed. Check email, password and backend.";
@@ -340,7 +343,7 @@ const AuthPage = ({ mode = "login" }) => {
 
               {!demoMode && connectionState === "connecting" && (
                 <Alert severity="info">
-                  Preparing the secure server connection. A free cloud instance can take up to 90 seconds to resume; you can enter your details meanwhile.
+                  Connecting to the sign-in service. You can enter your details while it starts.
                 </Alert>
               )}
 

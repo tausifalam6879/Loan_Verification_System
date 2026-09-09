@@ -24,7 +24,10 @@
         var apiBaseUrl = "%REACT_APP_API_BASE_URL%";
         var demoMode = "%REACT_APP_DEMO_MODE%" === "true";
         if (!demoMode && /^https:\/\//.test(apiBaseUrl)) {
+          var controller = new AbortController();
+          var timeout = setTimeout(function () { controller.abort(); }, 20000);
           window.__fintrackAuthWarmup = fetch(apiBaseUrl + "/users/auth-config", {
+            signal: controller.signal,
             cache: "no-store",
             headers: { Accept: "application/json" }
           }).then(function (response) {
@@ -32,7 +35,7 @@
               throw new Error("Authentication service warm-up failed");
             }
             return response.json();
-          });
+          }).finally(function () { clearTimeout(timeout); });
           // The React service attaches the real error handler when it mounts.
           // This prevents a console-level unhandled rejection if another route
           // renders first.

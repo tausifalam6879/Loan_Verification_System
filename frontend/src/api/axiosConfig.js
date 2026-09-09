@@ -1,4 +1,5 @@
 import axios from "axios";
+import { isPublicAuthRequest } from "./publicAuth";
 import { demoAdapter, demoMode, revokeDemoSession } from "./demoAdapter";
 
 const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || "http://localhost:8081/api";
@@ -24,7 +25,7 @@ export const marketApi = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
-  if (token) {
+  if (token && !isPublicAuthRequest(config.url)) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
@@ -34,7 +35,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isPublicAuthRequest(error.config?.url)) {
       revokeDemoSession(localStorage.getItem("token"));
       localStorage.removeItem("token");
       localStorage.removeItem("role");

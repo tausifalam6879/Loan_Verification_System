@@ -30,6 +30,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        // These endpoints authenticate credentials/OTP themselves. An expired
+        // saved JWT must not prevent signing in again or add a database lookup.
+        String path = request.getServletPath();
+        return java.util.Set.of(
+                "/api/users/login", "/api/users/register", "/api/users/auth-config",
+                "/api/users/test", "/api/users/request-otp", "/api/users/verify-otp",
+                "/api/users/verify-firebase-phone"
+        ).contains(path);
+    }
+
+    @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,

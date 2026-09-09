@@ -4,7 +4,7 @@ import { revokeDemoSession } from "../api/demoAdapter";
 // Render's free Spring service may need considerably longer than 20 seconds to
 // resume. Keep every request bounded, but give the first database-backed call
 // enough time to survive a normal cold start.
-const AUTH_WARMUP_TIMEOUT_MS = 90000;
+const AUTH_WARMUP_TIMEOUT_MS = 20000;
 const AUTH_ACTION_TIMEOUT_MS = 90000;
 const SESSION_VALIDATION_TIMEOUT_MS = 20000;
 const FRESH_SESSION_WINDOW_MS = 15 * 60 * 1000;
