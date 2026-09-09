@@ -47,7 +47,8 @@ const AuthPage = ({ mode = "login" }) => {
     password: "",
     role: "USER",
     otp: "",
-    otpToken: ""
+    otpToken: "",
+    authenticatorCode: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -176,6 +177,7 @@ const AuthPage = ({ mode = "login" }) => {
           mobile: form.mobile,
           channel: authMethod === "password" ? "PASSWORD" : otpChannel(),
           password: authMethod === "password" ? form.password : "",
+          authenticatorCode: authMethod === "password" ? form.authenticatorCode : "",
           otpToken: isOtpMethod ? form.otpToken : ""
         });
         navigate(localStorage.getItem("role") === "ADMIN" ? "/admin" : "/", { replace: true });
@@ -459,6 +461,13 @@ const AuthPage = ({ mode = "login" }) => {
                   required={authMethod === "password" || isRegister}
                   fullWidth
                 />
+              )}
+
+              {!isRegister && authMethod === "password" && (
+                <TextField label="Authenticator code (if enabled)" value={form.authenticatorCode}
+                  onChange={event => updateForm("authenticatorCode", event.target.value.replace(/\D/g, "").slice(0, 6))}
+                  autoComplete="one-time-code" slotProps={{htmlInput:{inputMode:"numeric",maxLength:6}}}
+                  helperText="Use your authenticator app code, not SMS. Set up in Profile after login. Lost your phone? Use Email OTP." fullWidth />
               )}
 
               {isOtpMethod && (

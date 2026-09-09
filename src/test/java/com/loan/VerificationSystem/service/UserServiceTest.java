@@ -48,6 +48,8 @@ class UserServiceTest {
 
     @Mock
     private FirebasePhoneAuthService firebasePhoneAuthService;
+    @Mock
+    private AuthenticatorService authenticatorService;
 
     @InjectMocks
     private UserService userService;
@@ -57,6 +59,23 @@ class UserServiceTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("user@example.com", "ignored")
         );
+    }
+
+    @Test
+    void passwordLoginCannotSkipEnabledAuthenticator() {
+        User user = new User(); user.setId(7L); user.setEmail("user@example.com"); user.setPassword("hash"); user.setRole("USER");
+        when(userRepository.findByEmail("user@example.com")).thenReturn(user);
+        when(passwordEncoder.matches("password", "hash")).thenReturn(true);
+        when(authenticatorService.enabled(7L)).thenReturn(true);
+        var request = new com.loan.VerificationSystem.dto.LoginRequestDTO();
+        request.setEmail("user@example.com"); request.setPassword("password");
+        assertThatThrownBy(() -> userService.loginUser(request)).hasMessageContaining("authenticator code");
+        verifyNoInteractions(jwtService);
+        request.setAuthenticatorCode("123456");
+        when(authenticatorService.verify("user@example.com", "123456", false)).thenReturn(true);
+        when(jwtService.generateToken("user@example.com")).thenReturn("signed-token");
+        assertThat(userService.loginUser(request)).isNotNull();
+        verify(jwtService).generateToken("user@example.com");
     }
 
     @AfterEach

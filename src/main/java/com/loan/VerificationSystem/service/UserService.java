@@ -27,13 +27,15 @@ public class UserService {
     private final OtpService otpService;
     private final EmailNotificationService emailNotificationService;
     private final FirebasePhoneAuthService firebasePhoneAuthService;
+    private final AuthenticatorService authenticatorService;
 
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
                        OtpService otpService,
                        EmailNotificationService emailNotificationService,
-                       FirebasePhoneAuthService firebasePhoneAuthService) {
+                       FirebasePhoneAuthService firebasePhoneAuthService,
+                       AuthenticatorService authenticatorService) {
 
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -41,6 +43,7 @@ public class UserService {
         this.otpService = otpService;
         this.emailNotificationService = emailNotificationService;
         this.firebasePhoneAuthService = firebasePhoneAuthService;
+        this.authenticatorService = authenticatorService;
     }
 
     public UserResponseDTO registerUser(UserRequestDTO request) {
@@ -103,6 +106,10 @@ public class UserService {
 
         if (!matches) {
             throw new RuntimeException("Invalid email or password");
+        }
+
+        if (authenticatorService.enabled(user.getId()) && !authenticatorService.verify(user.getEmail(), request.getAuthenticatorCode(), false)) {
+            throw new IllegalArgumentException("Enter a fresh authenticator code, or use Email OTP to sign in. After five failed codes, wait five minutes.");
         }
 
         return buildLoginResponse(user);

@@ -19,4 +19,6 @@ public class LoginRequestDTO {
     private String password;
 
     private String otpToken;
+    @Pattern(regexp = "^$|^[0-9]{6}$", message = "Authenticator code must contain six digits")
+    private String authenticatorCode;
 }

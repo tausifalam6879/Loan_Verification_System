@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import AuthenticatorSettings from "../components/AuthenticatorSettings";
 import { useNavigate } from "react-router-dom";
 import {
   Alert,
@@ -187,6 +188,7 @@ const ProfilePage = () => {
         }}
       >
         <Box sx={{ width: "100%", maxWidth: 1240, mx: "auto" }}>
+          <AuthenticatorSettings email={currentAuth.email} />
           <Button
             startIcon={<ArrowBackIcon />}
             onClick={() => navigate("/")}
