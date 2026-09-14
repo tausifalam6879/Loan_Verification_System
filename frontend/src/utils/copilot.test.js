@@ -47,3 +47,25 @@ test("creates an honest local application summary and never claims execution", (
   expect(inferCopilotAction("Show my application status").target).toBe("applications");
 });
 
+test("keeps attention and saving fallback answers distinct when cloud AI is unavailable", () => {
+  const common = {
+    expenses: sampleExpenses,
+    totalIncome: 20000,
+    totalExpense: 6200,
+    balance: 13800,
+    applications: []
+  };
+
+  const attention = buildCopilotFallbackAnswer({
+    ...common,
+    question: "What needs my attention?"
+  });
+  const saving = buildCopilotFallbackAnswer({
+    ...common,
+    question: "Where can I save money?"
+  });
+
+  expect(attention).toMatch(/No urgent account signal/i);
+  expect(saving).toMatch(/clearest saving opportunity/i);
+  expect(attention).not.toEqual(saving);
+});

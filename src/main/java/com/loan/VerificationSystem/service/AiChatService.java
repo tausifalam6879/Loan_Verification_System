@@ -248,7 +248,7 @@ public class AiChatService {
                                 "text", SYSTEM_PROMPT + "\nDashboard context JSON:\n" + toJson(context)
                         ))),
                         "contents", contents,
-                        "generationConfig", Map.of("temperature", 0.25)
+                        "generationConfig", Map.of("maxOutputTokens", 320)
                 ))
                 .retrieve()
                 .body(JsonNode.class);

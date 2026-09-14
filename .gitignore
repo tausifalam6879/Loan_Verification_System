@@ -56,3 +56,6 @@ frontend/frontend-structure.txt
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
+
+# Private preparation notes are never published with the project.
+docs/INTERVIEW_*.md

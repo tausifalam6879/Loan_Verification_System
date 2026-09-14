@@ -74,6 +74,5 @@ test("falls back to local screen analytics when the backend is unavailable", asy
   fireEvent.click(screen.getByText("Where can I save money?"));
 
   expect(await screen.findByText("Local analytics fallback")).toBeInTheDocument();
-  expect(screen.getByText(/largest recorded category is Food/i)).toBeInTheDocument();
+  expect(screen.getByText(/clearest saving opportunity is Food/i)).toBeInTheDocument();
 });
-

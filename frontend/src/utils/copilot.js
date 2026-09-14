@@ -196,13 +196,39 @@ export const buildCopilotFallbackAnswer = ({
     return `Recent account activity:\n${recent.map((item) => `• ${String(item.date || item.createdAt || "").slice(0, 10)} — ${item.description || item.merchant || item.category || "Expense"}: ${formatCopilotCurrency(item.amount)}`).join("\n")}`;
   }
 
-  if (/save|saving|attention|top|category|most/.test(text)) {
+  if (/attention|urgent|priority/.test(text)) {
+    if (!expenses.length && !applications.length) {
+      return "There is not enough signed-in account activity to identify a priority yet. Add expenses or submit a loan application, then ask again.";
+    }
+
+    const signals = [];
+    if (Number(balance) < 0) {
+      signals.push("monthly spending is above the entered income");
+    } else if (brief.spendingRate >= 80) {
+      signals.push(`${brief.spendingRate}% of monthly income is already used`);
+    }
+    if (intelligence.anomalies.length) {
+      signals.push(`${intelligence.anomalies.length} unusual transaction signal${intelligence.anomalies.length === 1 ? "" : "s"} need review`);
+    }
+    if (brief.pendingApplications) {
+      signals.push(`${brief.pendingApplications} loan application${brief.pendingApplications === 1 ? "" : "s"} still need tracking`);
+    }
+
+    if (signals.length) {
+      return `Your current priority: ${signals.join("; ")}. Open the relevant record before making a financial decision.`;
+    }
+
+    const top = brief.topCategory;
+    return `No urgent account signal is active right now. Your largest recorded category is ${top.category} at ${formatCopilotCurrency(top.amount)} (${top.percentage}%), so keep that category under review.`;
+  }
+
+  if (/save|saving|top|category|most/.test(text)) {
     if (!expenses.length) {
       return "Add a few categorized expenses first. FinTrack needs account activity before it can identify a top category or a realistic saving opportunity.";
     }
     const top = brief.topCategory;
     const recommendation = intelligence.recommendations[0];
-    return `${brief.attention} Your largest recorded category is ${top.category} at ${formatCopilotCurrency(top.amount)} (${top.percentage}%). ${recommendation}`;
+    return `Your clearest saving opportunity is ${top.category}, currently ${formatCopilotCurrency(top.amount)} (${top.percentage}% of recorded spending). ${recommendation}`;
   }
 
   if (/fd|sip|invest/.test(text) || page === "investments") {
