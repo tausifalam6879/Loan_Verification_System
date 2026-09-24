@@ -88,7 +88,7 @@ const ExpenseOverviewCards = ({ expenses = [], totalIncome = 0, onIncomeChange, 
   ];
 
   return (
-    <Card elevation={0} sx={{ mb: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider", boxShadow: "none", background: "transparent", border: "none" }}>
+    <Card elevation={0} sx={{ mb: 2.5, borderRadius: 2, boxShadow: "none", background: "transparent", border: "none" }}>
       <CardContent sx={{ p: 2.5 }}>
         <Stack direction={{ xs: "column", md: "row" }} sx={{ justifyContent: "space-between", gap: 1.5, mb: 2 }}>
           <Box>

@@ -224,7 +224,6 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
               sx={{
                 px: { xs: 2.5, md: 4 },
                 py: { xs: 3, md: 3.5 },
-                color: "#ffffff",
                 background: "linear-gradient(110deg,#fff,#f7f5ff)", color: "#17183d"
               }}
             >
