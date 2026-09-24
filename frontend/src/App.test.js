@@ -90,8 +90,8 @@ test('renders the authenticated payment command center route', async () => {
 
   render(<App />);
 
-  expect((await screen.findAllByRole("heading", { name: /Payment Gateway/i })).length).toBeGreaterThan(0);
-  expect(await screen.findByRole("heading", { name: /Payment history/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /Payment Details/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /Recent Payments/i })).toBeInTheDocument();
 });
 
 test('renders the authenticated loan application center route', async () => {
