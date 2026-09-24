@@ -89,12 +89,9 @@ const ExpenseOverviewCards = ({ expenses = [], totalIncome = 0, onIncomeChange, 
 
   return (
     <Card elevation={0} sx={{ mb: 2.5, borderRadius: 2, boxShadow: "none", background: "transparent", border: "none" }}>
-      <CardContent sx={{ p: 2.5 }}>
+      <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
         <Stack direction={{ xs: "column", md: "row" }} sx={{ justifyContent: "space-between", gap: 1.5, mb: 2 }}>
-          <Box>
-            <Typography variant="overline" sx={{ color: "#0f766e", fontWeight: 900 }}>Expense overview</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 900 }}>Your monthly snapshot</Typography>
-          </Box>
+          <Typography variant="body2" color="text.secondary">Monthly cash-flow estimates · based on your saved expenses</Typography>
           {editingIncome ? (
             <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
               <TextField
@@ -134,13 +131,12 @@ const ExpenseOverviewCards = ({ expenses = [], totalIncome = 0, onIncomeChange, 
 };
 
 const MetricCard = ({ label, value, helper, icon, color }) => (
-  <Box sx={{ height: "100%", p: 2.5, minHeight: 145, borderRadius: 2, background: `linear-gradient(110deg,${color}0c,#ffffff)`, border: `1px solid ${color}24` }}>
-    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-      <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 800 }}>{label}</Typography>
-      <Box sx={{ color, display: "grid", placeItems: "center", width: 50, height: 50, borderRadius: 2, bgcolor: `${color}15`, "& svg": { fontSize: 28 } }}>{icon}</Box>
-    </Stack>
-    <Typography variant="h5" sx={{ mt: 1.5, fontWeight: 900, color }}>{value}</Typography>
-    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>{helper}</Typography>
+  <Box sx={{ height: "100%", p: 2.5, minHeight: 124, borderRadius: 2, display: "flex", alignItems: "center", gap: 2, background: `linear-gradient(110deg,${color}0c,#ffffff)`, border: `1px solid ${color}24` }}>
+    <Box sx={{ color, display: "grid", placeItems: "center", flexShrink: 0, width: 64, height: 64, borderRadius: 2.5, bgcolor: `${color}15`, "& svg": { fontSize: 34 } }}>{icon}</Box>
+    <Box sx={{ flex: 1 }}><Typography variant="body2" sx={{ fontWeight: 800 }}>{label}</Typography>
+    <Typography sx={{ fontSize: 28, lineHeight: 1.35, fontWeight: 900, color }}>{value}</Typography>
+    <Typography variant="caption" color="text.secondary">{helper}</Typography></Box>
+    <Box aria-hidden="true" sx={{ display: "flex", alignItems: "flex-end", gap: .6, opacity: .35 }}>{[20, 30, 42, 54].map(height => <Box key={height} sx={{ width: 7, height, bgcolor: color, borderRadius: 2 }} />)}</Box>
   </Box>
 );
 

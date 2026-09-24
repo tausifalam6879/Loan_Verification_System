@@ -1,151 +1,27 @@
-import React, { useMemo } from "react";
-import {
-  Box,
-  Card,
-  CardContent,
-  CircularProgress,
-  Typography
-} from "@mui/material";
+import React, { useMemo, useState } from "react";
+import { Box, Card, CardContent, CircularProgress, MenuItem, TextField, Typography } from "@mui/material";
 import DonutLargeIcon from "@mui/icons-material/DonutLarge";
-import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip
-} from "recharts";
-import { motion } from "framer-motion";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { categoryTotals, expenseColors, money } from "../utils/expensePresentation";
 
-const COLORS = [
-  "#7848ff",
-  "#3274ff",
-  "#f59e0b",
-  "#ef4444",
-  "#7c3aed",
-  "#334155"
-];
-
-const ExpensePieChart = ({ expenses, loading }) => {
-  const data = useMemo(() => {
-    const categoryTotals = {};
-
-    expenses.forEach((expense) => {
-      const category = (expense.category || "uncategorized").toLowerCase();
-      categoryTotals[category] =
-        (categoryTotals[category] || 0) + Number(expense.amount || 0);
-    });
-
-    return Object.entries(categoryTotals).map(([name, value]) => ({
-      name,
-      value
-    }));
-  }, [expenses]);
-
-  return (
-    <Card
-      elevation={0}
-      sx={{
-        height: "100%",
-        borderRadius: 2,
-        background: "#ffffff",
-        border: "1px solid rgba(37, 99, 235, 0.14)",
-        boxShadow: "0 14px 34px rgba(8, 47, 73, 0.12)"
-      }}
-    >
-      <CardContent sx={{ p: 2.5 }}>
-        <Typography
-          variant="h6"
-          sx={{ color: "#0f172a", fontWeight: 800, mb: 2 }}
-        >
-          Category Analytics
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Spending across all saved transactions.</Typography>
-
-        <Box
-          sx={{
-            height: 370,
-            borderRadius: 2,
-            background:
-              "#ffffff",
-            border: "1px solid rgba(37, 99, 235, 0.12)",
-            p: 1
-          }}
-        >
-          {loading ? (
-            <Box
-              sx={{
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
-            >
-              <CircularProgress />
-            </Box>
-          ) : data.length === 0 ? (
-            <Box
-              sx={{
-                height: "100%",
-                display: "grid",
-                placeItems: "center",
-                textAlign: "center",
-                color: "#64748b"
-              }}
-            >
-              <Box>
-                <DonutLargeIcon sx={{ fontSize: 42, color: "#94a3b8" }} />
-                <Typography sx={{ mt: 1, fontWeight: 700 }}>
-                  No expense data yet
-                </Typography>
-              </Box>
-            </Box>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.35 }}
-              style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
-            >
-              <ResponsiveContainer width="100%" height={245} initialDimension={{ width: 480, height: 300 }}>
-                <PieChart>
-                  <Pie
-                    data={data}
-                    cx="50%"
-                    cy="45%"
-                    innerRadius={78}
-                    outerRadius={112}
-                    paddingAngle={4}
-                    dataKey="value"
-                    stroke="#ffffff"
-                    strokeWidth={2}
-                  >
-                    {data.map((entry, index) => (
-                      <Cell
-                        key={entry.name}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value) => [`Rs. ${value}`, "Amount"]}
-                    contentStyle={{
-                      borderRadius: 8,
-                      border: "1px solid #e2e8f0",
-                      boxShadow: "0 10px 25px rgba(15, 23, 42, 0.12)"
-                    }}
-                  />
-
-                </PieChart>
-              </ResponsiveContainer>
-              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 1.5, px: 1 }}>
-                {data.map((item, index) => <Box key={item.name} sx={{ display: "flex", alignItems: "center", gap: .7, minWidth: 0 }}><Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: COLORS[index % COLORS.length], flexShrink: 0 }} /><Typography variant="caption" sx={{ textTransform: "capitalize", flex: 1 }}>{item.name}</Typography><Typography variant="caption" sx={{ fontWeight: 750 }}>₹{item.value.toLocaleString("en-IN")}</Typography></Box>)}
-              </Box>
-            </motion.div>
-          )}
-        </Box>
-      </CardContent>
-    </Card>
-  );
-};
-
-export default ExpensePieChart;
+export default function ExpensePieChart({ expenses = [], loading }) {
+  const [period, setPeriod] = useState("month");
+  const data = useMemo(() => categoryTotals(expenses, period), [expenses, period]);
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  return <Card elevation={0} sx={{ height: "100%", border: "1px solid #e3e8fc", borderRadius: 2, boxShadow: "0 4px 18px rgba(68,75,135,.04)" }}>
+    <CardContent sx={{ p: 2.5 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1 }}>
+        <Box><Typography variant="h6" sx={{ fontWeight: 900 }}>Category Analytics</Typography><Typography variant="body2" color="text.secondary">See where your money goes {period === "month" ? "this month" : "across all saved expenses"}.</Typography></Box>
+        <TextField select size="small" value={period} onChange={event => setPeriod(event.target.value)} slotProps={{ select: { inputProps: { "aria-label": "Analytics period" } } }} sx={{ minWidth: 120 }}><MenuItem value="month">This Month</MenuItem><MenuItem value="all">All Time</MenuItem></TextField>
+      </Box>
+      {loading ? <Box sx={{ height: 275, display: "grid", placeItems: "center" }}><CircularProgress /></Box> : !data.length ? <Box sx={{ height: 275, display: "grid", placeItems: "center", textAlign: "center", color: "text.secondary" }}><Box><DonutLargeIcon sx={{ fontSize: 48, color: "#ad9bdf" }} /><Typography>No expenses for this period</Typography></Box></Box> :
+        <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, .95fr) minmax(0, 1.1fr)", alignItems: "center", gap: 2, mt: 2 }}>
+          <Box sx={{ height: 270, position: "relative", minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 260, height: 270 }}><PieChart><Pie data={data} dataKey="value" innerRadius="68%" outerRadius="94%" startAngle={90} endAngle={-270} stroke="#fff" strokeWidth={2}>{data.map((item, index) => <Cell key={item.name} fill={expenseColors[index % expenseColors.length]} />)}</Pie><Tooltip formatter={value => [money(value), "Spent"]} /></PieChart></ResponsiveContainer>
+            <Box sx={{ position: "absolute", inset: "35% 15%", display: "grid", alignContent: "center", textAlign: "center", pointerEvents: "none" }}><Typography sx={{ fontSize: 20, fontWeight: 900 }}>{money(total)}</Typography><Typography variant="caption" color="text.secondary">Total Spent</Typography></Box>
+          </Box>
+          <Box sx={{ border: "1px solid #edf0fb", borderRadius: 2, px: 1.5, maxHeight: 280, overflowY: "auto" }}>{data.map((item, index) => <Box key={item.name} sx={{ display: "flex", alignItems: "center", gap: 1, py: 1.7, borderBottom: index < data.length - 1 ? "1px solid #f0f2fa" : "none" }}><Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: expenseColors[index % expenseColors.length], flexShrink: 0 }} /><Typography variant="body2" sx={{ flex: 1, textTransform: "capitalize", overflowWrap: "anywhere" }}>{item.name}</Typography><Typography variant="caption">{Math.round(item.value / total * 100)}%</Typography><Typography variant="body2" sx={{ fontWeight: 800, color: expenseColors[index % expenseColors.length] }}>{money(item.value)}</Typography></Box>)}</Box>
+        </Box>}
+    </CardContent>
+  </Card>;
+}

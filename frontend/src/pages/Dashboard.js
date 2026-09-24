@@ -22,6 +22,7 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 import FinancialCommandCenter from "../components/dashboard/FinancialCommandCenter";
 import WorkspaceHeading from "../components/WorkspaceHeading";
 import ExpenseForm from "../components/ExpenseForm";
+import ExpenseSummaryPanels from "../components/ExpenseSummaryPanels";
 import ExpenseBudgetPlanner from "../components/ExpenseBudgetPlanner";
 import ExpenseIntelligencePanel from "../components/ExpenseIntelligencePanel";
 import ExpenseOverviewCards from "../components/ExpenseOverviewCards";
@@ -476,7 +477,8 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
                 </Grid>
               </Grid>
 
-              <Box sx={{ mt: 2.5 }}>
+              <ExpenseSummaryPanels expenses={expenses} budgets={budgets} />
+              <Box id="expense-transactions" sx={{ mt: 2.5, scrollMarginTop: 90 }}>
                 <TransactionTable
                   showRecents={showRecents}
                   tableData={{
@@ -504,11 +506,11 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
                 />
               </Box>
 
-              <ExpenseBudgetPlanner
+              <Box id="expense-budget-settings" sx={{ scrollMarginTop: 90 }}><ExpenseBudgetPlanner
                 expenses={expenses}
                 budgets={budgets}
                 onBudgetsChange={setBudgets}
-              />
+              /></Box>
 
               <MonthlyExpenseChart expenses={expenses} />
 

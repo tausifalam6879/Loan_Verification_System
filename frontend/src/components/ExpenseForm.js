@@ -48,6 +48,7 @@ const ExpenseForm = ({
   loading
 }) => {
   const [form, setForm] = useState(emptyForm);
+  const [showDetails, setShowDetails] = useState(false);
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [mlPrediction, setMlPrediction] = useState(null);
   const isEditing = Boolean(editingExpense);
@@ -69,6 +70,7 @@ const ExpenseForm = ({
       recurring: Boolean(editingExpense.recurring)
     });
     setCategoryTouched(true);
+    setShowDetails(true);
   }, [editingExpense]);
 
   const fallbackPrediction = useMemo(
@@ -196,14 +198,14 @@ const ExpenseForm = ({
               {isEditing ? "Edit Expense" : "Add New Expense"}
             </Typography>
             <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 700 }}>
-              {isEditing ? "Update the selected transaction" : "Track date, merchant and payment method"}
+              {isEditing ? "Update the selected transaction" : "Record your daily expenses in seconds."}
             </Typography>
           </Box>
           {isEditing && <Chip label={`#${editingExpense.id}`} color="warning" size="small" />}
         </Stack>
 
         <Box component="form" onSubmit={handleSubmit}>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mb: 1.5 }}>
             <TextField
               fullWidth
               required
@@ -221,7 +223,7 @@ const ExpenseForm = ({
               label="Expense date"
               value={form.date}
               onChange={handleChange("date")}
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
               sx={inputStyle}
             />
           </Stack>
@@ -241,7 +243,7 @@ const ExpenseForm = ({
             <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1.5, flexWrap: "wrap", rowGap: 1 }}>
               <Chip
                 icon={<AutoAwesomeIcon />}
-                label={`AI predicts: ${prediction.category}`}
+                label={`${mlPrediction ? "Model suggests" : "Suggested category"}: ${prediction.category}`}
                 color={prediction.confidence >= 0.55 ? "primary" : "default"}
                 variant="outlined"
                 sx={{ fontWeight: 800, bgcolor: "rgba(255,255,255,0.76)" }}
@@ -255,7 +257,7 @@ const ExpenseForm = ({
             </Stack>
           )}
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mb: .5 }}>
             <TextField
               fullWidth
               required
@@ -266,36 +268,15 @@ const ExpenseForm = ({
               slotProps={{ htmlInput: { maxLength: 60 } }}
               sx={inputStyle}
             />
-            <TextField
-              fullWidth
-              label="Merchant"
-              placeholder="Swiggy, Amazon, Landlord"
-              value={form.merchant}
-              onChange={handleChange("merchant")}
-              slotProps={{ htmlInput: { maxLength: 100 } }}
-              sx={inputStyle}
-            />
+            <TextField select fullWidth label="Payment method" value={form.paymentMethod} onChange={handleChange("paymentMethod")} sx={inputStyle}>
+              {paymentMethods.map(method => <MenuItem key={method} value={method}>{method}</MenuItem>)}
+            </TextField>
           </Stack>
-
-          <TextField
-            select
-            fullWidth
-            label="Payment method"
-            value={form.paymentMethod}
-            onChange={handleChange("paymentMethod")}
-            sx={inputStyle}
-          >
-            {paymentMethods.map((method) => (
-              <MenuItem key={method} value={method}>{method}</MenuItem>
-            ))}
-          </TextField>
-
-          <FormControlLabel
-            control={<Checkbox checked={form.recurring} onChange={handleChange("recurring")} />}
-            label="This is a recurring expense or subscription"
-            sx={{ color: "#334155", mb: 1.5 }}
-          />
-
+          <Button size="small" onClick={() => setShowDetails(value => !value)} aria-expanded={showDetails} sx={{ mb: 1, textTransform: "none" }}>{showDetails ? "Hide optional details" : "Add merchant / recurring details"}</Button>
+          {showDetails && <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+            <TextField fullWidth label="Merchant" placeholder="Merchant name" value={form.merchant} onChange={handleChange("merchant")} slotProps={{ htmlInput: { maxLength: 100 } }} sx={inputStyle} />
+            <FormControlLabel control={<Checkbox checked={form.recurring} onChange={handleChange("recurring")} />} label="Recurring expense" sx={{ minWidth: 170 }} />
+          </Stack>}
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
             <Button
               type="submit"
