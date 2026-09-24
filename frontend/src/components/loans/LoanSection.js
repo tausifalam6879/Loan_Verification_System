@@ -42,6 +42,7 @@ import SecurityIcon from "@mui/icons-material/Security";
 import SmartphoneIcon from "@mui/icons-material/Smartphone";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { motion } from "framer-motion";
+import PaymentWorkspace from "./PaymentWorkspace";
 import { paymentGatewayOptions } from "../../data/financialKnowledge";
 import { applyForLoan, getLoanApplications, getLoanOffer, getLoanOffers, payProcessingFee } from "../../services/loanService";
 import { uploadLoanDocument } from "../../utils/cloudinaryUpload";
@@ -544,12 +545,12 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
     URL.revokeObjectURL(url);
   };
 
-  const handleOpenGateway = (methodId = paymentMethod, context = "general") => {
+  const handleOpenGateway = (methodId = paymentMethod, context = "general", draft = {}) => {
     const isLoanFee = context === "loan-fee" && Boolean(applicationResult?.id);
     setPaymentMethod(methodId);
     setPaymentContext(isLoanFee ? "loan-fee" : "general");
-    setGatewayAmount(isLoanFee ? String(selectedMetrics.processingFee) : "");
-    setPaymentRecipient(isLoanFee ? `${selectedOffer?.bank?.name || "Lender"} processing fee` : "");
+    setGatewayAmount(isLoanFee ? String(selectedMetrics.processingFee) : String(draft.amount || ""));
+    setPaymentRecipient(isLoanFee ? `${selectedOffer?.bank?.name || "Lender"} processing fee` : String(draft.recipient || ""));
     setGatewayStep("ready");
     setLastPaymentAt("");
     setLatestReceipt(null);
@@ -1357,7 +1358,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
       </Dialog>
 
       {showPayments && (
-        <PaymentGatewayOverview
+        <PaymentWorkspace
           paymentMethod={paymentMethod}
           setPaymentMethod={setPaymentMethod}
           onStartPayment={handleOpenGateway}
@@ -2291,109 +2292,6 @@ const PaymentReceiptCard = ({ receipt, onDownload }) => (
       Download receipt
     </Button>
   </Box>
-);
-
-const PaymentHistoryPanel = ({ history = [], onDownloadReceipt }) => (
-  <Card sx={panelStyle}>
-    <CardContent sx={{ p: 2.5 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, mb: 2 }}>
-        <Box>
-          <Typography variant="h6" sx={{ color: "#0f172a", fontWeight: 900 }}>Payment history</Typography>
-          <Typography variant="body2" sx={{ color: "#475569" }}>Device-local demo receipts; raw card and CVV values are never stored.</Typography>
-        </Box>
-        <Chip label={`${history.length} records`} sx={{ bgcolor: "#dbeafe", color: "#1d4ed8", fontWeight: 900 }} />
-      </Box>
-
-      {history.length === 0 ? (
-        <Alert severity="info" sx={alertStyleBySeverity.info}>Complete a demo payment to create the first receipt.</Alert>
-      ) : (
-        <Stack spacing={1}>
-          {history.slice(0, 8).map((receipt) => (
-            <Box key={receipt.reference} sx={{ p: 1.5, borderRadius: 2, bgcolor: "#ffffff", border: "1px solid #e2e8f0" }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, alignItems: { xs: "flex-start", sm: "center" }, flexDirection: { xs: "column", sm: "row" } }}>
-                <Box>
-                  <Typography sx={{ color: "#0f172a", fontWeight: 900 }}>
-                    Rs. {Number(receipt.amount || 0).toLocaleString("en-IN")} · {receipt.recipient}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: "#64748b" }}>
-                    {receipt.methodLabel} · {receipt.reference} · {new Date(receipt.paidAt).toLocaleString("en-IN")}
-                  </Typography>
-                  {receipt.failureReason && <Typography variant="caption" sx={{ color: "#b91c1c", display: "block" }}>{receipt.failureReason}</Typography>}
-                </Box>
-                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                  <Chip
-                    size="small"
-                    label={receipt.status}
-                    sx={{ bgcolor: receipt.status === "SUCCESS" ? "#dcfce7" : "#fee2e2", color: receipt.status === "SUCCESS" ? "#166534" : "#991b1b", fontWeight: 900 }}
-                  />
-                  {receipt.status === "SUCCESS" && (
-                    <Button size="small" onClick={() => onDownloadReceipt(receipt)} sx={{ textTransform: "none", fontWeight: 900 }}>Receipt</Button>
-                  )}
-                </Stack>
-              </Box>
-            </Box>
-          ))}
-        </Stack>
-      )}
-    </CardContent>
-  </Card>
-);
-
-const PaymentGatewayOverview = ({ paymentMethod, setPaymentMethod, onStartPayment, paymentHistory, onDownloadReceipt }) => (
-  <Stack spacing={2.5} sx={{ mt: 0 }}>
-  <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 2, py: 2 }}>
-    {["Choose payment method", "Enter and verify details", "View receipt"].map((label, index) => <Stack key={label} direction="row" spacing={1.5} sx={{ alignItems: "center", color: index === 0 ? "primary.main" : "text.secondary" }}><Box sx={{ width: 34, height: 34, borderRadius: "50%", bgcolor: index === 0 ? "primary.main" : "#e7e8f3", color: index === 0 ? "#fff" : "#68709a", display: "grid", placeItems: "center", flexShrink: 0, fontWeight: 800 }}>{index + 1}</Box><Typography variant="body2" sx={{ fontWeight: 700 }}>{label}</Typography></Stack>)}
-  </Box>
-  <Card sx={panelStyle}>
-    <CardContent sx={{ p: 2.5 }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: { xs: "stretch", md: "center" },
-          flexDirection: { xs: "column", md: "row" },
-          gap: 1.5,
-          mb: 2
-        }}
-      >
-        <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
-          <Box sx={iconBoxStyle("#0d9488", 44)}>
-            <PaymentsIcon />
-          </Box>
-          <Box>
-            <Typography variant="h6" sx={{ color: "#0f172a", fontWeight: 900 }}>
-              Payment Gateway
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#475569" }}>
-              Processing fee payment options shown before and after application save.
-            </Typography>
-          </Box>
-        </Box>
-        <Chip
-          label="Demo gateway"
-          sx={{ alignSelf: { xs: "flex-start", md: "center" }, bgcolor: "#ccfbf1", color: "#0f766e", fontWeight: 900 }}
-        />
-      </Box>
-
-      <Grid container spacing={1.25}>
-        {paymentGatewayOptions.map((method) => (
-          <Grid size={{ xs: 12, sm: 6, lg: 2.4 }} key={method.id}>
-            <PaymentMethodCard
-              method={method}
-              selected={paymentMethod === method.id}
-              onSelect={() => {
-                setPaymentMethod(method.id);
-                onStartPayment(method.id);
-              }}
-              compact
-            />
-          </Grid>
-        ))}
-      </Grid>
-    </CardContent>
-  </Card>
-  <PaymentHistoryPanel history={paymentHistory} onDownloadReceipt={onDownloadReceipt} />
-  </Stack>
 );
 
 const PaymentMethodCard = ({ method, selected, onSelect, compact = false }) => {
