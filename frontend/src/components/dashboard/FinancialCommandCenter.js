@@ -1,3 +1,5 @@
+import WorkspaceHeading from "../WorkspaceHeading";
+import { summarizeApplications } from "../../utils/applicationDashboard";
 import React, { useMemo } from "react";
 import {
   Alert,
@@ -23,9 +25,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import SavingsIcon from "@mui/icons-material/Savings";
-import ShowChartIcon from "@mui/icons-material/ShowChart";
-import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import {
   Area,
@@ -84,135 +83,32 @@ const FinancialCommandCenter = ({
   const creditScore = Number(profile?.creditScore);
   const hasCreditScore = Number.isFinite(creditScore) && creditScore > 0;
 
+  const applicationSummary = summarizeApplications(applications);
   const metrics = [
-    {
-      label: "Remaining this month",
-      value: formatDashboardCurrency(intelligence.remaining),
-      helper: `${intelligence.spendingRate}% income used`,
-      icon: <AccountBalanceWalletIcon />,
-      color: intelligence.remaining < 0 ? "#dc2626" : "#2563eb"
-    },
-    {
-      label: "This month spending",
-      value: formatDashboardCurrency(intelligence.currentExpense),
-      helper: intelligence.monthChange === 0
-        ? "No comparable change yet"
-        : `${Math.abs(intelligence.monthChange)}% ${intelligence.monthChange > 0 ? "higher" : "lower"} than last month`,
-      icon: intelligence.monthChange > 0 ? <TrendingUpIcon /> : <TrendingDownIcon />,
-      color: "#f43f5e"
-    },
-    {
-      label: "Savings rate",
-      value: `${intelligence.savingsRate}%`,
-      helper: intelligence.savingsRate >= 20 ? "Healthy monthly buffer" : "20% or more is a useful target",
-      icon: <SavingsIcon />,
-      color: intelligence.savingsRate >= 20 ? "#16a34a" : "#d97706"
-    }
+    { label: "Monthly Spending", value: formatDashboardCurrency(intelligence.currentExpense),
+      helper: intelligence.monthChange === 0 ? "No comparable change yet" : `${Math.abs(intelligence.monthChange)}% ${intelligence.monthChange > 0 ? "higher" : "lower"} than last month`,
+      icon: <PaymentsIcon />, color: "#f43357" },
+    { label: "Remaining this month", value: formatDashboardCurrency(intelligence.remaining),
+      helper: "Monthly income minus recorded spending", icon: <AccountBalanceWalletIcon />, color: intelligence.remaining < 0 ? "#dc2626" : "#059669" },
+    { label: "Loan Applications", value: applicationSummary.total,
+      helper: `${applicationSummary.review} in review`, icon: <AssignmentTurnedInIcon />, color: "#2563ff" }
   ];
 
   const quickActions = [
     { label: "Add expense", icon: <AddCircleIcon />, target: "expense" },
     { label: "Make payment", icon: <PaymentsIcon />, target: "payments" },
-    { label: "Compare loans", icon: <AccountBalanceIcon />, target: "loans" },
-    { label: "Plan FD / SIP", icon: <SavingsIcon />, target: "investments" },
-    { label: "Market alerts", icon: <ShowChartIcon />, target: "markets" },
-    { label: "Track applications", icon: <AssignmentTurnedInIcon />, target: "applications" }
+    { label: "Compare loans", icon: <AccountBalanceIcon />, target: "loans" }
   ];
 
   return (
     <Stack spacing={2.5}>
-      <Card elevation={0} sx={heroStyle}>
-        <CardContent sx={{ p: { xs: 2.25, md: 3 }, "&:last-child": { pb: { xs: 2.25, md: 3 } } }}>
-          <Stack direction={{ xs: "column", md: "row" }} sx={{ justifyContent: "space-between", gap: 2 }}>
-            <Box>
-              <Typography variant="overline" sx={{ color: "primary.light", fontWeight: 900, letterSpacing: 1.2 }}>
-                FinTrack financial workspace
-              </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 900, mt: 0.25 }}>
-                FinTrack Dashboard
-              </Typography>
-              <Typography color="text.secondary" sx={{ mt: 0.75, maxWidth: 720 }}>
-                Your finances, applications and next steps, all in one place.
-              </Typography>
-              <Stack direction="row" sx={{ mt: 1.75, gap: 1, flexWrap: "wrap" }}>
-                <Chip
-                  size="small"
-                  label={`${intelligence.health.label} financial health`}
-                  sx={{ bgcolor: `${intelligence.health.color}22`, color: "text.primary", fontWeight: 900 }}
-                />
-                <Chip
-                  size="small"
-                  label="Signed-in account data"
-                  variant="outlined"
-                  sx={{ fontWeight: 800 }}
-                />
-                <Chip
-                  size="small"
-                  label={refreshedAt ? `Updated ${new Date(refreshedAt).toLocaleTimeString("en-IN")}` : "Ready to refresh"}
-                  variant="outlined"
-                  sx={{ fontWeight: 800 }}
-                />
-              </Stack>
-            </Box>
-
-            <Stack direction="row" sx={{ gap: 1, flexWrap: "wrap", alignSelf: { xs: "stretch", md: "flex-start" } }}>
-              <Button
-                variant="outlined"
-                startIcon={<RefreshIcon />}
-                onClick={onRefresh}
-                disabled={loading}
-                sx={actionButtonStyle}
-              >
-                {loading ? "Refreshing" : "Refresh"}
-              </Button>
-              <Button variant="contained" startIcon={<DownloadIcon />} onClick={onExport} sx={primaryActionStyle}>
-                Export expenses
-              </Button>
-            </Stack>
-          </Stack>
-        </CardContent>
-      </Card>
+      <WorkspaceHeading title="FinTrack Dashboard" subtitle="Simple overview of your finances, loans and next actions.">
+        <Typography sx={{ color: "primary.main", maxWidth: 165, fontSize: 14, display: { xs: "none", lg: "block" } }}>Small steps<br />towards bigger goals</Typography>
+      </WorkspaceHeading>
 
       <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <Card elevation={0} sx={{ ...panelStyle, height: "100%" }}>
-            <CardContent sx={{ p: 2.25 }}>
-              <Stack direction="row" sx={{ justifyContent: "space-between", gap: 1.5 }}>
-                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 800 }}>Monthly income</Typography>
-                  {isEditingIncome ? (
-                    <Stack direction="row" spacing={1} sx={{ mt: 0.75 }}>
-                      <TextField
-                        size="small"
-                        type="number"
-                        value={incomeInput}
-                        onChange={(event) => setIncomeInput(event.target.value)}
-                        slotProps={{ htmlInput: { min: 1 } }}
-                        sx={{ maxWidth: 150 }}
-                      />
-                      <Button variant="contained" onClick={onSaveIncome} sx={actionButtonStyle}>Save</Button>
-                    </Stack>
-                  ) : (
-                    <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-                      <Typography variant="h5" sx={{ fontWeight: 900, color: "#16a34a", mt: 0.75 }}>
-                        {formatDashboardCurrency(totalIncome)}
-                      </Typography>
-                      <IconButton size="small" aria-label="Edit monthly income" onClick={() => setIsEditingIncome(true)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
-                  )}
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>Used for cash-flow estimates</Typography>
-                </Box>
-                <Box sx={{ width: 44, height: 44, flexShrink: 0, borderRadius: 2, display: "grid", placeItems: "center", bgcolor: "rgba(22,163,74,0.10)", color: "#16a34a" }}>
-                  <TrendingUpIcon />
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
         {metrics.map((metric) => (
-          <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={metric.label}>
+          <Grid size={{ xs: 12, md: 4 }} key={metric.label}>
             <MetricTile {...metric} />
           </Grid>
         ))}
@@ -250,25 +146,26 @@ const FinancialCommandCenter = ({
         </Grid>
 
         <Grid size={{ xs: 12 }} sx={{ order: 1 }}>
-          <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} sx={{ "& > .MuiCard-root": { flex: 1, minWidth: 0 } }}>
+          <Stack direction={{ xs: "column-reverse", lg: "row-reverse" }} spacing={2.5} sx={{ "& > .MuiCard-root": { flex: 1, minWidth: 0 } }}>
             <Card elevation={0} sx={panelStyle}>
               <CardContent sx={{ p: 2.5 }}>
                 <Typography variant="h6" sx={{ fontWeight: 900 }}>Quick actions</Typography>
                 <Grid container spacing={1} sx={{ mt: 0.5 }}>
-                  {quickActions.map((item) => (
+                  {quickActions.map((item, index) => (
                     <Grid size={{ xs: 6, sm: 4 }} key={item.target}>
                       <Button
                         fullWidth
                         variant="outlined"
                         startIcon={item.icon}
                         onClick={() => onOpen(item.target)}
-                        sx={{ ...actionButtonStyle, justifyContent: "center", flexDirection: "column", gap: 1, minHeight: 94, background: "#f3efff", borderColor: "#eee8ff", color: "#6645e5", "& .MuiButton-startIcon": { m: 0 }, "& svg": { fontSize: 28 } }}
+                        sx={{ ...actionButtonStyle, justifyContent: "center", flexDirection: "column", gap: 1, minHeight: 116, background: ["#f1eaff", "#eaf1ff", "#e5f8f1"][index], borderColor: "transparent", color: ["#7439ef", "#2563ff", "#008762"][index], "& .MuiButton-startIcon": { m: 0 }, "& svg": { fontSize: 28 } }}
                       >
                         {item.label}
                       </Button>
                     </Grid>
                   ))}
                 </Grid>
+                <Typography variant="body2" sx={{ mt: 2, p: 1.5, borderRadius: 1.5, bgcolor: "#f5f1ff", color: "#62579e" }}>Tip: Keep your expenses up to date to understand your monthly budget.</Typography>
               </CardContent>
             </Card>
 
@@ -278,7 +175,8 @@ const FinancialCommandCenter = ({
                 <Stack spacing={1.25} sx={{ mt: 1.5 }}>
                   {recentActivity.map((expense) => (
                     <Stack key={expense.id || `${expense.createdAt}-${expense.amount}`} direction="row" sx={{ justifyContent: "space-between", gap: 1 }}>
-                      <Box sx={{ minWidth: 0 }}>
+                      <Box sx={{ width: 38, height: 38, bgcolor: "#fff0f3", color: "#f43357", display: "grid", placeItems: "center", borderRadius: 1.5, flexShrink: 0 }}><PaymentsIcon fontSize="small" /></Box>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
                         <Typography variant="body2" noWrap sx={{ fontWeight: 800 }}>
                           {expense.merchant || expense.description || expense.category || "Expense"}
                         </Typography>
@@ -387,35 +285,69 @@ const FinancialCommandCenter = ({
       </Grid>
 
 
+      <Grid container spacing={2}>        <Grid size={{ xs: 12 }}>
+          <Card elevation={0} sx={{ ...panelStyle, height: "100%" }}>
+            <CardContent sx={{ p: 2.25 }}>
+              <Stack direction="row" sx={{ justifyContent: "space-between", gap: 1.5 }}>
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 800 }}>Monthly income</Typography>
+                  {isEditingIncome ? (
+                    <Stack direction="row" spacing={1} sx={{ mt: 0.75 }}>
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={incomeInput}
+                        onChange={(event) => setIncomeInput(event.target.value)}
+                        slotProps={{ htmlInput: { min: 1 } }}
+                        sx={{ maxWidth: 150 }}
+                      />
+                      <Button variant="contained" onClick={onSaveIncome} sx={actionButtonStyle}>Save</Button>
+                    </Stack>
+                  ) : (
+                    <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+                      <Typography variant="h5" sx={{ fontWeight: 900, color: "#16a34a", mt: 0.75 }}>
+                        {formatDashboardCurrency(totalIncome)}
+                      </Typography>
+                      <IconButton size="small" aria-label="Edit monthly income" onClick={() => setIsEditingIncome(true)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Stack>
+                  )}
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>Used for cash-flow estimates</Typography>
+                </Box>
+                <Box sx={{ width: 44, height: 44, flexShrink: 0, borderRadius: 2, display: "grid", placeItems: "center", bgcolor: "rgba(22,163,74,0.10)", color: "#16a34a" }}>
+                  <TrendingUpIcon />
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+</Grid>
+      <Stack direction="row" sx={{ gap: 1, flexWrap: "wrap", alignItems: "center" }}>
+        <Chip size="small" label="Signed-in account data" variant="outlined" />
+        <Typography variant="caption" color="text.secondary">{refreshedAt ? `Updated ${new Date(refreshedAt).toLocaleTimeString("en-IN")}` : "Ready to refresh"}</Typography>
+        <Button startIcon={<RefreshIcon />} onClick={onRefresh} disabled={loading}>{loading ? "Refreshing" : "Refresh"}</Button>
+        <Button startIcon={<DownloadIcon />} onClick={onExport}>Export expenses</Button>
+      </Stack>
     </Stack>
   );
 };
 
 const MetricTile = ({ label, value, helper, icon, color }) => (
-  <Card elevation={0} sx={{ ...panelStyle, height: "100%", background: `linear-gradient(120deg,${color}0b,#fff)`, borderColor: `${color}25` }}>
-    <CardContent sx={{ p: 2.25 }}>
-      <Stack direction="row" sx={{ justifyContent: "space-between", gap: 1.5 }}>
-        <Box>
-          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 800 }}>{label}</Typography>
-          <Typography variant="h5" sx={{ fontWeight: 900, color, mt: 0.75 }}>{value}</Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>{helper}</Typography>
-        </Box>
-        <Box sx={{ width: 62, height: 62, flexShrink: 0, borderRadius: 2, display: "grid", placeItems: "center", bgcolor: `${color}18`, color, "& svg": { fontSize: 32 } }}>
-          {icon}
-        </Box>
-      </Stack>
+  <Card elevation={0} sx={{ ...panelStyle, height: "100%", background: `linear-gradient(110deg,${color}08,#fff)`, borderColor: `${color}22` }}>
+    <CardContent sx={{ p: 2.5, display: "flex", alignItems: "center", gap: 2, minHeight: 132 }}>
+      <Box sx={{ width: 62, height: 62, flexShrink: 0, borderRadius: 2, display: "grid", placeItems: "center", bgcolor: `${color}12`, color, "& svg": { fontSize: 32 } }}>{icon}</Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontSize: 14, fontWeight: 700 }}>{label}</Typography>
+        <Typography variant="h5" sx={{ color, fontWeight: 800, mt: .4 }}>{value}</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: .5 }}>{helper}</Typography>
+      </Box>
+      <Box aria-hidden="true" sx={{ display: { xs: "none", xl: "flex" }, alignItems: "flex-end", gap: .5, opacity: .3 }}>
+        {[18,28,40,54].map((height) => <Box key={height} sx={{ width: 7, height, borderRadius: 3, bgcolor: color }} />)}
+      </Box>
     </CardContent>
   </Card>
 );
-
-const heroStyle = {
-  borderRadius: 0,
-  border: "none !important",
-  color: "text.primary",
-  background: "transparent",
-  boxShadow: "none !important",
-  "& > .MuiCardContent-root": { px: 0, pt: 0 }
-};
 
 const panelStyle = {
   borderRadius: 2.5,
@@ -430,11 +362,6 @@ const actionButtonStyle = {
   borderRadius: 2,
   textTransform: "none",
   fontWeight: 900
-};
-
-const primaryActionStyle = {
-  ...actionButtonStyle,
-  background: "linear-gradient(90deg,#5b4ce4,#6d4df4)"
 };
 
 export default FinancialCommandCenter;

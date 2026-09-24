@@ -701,7 +701,7 @@ const WorkspaceCards = ({
   return (
     <Box component="section">
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.75 }}>
-        <Typography variant="h6">Explore your workspaces</Typography>
+        <Typography variant="h6">Explore FinTrack</Typography>
         <Typography variant="body2" color="text.secondary">Everything you need, in one place</Typography>
       </Box>
       <Grid container spacing={2}>

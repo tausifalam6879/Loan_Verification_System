@@ -72,7 +72,7 @@ test('renders the authenticated financial command center overview', async () => 
   expect(screen.queryByText(/Welcome back/i)).not.toBeInTheDocument();
   expect(screen.getAllByText(/Financial health/i).length).toBeGreaterThan(0);
   expect(screen.getByRole("heading", { name: /Priority alerts/i })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: /Explore your workspaces/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /Explore FinTrack/i })).toBeInTheDocument();
 });
 
 test('renders the authenticated loan marketplace route', async () => {
