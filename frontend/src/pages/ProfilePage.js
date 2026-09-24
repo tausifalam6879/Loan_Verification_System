@@ -1,3 +1,4 @@
+import WorkspaceHeading from "../components/WorkspaceHeading";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import AuthenticatorSettings from "../components/AuthenticatorSettings";
 import Navbar from "../components/Navbar";
@@ -208,8 +209,8 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
           pb: 4
         }}
       >
-        <Box sx={{ width: "100%", maxWidth: 1240, mx: "auto" }}>
-          <AuthenticatorSettings email={currentAuth.email} />
+        <Box className="fintrack-workspace" sx={{ width: "100%", maxWidth: 1440, mx: "auto" }}>
+          <WorkspaceHeading title="Profile & Security" subtitle="Manage your personal information, account security and preferences." />
           <Button
             startIcon={<ArrowBackIcon />}
             onClick={() => navigate("/")}
@@ -224,7 +225,7 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
                 px: { xs: 2.5, md: 4 },
                 py: { xs: 3, md: 3.5 },
                 color: "#ffffff",
-                background: "linear-gradient(110deg,#172554,#4338ca 52%,#6d4df4)"
+                background: "linear-gradient(110deg,#fff,#f7f5ff)", color: "#17183d"
               }}
             >
               <Stack
@@ -247,18 +248,18 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
                     {displayName.slice(0, 1).toUpperCase()}
                   </Avatar>
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="overline" sx={{ color: "#99f6e4", fontWeight: 900 }}>
+                    <Typography variant="overline" sx={{ color: "#7565b0", fontWeight: 900 }}>
                       Account command center
                     </Typography>
                     <Typography variant="h4" sx={{ fontWeight: 900, lineHeight: 1.15 }}>
                       {displayName}
                     </Typography>
-                    <Typography sx={{ color: "#ccfbf1", overflowWrap: "anywhere", mt: 0.4 }}>
+                    <Typography sx={{ color: "#68739a", overflowWrap: "anywhere", mt: 0.4 }}>
                       {displayEmail}
                     </Typography>
                     <Stack direction="row" spacing={0.75} sx={{ mt: 1, flexWrap: "wrap" }}>
                       <Chip size="small" label={profile.role || "USER"} sx={{ bgcolor: "#ccfbf1", color: "#115e59", fontWeight: 900 }} />
-                      <Chip size="small" icon={<VerifiedUserIcon />} label={session.label} sx={{ bgcolor: "rgba(255,255,255,0.16)", color: "#ffffff", fontWeight: 800, "& .MuiChip-icon": { color: "#86efac" } }} />
+                      <Chip size="small" icon={<VerifiedUserIcon />} label={session.label} sx={{ bgcolor: "#e9faf2", color: "#087b59", fontWeight: 800, "& .MuiChip-icon": { color: "#86efac" } }} />
                     </Stack>
                   </Box>
                 </Stack>
@@ -269,7 +270,7 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
                     startIcon={<RefreshIcon />}
                     onClick={loadProfileData}
                     disabled={loading}
-                    sx={heroButtonStyle}
+                    sx={{ ...heroButtonStyle, color: "primary.main", borderColor: "#d9d2fb" }}
                   >
                     Refresh
                   </Button>
@@ -428,8 +429,14 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
                       title="Profile completeness"
                       subtitle={`${completeness.completed} of ${completeness.total} key details available.`}
                     />
-                    <Typography variant="h4" sx={{ mt: 2, fontWeight: 900 }}>{completeness.percent}%</Typography>
-                    <LinearProgress variant="determinate" value={completeness.percent} sx={{ mt: 1, height: 9, borderRadius: 99 }} />
+                    <Box sx={{ position: "relative", width: 136, height: 136, mx: "auto", mt: 2.5 }}>
+                      <CircularProgress variant="determinate" value={100} size={136} thickness={4} sx={{ color: "#e7f5ef", position: "absolute" }} />
+                      <CircularProgress variant="determinate" value={completeness.percent} size={136} thickness={4} sx={{ color: "#19b98f", position: "absolute" }} />
+                      <Box sx={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                        <Typography variant="h4">{completeness.percent}%</Typography>
+                        <Typography variant="caption" color="text.secondary">Complete</Typography>
+                      </Box>
+                    </Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1.25 }}>
                       {completeness.missing.length
                         ? `Add ${completeness.missing.join(" and ")} to complete your profile.`
@@ -465,6 +472,7 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
             </Grid>
           </Grid>
 
+          <Box sx={{ mt: 2.5 }}><AuthenticatorSettings email={currentAuth.email} /></Box>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right", mt: 1.5 }}>
             {lastRefreshedAt ? `Last refreshed ${new Date(lastRefreshedAt).toLocaleString("en-IN")}` : "Waiting for profile refresh"}
           </Typography>
@@ -511,7 +519,7 @@ const actionButtonStyle = {
 
 const ProfileMetric = ({ icon, label, value, meta, color }) => (
   <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-    <Card sx={{ ...panelStyle, height: "100%" }}>
+    <Card sx={{ ...panelStyle, height: "100%", background: `linear-gradient(120deg, ${color}0b, #fff)`, borderColor: `${color}25` }}>
       <CardContent sx={{ p: 2.25, display: "flex", gap: 1.5, alignItems: "center", "&:last-child": { pb: 2.25 } }}>
         <Box sx={{ width: 46, height: 46, borderRadius: 2, display: "grid", placeItems: "center", bgcolor: `${color}18`, color }}>{icon}</Box>
         <Box>

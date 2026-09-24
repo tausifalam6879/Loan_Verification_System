@@ -184,9 +184,9 @@ const ExpenseForm = ({
         borderRadius: 2,
         background: isEditing
           ? "linear-gradient(145deg, #fef3c7, #eff6ff)"
-          : "linear-gradient(145deg, #ccfbf1, #eff6ff)",
+          : "#ffffff",
         border: `1px solid ${isEditing ? "rgba(217, 119, 6, 0.28)" : "rgba(14, 116, 144, 0.16)"}`,
-        boxShadow: "0 14px 34px rgba(8, 47, 73, 0.12)"
+        boxShadow: "0 4px 18px rgba(68,75,135,.04)"
       }}
     >
       <CardContent sx={{ p: 2.5 }}>
@@ -310,7 +310,7 @@ const ExpenseForm = ({
                 fontWeight: 800,
                 background: isEditing
                   ? "linear-gradient(90deg, #d97706, #2563eb)"
-                  : "linear-gradient(90deg, #0d9488, #2563eb)"
+                  : "linear-gradient(90deg, #5546e9, #7849fa)"
               }}
             >
               {loading ? "Saving..." : isEditing ? "Save Changes" : "Save Expense"}

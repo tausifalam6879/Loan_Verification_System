@@ -33,7 +33,7 @@ const renderDashboard = (props = {}) => {
 test("renders the command center, health, alerts, money flow and actions", () => {
   renderDashboard();
 
-  expect(screen.getByRole("heading", { name: /Financial Command Center/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /FinTrack Dashboard/i })).toBeInTheDocument();
   expect(screen.queryByText(/Tausif Alam/i)).not.toBeInTheDocument();
   expect(screen.getByText(/Signed-in account data/i)).toBeInTheDocument();
   expect(screen.getAllByText(/Financial health/i).length).toBeGreaterThan(0);

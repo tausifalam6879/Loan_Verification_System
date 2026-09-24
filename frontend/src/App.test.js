@@ -68,11 +68,11 @@ test('renders the authenticated financial command center overview', async () => 
 
   render(<App />);
 
-  expect(await screen.findByRole("heading", { name: /Financial Command Center/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /FinTrack Dashboard/i })).toBeInTheDocument();
   expect(screen.queryByText(/Welcome back/i)).not.toBeInTheDocument();
   expect(screen.getAllByText(/Financial health/i).length).toBeGreaterThan(0);
   expect(screen.getByRole("heading", { name: /Priority alerts/i })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: /Your financial workspaces/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /Explore your workspaces/i })).toBeInTheDocument();
 });
 
 test('renders the authenticated loan marketplace route', async () => {
@@ -100,7 +100,7 @@ test('renders the authenticated loan application center route', async () => {
 
   render(<App />);
 
-  expect(await screen.findByRole("heading", { name: /Loan Application Center/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /Loan Applications/i })).toBeInTheDocument();
   expect(await screen.findByRole("heading", { name: /Your applications/i })).toBeInTheDocument();
 });
 
@@ -112,7 +112,7 @@ test('opens saved applications from the loan marketplace', async () => {
 
   fireEvent.click(await screen.findByRole("button", { name: /Open saved applications page/i }));
 
-  expect(await screen.findByRole("heading", { name: /Loan Application Center/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /Loan Applications/i })).toBeInTheDocument();
   expect(window.location.hash).toBe("#/applications");
 });
 
@@ -132,7 +132,7 @@ test('renders the authenticated savings planner without mixing the market worksp
 
   render(<App />);
 
-  expect(await screen.findByRole("heading", { name: /Savings & Investment Planner/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /Savings & Investments/i })).toBeInTheDocument();
   expect(await screen.findByRole("heading", { name: /Build and compare a savings plan/i })).toBeInTheDocument();
   expect(screen.queryByText(/FD and SIP \(Existing\)/i)).not.toBeInTheDocument();
 });

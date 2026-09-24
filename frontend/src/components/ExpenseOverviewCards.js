@@ -12,7 +12,6 @@ import {
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import EditIcon from "@mui/icons-material/Edit";
-import SavingsIcon from "@mui/icons-material/Savings";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 
@@ -89,12 +88,12 @@ const ExpenseOverviewCards = ({ expenses = [], totalIncome = 0, onIncomeChange, 
   ];
 
   return (
-    <Card elevation={0} sx={{ mb: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider", boxShadow: "0 14px 34px rgba(15, 23, 42, 0.08)" }}>
+    <Card elevation={0} sx={{ mb: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider", boxShadow: "none", background: "transparent", border: "none" }}>
       <CardContent sx={{ p: 2.5 }}>
         <Stack direction={{ xs: "column", md: "row" }} sx={{ justifyContent: "space-between", gap: 1.5, mb: 2 }}>
           <Box>
-            <Typography variant="overline" sx={{ color: "#0f766e", fontWeight: 900 }}>Monthly command center</Typography>
-            <Typography variant="h5" sx={{ fontWeight: 900 }}>Know where this month is heading</Typography>
+            <Typography variant="overline" sx={{ color: "#0f766e", fontWeight: 900 }}>Expense overview</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 900 }}>Your monthly snapshot</Typography>
           </Box>
           {editingIncome ? (
             <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
@@ -124,19 +123,10 @@ const ExpenseOverviewCards = ({ expenses = [], totalIncome = 0, onIncomeChange, 
 
         <Grid container spacing={1.5}>
           {cards.map((item) => (
-            <Grid key={item.label} size={{ xs: 12, sm: 6, lg: 3 }}>
+            <Grid key={item.label} size={{ xs: 12, md: 4 }}>
               <MetricCard {...item} />
             </Grid>
           ))}
-          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-            <MetricCard
-              label="Last month"
-              value={currency(metrics.previousTotal)}
-              helper="Completed-month baseline"
-              icon={<SavingsIcon />}
-              color="#7c3aed"
-            />
-          </Grid>
         </Grid>
       </CardContent>
     </Card>
@@ -144,10 +134,10 @@ const ExpenseOverviewCards = ({ expenses = [], totalIncome = 0, onIncomeChange, 
 };
 
 const MetricCard = ({ label, value, helper, icon, color }) => (
-  <Box sx={{ height: "100%", p: 2, borderRadius: 2, bgcolor: `${color}0d`, border: `1px solid ${color}24` }}>
+  <Box sx={{ height: "100%", p: 2.5, minHeight: 145, borderRadius: 2, background: `linear-gradient(110deg,${color}0c,#ffffff)`, border: `1px solid ${color}24` }}>
     <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
       <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 800 }}>{label}</Typography>
-      <Box sx={{ color, display: "grid", placeItems: "center" }}>{icon}</Box>
+      <Box sx={{ color, display: "grid", placeItems: "center", width: 50, height: 50, borderRadius: 2, bgcolor: `${color}15`, "& svg": { fontSize: 28 } }}>{icon}</Box>
     </Stack>
     <Typography variant="h5" sx={{ mt: 1.5, fontWeight: 900, color }}>{value}</Typography>
     <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>{helper}</Typography>

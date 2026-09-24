@@ -87,9 +87,9 @@ const TransactionTable = ({
           elevation={0}
           sx={{
             borderRadius: 2,
-            background: "linear-gradient(145deg, #ecfeff, #eff6ff)",
+            background: "#ffffff",
             border: "1px solid rgba(14, 116, 144, 0.16)",
-            boxShadow: "0 14px 34px rgba(8, 47, 73, 0.12)",
+            boxShadow: "0 4px 18px rgba(68,75,135,.04)",
             color: "#0f172a"
           }}
         >

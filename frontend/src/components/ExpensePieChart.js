@@ -9,7 +9,6 @@ import {
 import DonutLargeIcon from "@mui/icons-material/DonutLarge";
 import {
   Cell,
-  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -18,8 +17,8 @@ import {
 import { motion } from "framer-motion";
 
 const COLORS = [
-  "#2563eb",
-  "#10b981",
+  "#7848ff",
+  "#3274ff",
   "#f59e0b",
   "#ef4444",
   "#7c3aed",
@@ -48,7 +47,7 @@ const ExpensePieChart = ({ expenses, loading }) => {
       sx={{
         height: "100%",
         borderRadius: 2,
-        background: "linear-gradient(145deg, #dbeafe, #f0fdfa)",
+        background: "#ffffff",
         border: "1px solid rgba(37, 99, 235, 0.14)",
         boxShadow: "0 14px 34px rgba(8, 47, 73, 0.12)"
       }}
@@ -60,13 +59,14 @@ const ExpensePieChart = ({ expenses, loading }) => {
         >
           Category Analytics
         </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Spending across all saved transactions.</Typography>
 
         <Box
           sx={{
-            height: 280,
+            height: 370,
             borderRadius: 2,
             background:
-              "radial-gradient(circle at center, rgba(255,255,255,0.82), rgba(224, 242, 254, 0.68))",
+              "#ffffff",
             border: "1px solid rgba(37, 99, 235, 0.12)",
             p: 1
           }}
@@ -104,16 +104,16 @@ const ExpensePieChart = ({ expenses, loading }) => {
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.35 }}
-              style={{ width: "100%", height: "100%" }}
+              style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
             >
-              <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 480, height: 300 }}>
+              <ResponsiveContainer width="100%" height={245} initialDimension={{ width: 480, height: 300 }}>
                 <PieChart>
                   <Pie
                     data={data}
                     cx="50%"
                     cy="45%"
-                    innerRadius={70}
-                    outerRadius={105}
+                    innerRadius={78}
+                    outerRadius={112}
                     paddingAngle={4}
                     dataKey="value"
                     stroke="#ffffff"
@@ -134,23 +134,12 @@ const ExpensePieChart = ({ expenses, loading }) => {
                       boxShadow: "0 10px 25px rgba(15, 23, 42, 0.12)"
                     }}
                   />
-                  <Legend
-                    verticalAlign="bottom"
-                    iconType="circle"
-                    formatter={(value) => (
-                      <span
-                        style={{
-                          color: "#334155",
-                          fontWeight: 700,
-                          textTransform: "capitalize"
-                        }}
-                      >
-                        {value}
-                      </span>
-                    )}
-                  />
+
                 </PieChart>
               </ResponsiveContainer>
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 1.5, px: 1 }}>
+                {data.map((item, index) => <Box key={item.name} sx={{ display: "flex", alignItems: "center", gap: .7, minWidth: 0 }}><Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: COLORS[index % COLORS.length], flexShrink: 0 }} /><Typography variant="caption" sx={{ textTransform: "capitalize", flex: 1 }}>{item.name}</Typography><Typography variant="caption" sx={{ fontWeight: 750 }}>₹{item.value.toLocaleString("en-IN")}</Typography></Box>)}
+              </Box>
             </motion.div>
           )}
         </Box>

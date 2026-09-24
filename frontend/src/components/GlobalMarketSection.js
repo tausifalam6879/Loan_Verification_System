@@ -1,3 +1,4 @@
+import WorkspaceHeading from "./WorkspaceHeading";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -336,20 +337,11 @@ const GlobalMarketSection = () => {
 
   return (
     <Box id="global-market-section" sx={{ mt: 1.5 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 2, mb: 1.5 }}>
-        <Box>
-          <Typography variant="overline" sx={{ color: "#0f766e", fontWeight: 900 }}>Market research workspace</Typography>
-          <Typography variant="h5" sx={{ fontWeight: 900 }}>Global Markets, Companies and AI Outlook</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-            Current research feed, transparent factor analysis and backend-only AI explanations.
-          </Typography>
-        </Box>
-        <Tooltip title="Refresh current view from upstream source">
-          <IconButton onClick={refreshCurrentView} disabled={loadingPulse || loadingAnalysis || loadingCompany}><RefreshIcon /></IconButton>
-        </Tooltip>
-      </Box>
+      <WorkspaceHeading title="Global Markets & AI" subtitle="Track global markets, explore companies and understand what is moving them.">
+        <Tooltip title="Refresh current view"><IconButton onClick={refreshCurrentView} disabled={loadingPulse || loadingAnalysis || loadingCompany}><RefreshIcon /></IconButton></Tooltip>
+      </WorkspaceHeading>
 
-      <Paper variant="outlined" sx={{ borderRadius: 1, mb: 1.5, overflow: "hidden" }}>
+      <Paper variant="outlined" sx={{ borderRadius: 2, mb: 1.5, overflow: "hidden" }}>
         <Tabs value={view} onChange={(_, value) => setView(value)} variant="scrollable" scrollButtons="auto">
           <Tab value="overview" icon={<PublicIcon />} iconPosition="start" label="Market Pulse" />
           <Tab value="research" icon={<SearchIcon />} iconPosition="start" label="Stock Research" />
@@ -357,7 +349,7 @@ const GlobalMarketSection = () => {
         </Tabs>
       </Paper>
 
-      <Paper variant="outlined" sx={{ mb: 1.5, px: 1.5, py: 1, borderRadius: 1, bgcolor: sourcePresentation.background, borderColor: sourcePresentation.border }}>
+      <Paper variant="outlined" sx={{ mb: 1.5, px: 1.5, py: 1, borderRadius: 2, bgcolor: sourcePresentation.background, borderColor: sourcePresentation.border }}>
         <Stack direction={{ xs: "column", md: "row" }} sx={{ justifyContent: "space-between", alignItems: { xs: "flex-start", md: "center" }, gap: 1 }}>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ alignItems: { xs: "flex-start", sm: "center" } }}>
             <Chip size="small" color={sourcePresentation.color} label={sourcePresentation.label} sx={{ flexShrink: 0, fontWeight: 800 }} />
@@ -426,6 +418,20 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
   const openQuote = (quote) => quote.kind === "company" ? onOpenCompany(quote.symbol) : onOpenAnalysis(quote.symbol);
   return (
     <Stack spacing={2.5}>
+      <Box component="section">
+        <SectionTitle
+          icon={<PublicIcon />}
+          title="Major Global Indices"
+          detail={`${overview?.availableMarkets || 0}/${overview?.totalMarkets || 0} in ${isLiveQuoteSource(sourceMode) ? "live quote feed" : "analytics snapshot"}`}
+        />
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(4, minmax(0, 1fr))" }, gap: 1.5 }}>
+          {(overview?.markets || []).map((market) => <IndexTile key={market.symbol} market={market} onClick={() => onOpenAnalysis(market.symbol)} />)}
+        </Box>
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+          Latest API response {formatTime(generatedAt)}. Every card shows its quote timestamp; select an index to open the FinTrack ML evidence view.
+        </Typography>
+      </Box>
+
       <MarketTickerBoard
         quotes={boardQuotes}
         sourceMode={sourceMode}
@@ -435,23 +441,11 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
 
       <MarketAlertCenter quotes={alertQuotes} sourceMode={sourceMode} onOpenQuote={openQuote} />
 
-      <Box component="section">
-        <SectionTitle
-          icon={<PublicIcon />}
-          title="Major Global Indices"
-          detail={`${overview?.availableMarkets || 0}/${overview?.totalMarkets || 0} in ${isLiveQuoteSource(sourceMode) ? "live quote feed" : "analytics snapshot"}`}
-        />
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(3, minmax(0, 1fr))" }, gap: 1.5 }}>
-          {(overview?.markets || []).map((market) => <IndexTile key={market.symbol} market={market} onClick={() => onOpenAnalysis(market.symbol)} />)}
-        </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-          Latest API response {formatTime(generatedAt)}. Every card shows its quote timestamp; select an index to open the FinTrack ML evidence view.
-        </Typography>
-      </Box>
+
 
       <Grid container spacing={1.5}>
         <Grid size={{ xs: 12, md: 4 }}>
-          <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1, height: "100%" }}>
+          <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 2, height: "100%" }}>
             <SectionTitle icon={<InsightsIcon />} title="India Market Breadth" detail={`${breadth?.coverageCount || 0} stocks`} compact />
             <Stack direction="row" spacing={1} sx={{ my: 1.5 }}>
               <BreadthCount label="Advances" value={breadth?.advances} color="#15803d" />
@@ -473,7 +467,7 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
 
       <Grid container spacing={1.5}>
         <Grid size={{ xs: 12, lg: 7 }}>
-          <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1, height: "100%" }}>
+          <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 2, height: "100%" }}>
             <SectionTitle title="Watchlist Movers" detail={breadth?.coverage || "Representative watchlist"} compact />
             <Grid container spacing={2}>
               <MoverList title="Top gainers" items={breadth?.topGainers || []} onOpenSymbol={onOpenCompany} />
@@ -482,7 +476,7 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, lg: 5 }}>
-          <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1, height: "100%" }}>
+          <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 2, height: "100%" }}>
             <SectionTitle icon={<NewspaperIcon />} title="Market News" detail="Multi-asset feed" compact />
             <Stack divider={<Divider flexItem />}>
               {(newsFeed?.articles || []).slice(0, 8).map((item, index) => (
@@ -536,7 +530,7 @@ const MarketTickerBoard = ({ quotes, sourceMode, onOpenAnalysis, onOpenCompany }
           />
         ))}
       </Stack>
-      <Paper variant="outlined" sx={{ minHeight: 86, p: 0.75, borderRadius: 1, overflow: "hidden", bgcolor: "background.paper" }}>
+      <Paper variant="outlined" sx={{ minHeight: 86, p: 0.75, borderRadius: 2, overflow: "hidden", bgcolor: "background.paper" }}>
         <Box
           sx={{
             overflow: "hidden",
@@ -790,7 +784,7 @@ const sourceModeDot = (quoteMode) => (
 );
 
 const QuotePreview = ({ quote, title = "Current market quote" }) => quote && (
-  <Paper component="section" variant="outlined" sx={{ p: 2, borderRadius: 1, bgcolor: "action.hover" }}>
+  <Paper component="section" variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "action.hover" }}>
     <Stack direction={{ xs: "column", sm: "row" }} sx={{ justifyContent: "space-between", gap: 1, alignItems: { sm: "center" } }}>
       <Box>
         <Typography variant="overline" color="text.secondary">{title}</Typography>
@@ -849,7 +843,7 @@ const StockResearch = ({ company, quotePreview, symbol, setSymbol, loading, onSe
             </Paper>
           </Grid>
           <Grid size={{ xs: 12, lg: 4 }}>
-            <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1, height: "100%" }}>
+            <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 2, height: "100%" }}>
               <SectionTitle title="Fundamentals" detail={company.industry} compact />
               <FactRow label="Market cap" value={formatLargeNumber(company.fundamentals?.marketCap)} />
               <FactRow label="P/E (TTM)" value={formatNumber(company.fundamentals?.trailingPE)} />
@@ -917,7 +911,7 @@ const ModelWorkspace = ({ analysis, quotePreview, symbol, setSymbol, loading, on
               </Paper>
             </Grid>
             <Grid size={{ xs: 12, lg: 4 }}>
-              <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1, height: "100%" }}>
+              <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 2, height: "100%" }}>
                 <SectionTitle title="Technical and News Inputs" compact />
                 <FactRow label="RSI (14)" value={analysis.technicalIndicators?.rsi14} />
                 <FactRow label="SMA 20" value={formatNumber(analysis.technicalIndicators?.sma20)} />
@@ -1024,7 +1018,7 @@ const IndexTile = ({ market, onClick }) => {
         textAlign: "left",
         border: "1px solid",
         borderColor: "divider",
-        borderRadius: 1,
+        borderRadius: 2,
         bgcolor: "background.paper",
         boxShadow: "0 2px 8px rgba(15, 23, 42, 0.08)",
         transition: "border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease",
@@ -1058,7 +1052,7 @@ const IndexTile = ({ market, onClick }) => {
 
 const FactorTile = ({ factor, onClick }) => (
   <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-    <ButtonBase onClick={onClick} aria-label={`Open ${factor.name} chart`} sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1, minHeight: 172, height: "100%", width: "100%", display: "block", textAlign: "left", bgcolor: "background.paper", boxShadow: "0 2px 8px rgba(15, 23, 42, 0.08)", transition: "border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease", "&:hover": { borderColor: "primary.main", boxShadow: "0 6px 16px rgba(15, 23, 42, 0.14)", transform: "translateY(-1px)" } }}>
+    <ButtonBase onClick={onClick} aria-label={`Open ${factor.name} chart`} sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2, minHeight: 172, height: "100%", width: "100%", display: "block", textAlign: "left", bgcolor: "background.paper", boxShadow: "0 2px 8px rgba(15, 23, 42, 0.08)", transition: "border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease", "&:hover": { borderColor: "primary.main", boxShadow: "0 6px 16px rgba(15, 23, 42, 0.14)", transform: "translateY(-1px)" } }}>
       <Stack direction="row" sx={{ justifyContent: "space-between", gap: 1 }}>
         <Box>
           <Typography variant="body2" sx={{ fontWeight: 900 }}>{factor.name}</Typography>
@@ -1117,7 +1111,7 @@ const BreadthCount = ({ label, value, color }) => (
 
 const ModelMetric = ({ label, value, detail, color }) => (
   <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 1, borderTop: `3px solid ${color}`, height: "100%" }}>
+    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, borderTop: `3px solid ${color}`, height: "100%" }}>
       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800 }}>{label}</Typography>
       <Typography variant="h6" sx={{ color, fontWeight: 900, textTransform: "capitalize" }}>{value}</Typography>
       {detail && <Typography variant="caption" color="text.secondary">{detail}</Typography>}

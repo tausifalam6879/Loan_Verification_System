@@ -3,6 +3,24 @@ body {
     background: #eaf4f2;
 }
 
+.fintrack-workspace { color: #14163d; }
+.workspace-heading { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 96px; margin-bottom: 24px; }
+.workspace-heading-art { position: absolute; width: 260px; right: 12px; bottom: 0; color: #8364ff; opacity: .14; pointer-events: none; }
+.workspace-heading-art svg { display: block; width: 100%; }
+.fintrack-workspace .MuiCard-root { border-radius: 16px; box-shadow: 0 3px 18px rgba(68,75,135,.035); border-color: #e2e7fa; }
+.fintrack-workspace .MuiOutlinedInput-root { border-radius: 10px; background-color: rgba(255,255,255,.85); }
+.fintrack-workspace .MuiOutlinedInput-notchedOutline { border-color: #d8def2; }
+.fintrack-workspace .MuiButton-containedPrimary { background-image: linear-gradient(100deg,#5049e7,#7545ff); box-shadow: 0 4px 12px #6250ec20; }
+.fintrack-workspace .MuiTableHead-root { background: #f4f3fc; }
+.fintrack-workspace .MuiTableCell-head { color: #575f91; font-weight: 700; }
+.fintrack-workspace .MuiTableCell-root { border-bottom-color: #edf0fa; }
+.fintrack-workspace .MuiTypography-h6 { letter-spacing: -.025em; }
+.fintrack-workspace .MuiLinearProgress-root { height: 9px; border-radius: 8px; background-color: #edf0f9; }
+.fintrack-workspace .MuiLinearProgress-bar { border-radius: 8px; }
+.workspace-card-button { width: 100%; text-align: left; }
+@media (max-width: 600px) { .workspace-heading { align-items: flex-start; flex-direction: column; } .workspace-heading-art { width: 150px; } }
+@media (prefers-reduced-motion: reduce) { .fintrack-workspace *, .fintrack-workspace *::before { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
 #root {
     min-height: 100vh;
     background:

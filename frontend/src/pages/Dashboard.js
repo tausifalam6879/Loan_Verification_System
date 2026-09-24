@@ -14,7 +14,6 @@ import {
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import AssessmentIcon from "@mui/icons-material/Assessment";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import PersonIcon from "@mui/icons-material/Person";
 import PaymentsIcon from "@mui/icons-material/Payments";
@@ -22,6 +21,7 @@ import SavingsIcon from "@mui/icons-material/Savings";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 
 import FinancialCommandCenter from "../components/dashboard/FinancialCommandCenter";
+import WorkspaceHeading from "../components/WorkspaceHeading";
 import ExpenseForm from "../components/ExpenseForm";
 import ExpenseBudgetPlanner from "../components/ExpenseBudgetPlanner";
 import ExpenseIntelligencePanel from "../components/ExpenseIntelligencePanel";
@@ -166,18 +166,18 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
     },
     loans: {
       title: "Loan Marketplace",
-      subtitle: "Browse backend loan offers and open the application flow."
+      subtitle: "Compare loan offers and find the right fit for your needs."
     },
     payments: {
       title: "Payments",
       subtitle: "Use the secure demo gateway and keep every receipt connected to your ledger."
     },
     applications: {
-      title: "Loan Application Center",
+      title: "Loan Applications",
       subtitle: "Track decisions, verification progress, payment status and application details."
     },
     investments: {
-      title: "Savings & Investment Planner",
+      title: "Savings & Investments",
       subtitle: "Calculate FD maturity, explore SIP projection ranges and save comparison plans."
     },
     markets: {
@@ -402,6 +402,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
       />
 
       <Box
+        className="fintrack-workspace"
         sx={{
           minHeight: "100vh",
           width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
@@ -444,16 +445,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
               onSaveIncome={handleSaveIncome}
               loading={loading || overviewAccount.loading}
               refreshedAt={overviewAccount.refreshedAt}
-            />
-
-            <WorkspaceCards
-              activeWorkspace={activeWorkspace}
-              expensesCount={expenses.length}
-              currentMonthExpense={currentMonthExpense}
-              applicationsCount={overviewAccount.applications.length}
-              creditScore={overviewAccount.profile?.creditScore}
-              savedPlansCount={readSavedPlanCount(email)}
-              onOpen={openWorkspace}
+              workspaceCards={<WorkspaceCards activeWorkspace={activeWorkspace} expensesCount={expenses.length} currentMonthExpense={currentMonthExpense} applicationsCount={overviewAccount.applications.length} creditScore={overviewAccount.profile?.creditScore} savedPlansCount={readSavedPlanCount(email)} onOpen={openWorkspace} />}
             />
           </>
         )}
@@ -470,7 +462,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
               />
 
               <Grid container spacing={2.5}>
-                <Grid size={{ xs: 12, md: 5 }} id="expense-entry">
+                <Grid size={{ xs: 12, md: 6 }} id="expense-entry">
                   <ExpenseForm
                     onAddExpense={handleAddExpense}
                     onUpdateExpense={handleUpdateExpense}
@@ -480,23 +472,10 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
                   />
                 </Grid>
 
-                <Grid size={{ xs: 12, md: 7 }} id="analytics-section">
+                <Grid size={{ xs: 12, md: 6 }} id="analytics-section">
                   <ExpensePieChart expenses={expenses} loading={loading} />
                 </Grid>
               </Grid>
-
-              <ExpenseBudgetPlanner
-                expenses={expenses}
-                budgets={budgets}
-                onBudgetsChange={setBudgets}
-              />
-
-              <MonthlyExpenseChart expenses={expenses} />
-
-              <ExpenseIntelligencePanel
-                expenses={expenses}
-                totalIncome={totalIncome}
-              />
 
               <Box sx={{ mt: 2.5 }}>
                 <TransactionTable
@@ -525,6 +504,21 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
                   loading={loading}
                 />
               </Box>
+
+              <ExpenseBudgetPlanner
+                expenses={expenses}
+                budgets={budgets}
+                onBudgetsChange={setBudgets}
+              />
+
+              <MonthlyExpenseChart expenses={expenses} />
+
+              <ExpenseIntelligencePanel
+                expenses={expenses}
+                totalIncome={totalIncome}
+              />
+
+
             </>
           )}
 
@@ -601,46 +595,7 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
   );
 };
 
-const PageHeader = ({ title, subtitle }) => (
-  <Card
-    elevation={0}
-    sx={{
-      mb: 2.5,
-      borderRadius: 2,
-      border: "1px solid rgba(15, 23, 42, 0.08)",
-      background: (theme) =>
-        theme.fintrackMode === "soft"
-          ? "linear-gradient(135deg, #fffafb, #f3e8f4, #eaf3ff)"
-          : "linear-gradient(135deg, #ffffff, #eef6ff)",
-      boxShadow: (theme) => theme.fintrackMode === "soft"
-        ? "0 8px 24px rgba(75, 52, 96, 0.08)"
-        : "0 16px 38px rgba(15, 23, 42, 0.1)"
-    }}
-  >
-    <CardContent
-      sx={{
-        p: 2.5,
-        display: "flex",
-        alignItems: { xs: "flex-start", md: "center" },
-        justifyContent: "space-between",
-        flexDirection: { xs: "column", md: "row" },
-        gap: 2
-      }}
-    >
-      <Box>
-        <Typography variant="overline" sx={{ color: "#0f766e", fontWeight: 900 }}>
-          FinTrack Workspace
-        </Typography>
-        <Typography variant="h4" sx={{ fontWeight: 900, lineHeight: 1.15 }}>
-          {title}
-        </Typography>
-        <Typography sx={{ color: "text.secondary", mt: 0.5 }}>
-          {subtitle}
-        </Typography>
-      </Box>
-    </CardContent>
-  </Card>
-);
+const PageHeader = WorkspaceHeading;
 
 const readSavedPlanCount = (email) => {
   try {
@@ -674,7 +629,7 @@ const WorkspaceCards = ({
     {
       id: "expense",
       title: "Expenses & budgets",
-      subtitle: "Record transactions, control category limits and review spending insights",
+      subtitle: "Track spending and set budgets.",
       icon: <AddCircleIcon />,
       color: "#16a34a",
       surface: "linear-gradient(145deg, #dcfce7, #f7fee7)",
@@ -684,7 +639,7 @@ const WorkspaceCards = ({
     {
       id: "markets",
       title: "Global Markets",
-      subtitle: "World indices, market alerts, news factors and research evidence",
+      subtitle: "Explore markets and AI insights.",
       icon: <ShowChartIcon />,
       color: "#2563eb",
       surface: "linear-gradient(145deg, #dbeafe, #ecfeff)",
@@ -694,7 +649,7 @@ const WorkspaceCards = ({
     {
       id: "loans",
       title: "Loan Marketplace",
-      subtitle: "Compare EMI, eligibility, total cost and lender offers",
+      subtitle: "Find and compare loan offers.",
       icon: <AccountBalanceIcon />,
       color: "#7c3aed",
       surface: "linear-gradient(145deg, #ede9fe, #f5f3ff)",
@@ -703,8 +658,8 @@ const WorkspaceCards = ({
     },
     {
       id: "payments",
-      title: "Payment Gateway",
-      subtitle: "Record UPI, card and net-banking payments in the expense ledger",
+      title: "Payments",
+      subtitle: "Make and track demo payments.",
       icon: <PaymentsIcon />,
       color: "#0d9488",
       surface: "linear-gradient(145deg, #ccfbf1, #ecfeff)",
@@ -713,8 +668,8 @@ const WorkspaceCards = ({
     },
     {
       id: "applications",
-      title: "Saved Applications",
-      subtitle: "Track decisions, verification and processing-fee progress",
+      title: "Loan Applications",
+      subtitle: "View and manage applications.",
       icon: <AssignmentTurnedInIcon />,
       color: "#0891b2",
       surface: "linear-gradient(145deg, #cffafe, #ecfeff)",
@@ -723,8 +678,8 @@ const WorkspaceCards = ({
     },
     {
       id: "profile",
-      title: "Profile",
-      subtitle: "Manage identity, security, application activity and credit profile",
+      title: "Profile & Security",
+      subtitle: "Manage your account and security.",
       icon: <PersonIcon />,
       color: "#ea580c",
       surface: "linear-gradient(145deg, #ffedd5, #fff7ed)",
@@ -733,8 +688,8 @@ const WorkspaceCards = ({
     },
     {
       id: "investments",
-      title: "Savings Planner",
-      subtitle: "Calculate FD maturity, SIP ranges and save comparison plans",
+      title: "Savings & Investments",
+      subtitle: "Plan savings and compare projections.",
       icon: <SavingsIcon />,
       color: "#ca8a04",
       surface: "linear-gradient(145deg, #fef3c7, #fefce8)",
@@ -743,121 +698,32 @@ const WorkspaceCards = ({
     }
   ];
 
+  const order = ["expense", "payments", "loans", "applications", "investments", "markets", "profile"];
   return (
-    <Card
-      elevation={0}
-      sx={{
-        borderRadius: 2,
-        border: "1px solid rgba(15, 23, 42, 0.08)",
-        background: (theme) =>
-          theme.fintrackMode === "soft"
-            ? "rgba(255, 253, 253, 0.92)"
-            : "linear-gradient(145deg, #ffffff, #f8fafc)",
-        boxShadow: (theme) => theme.fintrackMode === "soft"
-          ? "0 8px 24px rgba(75, 52, 96, 0.07)"
-          : "0 16px 40px rgba(15, 23, 42, 0.08)"
-      }}
-    >
-      <CardContent sx={{ p: 2.5 }}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: { xs: "flex-start", md: "center" },
-            justifyContent: "space-between",
-            flexDirection: { xs: "column", md: "row" },
-            gap: 1,
-            mb: 2
-          }}
-        >
-          <Box>
-            <Typography variant="overline" sx={{ color: "#0f766e", fontWeight: 900 }}>
-              Explore FinTrack
-            </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 900 }}>
-              Your financial workspaces
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              Open a focused workspace without leaving your private dashboard.
-            </Typography>
-          </Box>
-          <AssessmentIcon sx={{ color: "#2563eb", fontSize: 34 }} />
-        </Box>
-
-        <Grid container spacing={1.5}>
-          {cards.map((card) => {
-            const active = activeWorkspace === card.id;
-
-            return (
-              <Grid size={{ xs: 12, sm: 6, xl: 3 }} key={card.id}>
-                <Card
-                  elevation={0}
-                  onClick={() => onOpen(card.id)}
-                  sx={{
-                    height: "100%",
-                    minHeight: 148,
-                    cursor: "pointer",
-                    borderRadius: 2,
-                    background: (theme) => theme.fintrackMode === "soft"
-                      ? "#fffdfd"
-                      : card.surface,
-                    border: active
-                      ? `2px solid ${card.color}`
-                      : "1px solid rgba(15, 23, 42, 0.08)",
-                    boxShadow: (theme) => theme.fintrackMode === "soft"
-                      ? "0 3px 12px rgba(75, 52, 96, 0.06)"
-                      : active
-                        ? `0 16px 34px ${card.color}2e`
-                        : "0 10px 24px rgba(15, 23, 42, 0.08)",
-                    color: "text.primary",
-                    transition: "transform 160ms ease, box-shadow 160ms ease",
-                    "&:hover": {
-                      transform: "translateY(-2px)",
-                      borderColor: card.color,
-                      boxShadow: (theme) => theme.fintrackMode === "soft"
-                        ? `0 8px 20px ${card.color}16`
-                        : `0 18px 36px ${card.color}2e`
-                    }
-                  }}
-                >
-                  <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1.5 }}>
-                      <Box
-                        sx={{
-                          width: 46,
-                          height: 46,
-                          borderRadius: 2,
-                          display: "grid",
-                          placeItems: "center",
-                          bgcolor: `${card.color}18`,
-                          color: card.color
-                        }}
-                      >
-                        {card.icon}
-                      </Box>
-                      <Typography
-                        variant="caption"
-                        sx={{ color: card.color, fontWeight: 900, textAlign: "right" }}
-                      >
-                        {card.meta}
-                      </Typography>
-                    </Box>
-                    <Typography variant="overline" sx={{ display: "block", mt: 1.25, color: card.color, fontSize: "0.66rem", fontWeight: 900, lineHeight: 1.2 }}>
-                      {card.group}
-                    </Typography>
-                    <Typography sx={{ mt: 0.35, fontWeight: 900, fontSize: "1.05rem" }}>
-                      {card.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {card.subtitle}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            );
-          })}
-        </Grid>
-      </CardContent>
-    </Card>
+    <Box component="section">
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.75 }}>
+        <Typography variant="h6">Explore your workspaces</Typography>
+        <Typography variant="body2" color="text.secondary">Everything you need, in one place</Typography>
+      </Box>
+      <Grid container spacing={2}>
+        {order.map((id, index) => {
+          const card = cards.find((item) => item.id === id);
+          return (
+            <Grid key={id} size={{ xs: 12, sm: 6, lg: index < 4 ? 3 : 4 }}>
+              <Card component="button" type="button" onClick={() => onOpen(id)}
+                sx={{ width: "100%", textAlign: "left", height: "100%", p: 2.25, cursor: "pointer", background: "#fff", display: "flex", gap: 1.75, alignItems: "flex-start", transition: "border-color .15s, transform .15s", "&:hover": { borderColor: card.color, transform: "translateY(-2px)" }, "&:focus-visible": { outline: "3px solid #8b75ff", outlineOffset: 3 } }}>
+                <Box sx={{ flexShrink: 0, width: 56, height: 56, borderRadius: 2, bgcolor: `${card.color}14`, color: card.color, display: "grid", placeItems: "center", "& svg": { fontSize: 30 } }}>{card.icon}</Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography sx={{ fontWeight: 750, fontSize: 15 }}>{card.title}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: .6, lineHeight: 1.55 }}>{card.subtitle}</Typography>
+                  <Box sx={{ mt: 1.5, py: .6, textAlign: "center", borderRadius: 1, bgcolor: "#f3f0ff", color: "#6546e8", fontWeight: 750, fontSize: 13 }}>Open →</Box>
+                </Box>
+              </Card>
+            </Grid>
+          );
+        })}
+      </Grid>
+    </Box>
   );
 };
 

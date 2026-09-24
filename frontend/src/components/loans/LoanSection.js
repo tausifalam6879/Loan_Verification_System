@@ -749,7 +749,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
   };
 
   return (
-    <Box sx={{ mt: 3.5 }}>
+    <Box className={`loan-workspace loan-workspace-${view}`} sx={{ mt: 0 }}>
       {(view === "loans" || view === "all") && (
       <Box
         sx={{
@@ -761,11 +761,11 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
           mb: 2
         }}
       >
-        <Box>
+        <Box sx={{ display: view === "all" ? "block" : "none" }}>
           <Typography variant="overline" sx={{ color: "#0f766e", fontWeight: 900 }}>
             {currentCopy.eyebrow}
           </Typography>
-          <Typography variant="h4" sx={{ color: "text.primary", fontWeight: 900 }}>
+          <Typography variant="h6" sx={{ color: "text.primary", fontWeight: 900 }}>
             {currentCopy.title}
           </Typography>
           <Typography sx={{ color: "text.secondary" }}>
@@ -803,7 +803,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                 borderRadius: 2,
                 textTransform: "none",
                 fontWeight: 900,
-                background: "linear-gradient(90deg, #0d9488, #2563eb)",
+                background: "linear-gradient(90deg, #5546e9, #7849fa)",
                 color: "#ffffff",
                 "&:hover": { background: "linear-gradient(90deg, #0f766e, #1d4ed8)" }
               }}
@@ -830,7 +830,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
             borderRadius: 3,
             color: "#0f172a",
             border: "1px solid rgba(14, 116, 144, 0.18)",
-            background: "linear-gradient(145deg, #ffffff, #ecfeff)"
+            background: "#ffffff"
           }}
         >
           <Stack direction={{ xs: "column", lg: "row" }} sx={{ justifyContent: "space-between", gap: 1.5, mb: 2 }}>
@@ -881,12 +881,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
           p: { xs: 2, md: 3 },
           borderRadius: 4,
           border: "1px solid rgba(148, 163, 184, 0.25)",
-          background: (theme) => theme.fintrackMode === "soft"
-            ? "linear-gradient(135deg, #f6dfe4 0%, #f1e5f4 52%, #e4f0ff 100%)"
-            : "linear-gradient(135deg, #083344 0%, #0f766e 50%, #2563eb 100%)",
+          background: "transparent",
           boxShadow: (theme) => theme.fintrackMode === "soft"
-            ? "0 10px 28px rgba(75, 52, 96, 0.10)"
-            : "0 24px 60px rgba(8, 47, 73, 0.22)"
+            ? "none"
+            : "none"
         }}
       >
         {loadingOffers ? (
@@ -907,7 +905,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
               const color = loanType.color || "#2563eb";
 
               return (
-                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={offer.id}>
+                <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={offer.id}>
                   <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
                     <Card
                       onClick={() => handleSelectOffer(offer)}
@@ -916,13 +914,13 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                         cursor: "pointer",
                         minHeight: 220,
                         borderRadius: 3,
-                        border: active ? `2px solid #a3e635` : "1px solid rgba(255,255,255,0.16)",
+                        border: active ? `2px solid ${color}` : `1px solid ${color}25`,
                         background: active
-                          ? "linear-gradient(145deg, #ecfccb, #d9f99d)"
+                          ? `linear-gradient(145deg, ${color}12, #ffffff)`
                           : offerCardSurface(color),
                         boxShadow: active
-                          ? "0 18px 36px rgba(163, 230, 53, 0.25)"
-                          : "0 14px 30px rgba(15, 23, 42, 0.18)",
+                          ? "0 6px 20px rgba(90,80,180,.08)"
+                          : "0 4px 18px rgba(90,80,180,.04)",
                         display: "flex",
                         flexDirection: "column",
                         height: "100%"
@@ -940,9 +938,10 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                         </Box>
                         <Box sx={{ flex: 1 }}>
                           <Typography sx={{ color: "#0f172a", fontWeight: 900, mb: 0.5, fontSize: "1rem" }}>
-                            {loanType.name}
+                            {offer.bank.name}
                           </Typography>
-                          <Typography variant="body2" sx={{ color: "#475569", minHeight: 40, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                          <Typography variant="body2" sx={{ color: "#67729a", mb: 1 }}>{loanType.name}</Typography>
+                          <Typography variant="body2" sx={{ color: "#475569", minHeight: 0, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
                             {loanType.description}
                           </Typography>
                         </Box>
@@ -1348,7 +1347,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
               borderRadius: 2,
               textTransform: "none",
               fontWeight: 900,
-              background: "linear-gradient(90deg, #0d9488, #2563eb)",
+              background: "linear-gradient(90deg, #5546e9, #7849fa)",
               "&:hover": { background: "linear-gradient(90deg, #0f766e, #1d4ed8)" }
             }}
           >
@@ -1679,9 +1678,9 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                       key={application.id}
                       sx={{
                         borderRadius: 2,
-                        background: "linear-gradient(145deg, #e0f2fe, #f0fdfa)",
+                        background: "#ffffff",
                         border: "1px solid rgba(14, 116, 144, 0.16)",
-                        boxShadow: "0 10px 24px rgba(8, 47, 73, 0.1)"
+                        boxShadow: "0 3px 16px rgba(68,75,135,.04)"
                       }}
                     >
                       <CardContent sx={{ p: 2.25 }}>
@@ -1703,6 +1702,12 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
                             />
                           </Stack>
                         </Box>
+
+                        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ my: 2, px: 1, py: 1.25, borderRadius: 2, bgcolor: "#f8f7ff", justifyContent: "space-between" }}>
+                          <Typography variant="body2" sx={{ color: "#087e60", fontWeight: 700 }}>● Submitted</Typography>
+                          <Typography variant="body2" sx={{ color: statusStyle.color, fontWeight: 700 }}>● {formatApplicationStatus(application.status)}</Typography>
+                          <Typography variant="body2" sx={{ color: application.paymentStatus === "PAID" ? "#087e60" : "#7d7898", fontWeight: 700 }}>{application.paymentStatus === "PAID" ? "● Processing fee paid" : "○ Processing fee pending"}</Typography>
+                        </Stack>
 
                         <Grid container spacing={1} sx={{ my: 1.5 }}>
                           <ApplicationFact label="Lender" value={application.loanOffer?.bank?.name || "Lender not recorded"} />
@@ -2113,7 +2118,8 @@ const applicationStatusStyle = (status) => {
 
 const ApplicationSummaryCard = ({ label, value, color }) => (
   <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
-    <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: "#ffffff", border: `1px solid ${color}33` }}>
+    <Box sx={{ p: 2.25, minHeight: 120, borderRadius: 2, background: `linear-gradient(110deg,${color}10,#fff)`, border: `1px solid ${color}25`, position: "relative" }}>
+      <Box sx={{ position: "absolute", right: 14, top: 20, color, opacity: 0.65 }}><AssignmentTurnedInIcon sx={{ fontSize: 34 }} /></Box>
       <Typography variant="h5" sx={{ color, fontWeight: 900 }}>{value}</Typography>
       <Typography variant="caption" sx={{ color: "#475569", fontWeight: 800 }}>{label}</Typography>
     </Box>
@@ -2334,7 +2340,10 @@ const PaymentHistoryPanel = ({ history = [], onDownloadReceipt }) => (
 );
 
 const PaymentGatewayOverview = ({ paymentMethod, setPaymentMethod, onStartPayment, paymentHistory, onDownloadReceipt }) => (
-  <Stack spacing={2.5} sx={{ mt: 2.5 }}>
+  <Stack spacing={2.5} sx={{ mt: 0 }}>
+  <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 2, py: 2 }}>
+    {["Choose payment method", "Enter and verify details", "View receipt"].map((label, index) => <Stack key={label} direction="row" spacing={1.5} sx={{ alignItems: "center", color: index === 0 ? "primary.main" : "text.secondary" }}><Box sx={{ width: 34, height: 34, borderRadius: "50%", bgcolor: index === 0 ? "primary.main" : "#e7e8f3", color: index === 0 ? "#fff" : "#68709a", display: "grid", placeItems: "center", flexShrink: 0, fontWeight: 800 }}>{index + 1}</Box><Typography variant="body2" sx={{ fontWeight: 700 }}>{label}</Typography></Stack>)}
+  </Box>
   <Card sx={panelStyle}>
     <CardContent sx={{ p: 2.5 }}>
       <Box
@@ -2368,7 +2377,7 @@ const PaymentGatewayOverview = ({ paymentMethod, setPaymentMethod, onStartPaymen
 
       <Grid container spacing={1.25}>
         {paymentGatewayOptions.map((method) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={method.id}>
+          <Grid size={{ xs: 12, sm: 6, lg: 2.4 }} key={method.id}>
             <PaymentMethodCard
               method={method}
               selected={paymentMethod === method.id}
@@ -2398,26 +2407,26 @@ const PaymentMethodCard = ({ method, selected, onSelect, compact = false }) => {
         justifyContent: "flex-start",
         gap: 1.25,
         p: compact ? 1.25 : 1.5,
-        minHeight: compact ? 76 : 88,
+        minHeight: compact ? 104 : 110,
         borderRadius: 2,
         textAlign: "left",
         textTransform: "none",
-        border: selected ? "2px solid #0d9488" : "1px solid rgba(15, 23, 42, 0.14)",
-        bgcolor: selected ? "#ccfbf1" : "#ffffff",
+        border: selected ? "2px solid #7950f2" : "1px solid #dfe5fa",
+        bgcolor: selected ? "#f5f1ff" : "#ffffff",
         color: "#0f172a",
         "&:hover": {
-          bgcolor: selected ? "#99f6e4" : "#f8fafc"
+          bgcolor: selected ? "#ede5ff" : "#f8fafc"
         }
       }}
     >
       <Box
         sx={{
-          width: compact ? 36 : 42,
-          height: compact ? 36 : 42,
+          width: compact ? 52 : 48,
+          height: compact ? 52 : 48,
           borderRadius: 2,
           display: "grid",
           placeItems: "center",
-          bgcolor: selected ? "#0d9488" : "rgba(37, 99, 235, 0.12)",
+          bgcolor: selected ? "#7547ea" : "rgba(37, 99, 235, 0.12)",
           color: selected ? "#ffffff" : "#2563eb",
           flex: "0 0 auto"
         }}
@@ -2441,9 +2450,9 @@ const PaymentMethodCard = ({ method, selected, onSelect, compact = false }) => {
 
 const panelStyle = {
   borderRadius: 3,
-  background: "linear-gradient(145deg, #ccfbf1, #eff6ff)",
+  background: "#ffffff",
   border: "1px solid rgba(14, 116, 144, 0.16)",
-  boxShadow: "0 14px 35px rgba(8, 47, 73, 0.12)",
+  boxShadow: "0 4px 20px rgba(69,75,135,.04)",
   color: "#0f172a",
   "& .MuiInputLabel-root": {
     color: "#334155"

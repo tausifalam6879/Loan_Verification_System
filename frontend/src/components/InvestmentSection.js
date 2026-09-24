@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
   Alert,
   Box,
@@ -93,6 +94,17 @@ const InvestmentSection = () => {
   );
 
   const fit = getInvestmentFit({ goal: inputs.goal, risk: inputs.risk, years: inputs.sipYears });
+  const growthData = useMemo(() => {
+    const fdYears = Math.max(0, Number(inputs.fdYears) || 0);
+    const sipYears = Math.max(0, Number(inputs.sipYears) || 0);
+    const horizon = Math.max(fdYears, sipYears);
+    const periods = [...new Set([0, fdYears, sipYears, ...Array.from({ length: 12 }, (_, index) => horizon * (index + 1) / 12)])].sort((a, b) => a - b);
+    return periods.map((year) => ({
+      year: Math.round(year * 100) / 100,
+      fd: year <= fdYears ? calculateFdProjection({ principal: inputs.fdAmount, annualRate: fdRate, years: year, taxRate: inputs.taxRate }).postTaxMaturity : null,
+      sip: year <= sipYears ? calculateSipProjection({ monthlyAmount: inputs.monthlySip, annualRate: selectedFund.assumedAnnualReturn, years: year }).projected : null
+    }));
+  }, [fdRate, inputs.fdAmount, inputs.fdYears, inputs.taxRate, inputs.monthlySip, inputs.sipYears, selectedFund.assumedAnnualReturn]);
   const suggestedCategory = recommendFundCategory({ risk: inputs.risk, years: inputs.sipYears });
 
   const updateInput = (field, value) => {
@@ -181,13 +193,10 @@ const InvestmentSection = () => {
       <Paper
         elevation={0}
         sx={{
-          p: { xs: 2, md: 2.5 },
+          p: 0,
           borderRadius: 3,
-          border: "1px solid rgba(20, 184, 166, 0.22)",
-          background: (theme) =>
-            theme.fintrackMode === "soft"
-              ? "linear-gradient(145deg, #fffafb, #f5eaf3, #edf5ff)"
-              : "linear-gradient(145deg, #f0fdfa, #eff6ff)"
+          border: "none",
+          background: "transparent"
         }}
       >
         <Stack
@@ -394,6 +403,26 @@ const InvestmentSection = () => {
           </Grid>
         </Grid>
 
+        <Card sx={{ mt: 2.5 }}>
+          <CardContent sx={{ p: 2.5 }}>
+            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 1 }}><TrendingUpIcon color="primary" /><Typography variant="h6">Growth comparison</Typography></Stack>
+            <Typography variant="body2" color="text.secondary">Your selected amounts and assumptions. Each line ends at its selected tenure; FD is after estimated tax, SIP is a market-linked estimate.</Typography>
+            <Box sx={{ height: 280, mt: 2, minWidth: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 700, height: 280 }}>
+                <LineChart data={growthData} margin={{ left: 5, right: 15, top: 10, bottom: 5 }}>
+                  <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="#e6eaf7" />
+                  <XAxis dataKey="year" type="number" domain={[0, "dataMax"]} tickFormatter={(value) => `${value}y`} />
+                  <YAxis width={75} tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} />
+                  <Tooltip formatter={(value) => formatIndianCurrency(value)} labelFormatter={(value) => `Year ${value}`} />
+                  <Legend />
+                  <Line dataKey="fd" name="Fixed deposit" stroke="#0ba87a" strokeWidth={3} dot={false} />
+                  <Line dataKey="sip" name="SIP estimate" stroke="#7848ff" strokeWidth={3} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </Box>
+          </CardContent>
+        </Card>
+
         <Alert icon={<ShieldOutlinedIcon />} severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
           <strong>{fit.label}:</strong> {fit.detail} Rates and projections are indicative. Verify current rates, taxation,
           expense ratio, exit load and product documents with the provider before investing.
@@ -478,7 +507,7 @@ const InvestmentSection = () => {
 };
 
 const PlannerCard = ({ icon, title, subtitle, accent, children }) => (
-  <Card elevation={0} sx={{ height: "100%", borderRadius: 2.5, border: `1px solid ${accent}40` }}>
+  <Card elevation={0} sx={{ height: "100%", borderRadius: 2.5, border: `1px solid ${accent}25`, background: `linear-gradient(135deg, ${accent}05, #fff 45%)` }}>
     <CardContent sx={{ p: { xs: 2, md: 2.25 } }}>
       <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", mb: 2 }}>
         <Box sx={{ width: 42, height: 42, borderRadius: 2, display: "grid", placeItems: "center", color: accent, bgcolor: `${accent}16` }}>

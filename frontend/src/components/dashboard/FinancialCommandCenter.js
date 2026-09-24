@@ -27,7 +27,6 @@ import SavingsIcon from "@mui/icons-material/Savings";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import LiveExchangeRatesCard from "./LiveExchangeRatesCard";
 import {
   Area,
   Bar,
@@ -60,7 +59,8 @@ const FinancialCommandCenter = ({
   onSaveIncome,
   loading = false,
   refreshedAt = "",
-  referenceDate
+  referenceDate,
+  workspaceCards
 }) => {
   const intelligence = useMemo(
     () => buildDashboardIntelligence({
@@ -99,7 +99,7 @@ const FinancialCommandCenter = ({
         ? "No comparable change yet"
         : `${Math.abs(intelligence.monthChange)}% ${intelligence.monthChange > 0 ? "higher" : "lower"} than last month`,
       icon: intelligence.monthChange > 0 ? <TrendingUpIcon /> : <TrendingDownIcon />,
-      color: intelligence.monthChange > 0 ? "#d97706" : "#0d9488"
+      color: "#f43f5e"
     },
     {
       label: "Savings rate",
@@ -129,10 +129,10 @@ const FinancialCommandCenter = ({
                 FinTrack financial workspace
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 900, mt: 0.25 }}>
-                Financial Command Center
+                FinTrack Dashboard
               </Typography>
               <Typography color="text.secondary" sx={{ mt: 0.75, maxWidth: 720 }}>
-                Monitor spending, savings, loan activity and next actions in one secure workspace.
+                Your finances, applications and next steps, all in one place.
               </Typography>
               <Stack direction="row" sx={{ mt: 1.75, gap: 1, flexWrap: "wrap" }}>
                 <Chip
@@ -174,7 +174,7 @@ const FinancialCommandCenter = ({
       </Card>
 
       <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 6, xl: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card elevation={0} sx={{ ...panelStyle, height: "100%" }}>
             <CardContent sx={{ p: 2.25 }}>
               <Stack direction="row" sx={{ justifyContent: "space-between", gap: 1.5 }}>
@@ -212,14 +212,96 @@ const FinancialCommandCenter = ({
           </Card>
         </Grid>
         {metrics.map((metric) => (
-          <Grid size={{ xs: 12, sm: 6, xl: 3 }} key={metric.label}>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={metric.label}>
             <MetricTile {...metric} />
           </Grid>
         ))}
       </Grid>
 
-      <LiveExchangeRatesCard onOpenMarkets={() => onOpen("markets")} />
+      {workspaceCards}
 
+      <Grid container spacing={2.5}>
+        <Grid size={{ xs: 12 }} sx={{ order: 2 }}>
+          <Card elevation={0} sx={panelStyle}>
+            <CardContent sx={{ p: 2.5 }}>
+              <Typography variant="h6" sx={{ fontWeight: 900 }}>Six-month money flow</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Income uses your current monthly setting; expenses come from saved transactions.
+              </Typography>
+              <Box sx={{ height: 300, mt: 2 }}>
+                <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height: 300 }}>
+                  <ComposedChart data={intelligence.flow} margin={{ top: 8, right: 8, left: -4, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.25)" />
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
+                    <Tooltip
+                      formatter={(value, name) => [formatDashboardCurrency(value), name]}
+                      contentStyle={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: 10, color: "#0f172a" }}
+                    />
+                    <Legend />
+                    <Area type="monotone" dataKey="income" name="Income" fill="rgba(37,99,235,0.16)" stroke="#2563eb" strokeWidth={2} />
+                    <Bar dataKey="expense" name="Expenses" fill="#f59e0b" radius={[5, 5, 0, 0]} />
+                    <Area type="monotone" dataKey="savings" name="Savings" fill="rgba(13,148,136,0.14)" stroke="#0d9488" strokeWidth={2} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12 }} sx={{ order: 1 }}>
+          <Stack direction={{ xs: "column", lg: "row" }} spacing={2.5} sx={{ "& > .MuiCard-root": { flex: 1, minWidth: 0 } }}>
+            <Card elevation={0} sx={panelStyle}>
+              <CardContent sx={{ p: 2.5 }}>
+                <Typography variant="h6" sx={{ fontWeight: 900 }}>Quick actions</Typography>
+                <Grid container spacing={1} sx={{ mt: 0.5 }}>
+                  {quickActions.map((item) => (
+                    <Grid size={{ xs: 6, sm: 4 }} key={item.target}>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        startIcon={item.icon}
+                        onClick={() => onOpen(item.target)}
+                        sx={{ ...actionButtonStyle, justifyContent: "center", flexDirection: "column", gap: 1, minHeight: 94, background: "#f3efff", borderColor: "#eee8ff", color: "#6645e5", "& .MuiButton-startIcon": { m: 0 }, "& svg": { fontSize: 28 } }}
+                      >
+                        {item.label}
+                      </Button>
+                    </Grid>
+                  ))}
+                </Grid>
+              </CardContent>
+            </Card>
+
+            <Card elevation={0} sx={panelStyle}>
+              <CardContent sx={{ p: 2.5 }}>
+                <Typography variant="h6" sx={{ fontWeight: 900 }}>Recent activity</Typography>
+                <Stack spacing={1.25} sx={{ mt: 1.5 }}>
+                  {recentActivity.map((expense) => (
+                    <Stack key={expense.id || `${expense.createdAt}-${expense.amount}`} direction="row" sx={{ justifyContent: "space-between", gap: 1 }}>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="body2" noWrap sx={{ fontWeight: 800 }}>
+                          {expense.merchant || expense.description || expense.category || "Expense"}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {expense.category || "Other"} · {String(expense.date || expense.createdAt || "").slice(0, 10)}
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 900, whiteSpace: "nowrap" }}>
+                        -{formatDashboardCurrency(expense.amount)}
+                      </Typography>
+                    </Stack>
+                  ))}
+                  {!recentActivity.length && (
+                    <Typography variant="body2" color="text.secondary">
+                      Add an expense to begin your private activity timeline.
+                    </Typography>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+          </Stack>
+        </Grid>
+      </Grid>
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, lg: 4 }}>
           <Card elevation={0} sx={panelStyle}>
@@ -304,94 +386,13 @@ const FinancialCommandCenter = ({
         </Grid>
       </Grid>
 
-      <Grid container spacing={2.5}>
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <Card elevation={0} sx={panelStyle}>
-            <CardContent sx={{ p: 2.5 }}>
-              <Typography variant="h6" sx={{ fontWeight: 900 }}>Six-month money flow</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Income uses your current monthly setting; expenses come from saved transactions.
-              </Typography>
-              <Box sx={{ height: 300, mt: 2 }}>
-                <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height: 300 }}>
-                  <ComposedChart data={intelligence.flow} margin={{ top: 8, right: 8, left: -4, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.25)" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
-                    <Tooltip
-                      formatter={(value, name) => [formatDashboardCurrency(value), name]}
-                      contentStyle={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: 10, color: "#0f172a" }}
-                    />
-                    <Legend />
-                    <Area type="monotone" dataKey="income" name="Income" fill="rgba(37,99,235,0.16)" stroke="#2563eb" strokeWidth={2} />
-                    <Bar dataKey="expense" name="Expenses" fill="#f59e0b" radius={[5, 5, 0, 0]} />
-                    <Area type="monotone" dataKey="savings" name="Savings" fill="rgba(13,148,136,0.14)" stroke="#0d9488" strokeWidth={2} />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
 
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Stack spacing={2.5}>
-            <Card elevation={0} sx={panelStyle}>
-              <CardContent sx={{ p: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 900 }}>Quick actions</Typography>
-                <Grid container spacing={1} sx={{ mt: 0.5 }}>
-                  {quickActions.map((item) => (
-                    <Grid size={{ xs: 6 }} key={item.target}>
-                      <Button
-                        fullWidth
-                        variant="outlined"
-                        startIcon={item.icon}
-                        onClick={() => onOpen(item.target)}
-                        sx={{ ...actionButtonStyle, justifyContent: "flex-start", minHeight: 44 }}
-                      >
-                        {item.label}
-                      </Button>
-                    </Grid>
-                  ))}
-                </Grid>
-              </CardContent>
-            </Card>
-
-            <Card elevation={0} sx={panelStyle}>
-              <CardContent sx={{ p: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 900 }}>Recent activity</Typography>
-                <Stack spacing={1.25} sx={{ mt: 1.5 }}>
-                  {recentActivity.map((expense) => (
-                    <Stack key={expense.id || `${expense.createdAt}-${expense.amount}`} direction="row" sx={{ justifyContent: "space-between", gap: 1 }}>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="body2" noWrap sx={{ fontWeight: 800 }}>
-                          {expense.merchant || expense.description || expense.category || "Expense"}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {expense.category || "Other"} · {String(expense.date || expense.createdAt || "").slice(0, 10)}
-                        </Typography>
-                      </Box>
-                      <Typography variant="body2" sx={{ color: "#dc2626", fontWeight: 900, whiteSpace: "nowrap" }}>
-                        -{formatDashboardCurrency(expense.amount)}
-                      </Typography>
-                    </Stack>
-                  ))}
-                  {!recentActivity.length && (
-                    <Typography variant="body2" color="text.secondary">
-                      Add an expense to begin your private activity timeline.
-                    </Typography>
-                  )}
-                </Stack>
-              </CardContent>
-            </Card>
-          </Stack>
-        </Grid>
-      </Grid>
     </Stack>
   );
 };
 
 const MetricTile = ({ label, value, helper, icon, color }) => (
-  <Card elevation={0} sx={{ ...panelStyle, height: "100%" }}>
+  <Card elevation={0} sx={{ ...panelStyle, height: "100%", background: `linear-gradient(120deg,${color}0b,#fff)`, borderColor: `${color}25` }}>
     <CardContent sx={{ p: 2.25 }}>
       <Stack direction="row" sx={{ justifyContent: "space-between", gap: 1.5 }}>
         <Box>
@@ -399,7 +400,7 @@ const MetricTile = ({ label, value, helper, icon, color }) => (
           <Typography variant="h5" sx={{ fontWeight: 900, color, mt: 0.75 }}>{value}</Typography>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>{helper}</Typography>
         </Box>
-        <Box sx={{ width: 44, height: 44, flexShrink: 0, borderRadius: 2, display: "grid", placeItems: "center", bgcolor: `${color}18`, color }}>
+        <Box sx={{ width: 62, height: 62, flexShrink: 0, borderRadius: 2, display: "grid", placeItems: "center", bgcolor: `${color}18`, color, "& svg": { fontSize: 32 } }}>
           {icon}
         </Box>
       </Stack>
@@ -408,12 +409,12 @@ const MetricTile = ({ label, value, helper, icon, color }) => (
 );
 
 const heroStyle = {
-  borderRadius: 3,
-  border: "1px solid",
-  borderColor: "divider",
+  borderRadius: 0,
+  border: "none !important",
   color: "text.primary",
-  background: "linear-gradient(120deg,#ffffff 0%,#f7f4ff 54%,#edf5ff 100%)",
-  boxShadow: "0 16px 40px rgba(61,70,126,.09)"
+  background: "transparent",
+  boxShadow: "none !important",
+  "& > .MuiCardContent-root": { px: 0, pt: 0 }
 };
 
 const panelStyle = {
