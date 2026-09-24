@@ -24,13 +24,15 @@ function App() {
         palette: {
           mode: "light",
           primary: {
-            main: isSoftMode ? "#6f5795" : "#0d9488"
+            main: "#5b4ce4",
+            light: "#7c6cf2",
+            dark: "#382d9c"
           },
           secondary: {
-            main: isSoftMode ? "#d66f82" : "#2563eb"
+            main: "#2563eb"
           },
           background: {
-            default: isSoftMode ? "#f8eff3" : "#eaf4f2",
+            default: isSoftMode ? "#f8f6ff" : "#f3f7ff",
             paper: isSoftMode ? "#fffdfd" : "#ffffff"
           },
           text: isSoftMode
@@ -70,15 +72,25 @@ function App() {
             styleOverrides: {
               root: {
                 backgroundImage: "none",
-                ...(isSoftMode && {
-                  boxShadow: "0 6px 20px rgba(75, 52, 96, 0.08)"
-                })
+                border: "1px solid rgba(99,102,241,.12)",
+                boxShadow: "0 10px 30px rgba(61,70,126,.08)"
               }
+            }
+          },
+          MuiButton: {
+            styleOverrides: {
+              root: { textTransform: "none", fontWeight: 800 }
             }
           }
         },
         shape: {
-          borderRadius: 8
+          borderRadius: 12
+        },
+        typography: {
+          fontFamily: 'Inter, "Segoe UI", Roboto, sans-serif',
+          h4: { fontWeight: 900, letterSpacing: "-0.03em" },
+          h5: { fontWeight: 850 },
+          h6: { fontWeight: 850 }
         }
       }),
     [activeMode, isSoftMode]
@@ -115,7 +127,7 @@ function App() {
             path="/profile"
             element={
               <ProtectedRoute>
-                <ProfilePage />
+                <ProfilePage themeMode={themeMode} onThemeModeChange={handleThemeModeChange} />
               </ProtectedRoute>
             }
           />

@@ -412,12 +412,8 @@ const heroStyle = {
   border: "1px solid",
   borderColor: "divider",
   color: "text.primary",
-  background: (theme) => theme.fintrackMode === "soft"
-    ? "linear-gradient(120deg, #fffafb, #f5e9f3 55%, #eaf3ff)"
-    : "linear-gradient(120deg, #effcf9, #eef6ff, #fffaf0)",
-  boxShadow: (theme) => theme.fintrackMode === "soft"
-    ? "0 10px 28px rgba(75, 52, 96, 0.09)"
-    : "0 18px 48px rgba(15, 23, 42, 0.08)"
+  background: "linear-gradient(120deg,#ffffff 0%,#f7f4ff 54%,#edf5ff 100%)",
+  boxShadow: "0 16px 40px rgba(61,70,126,.09)"
 };
 
 const panelStyle = {
@@ -425,12 +421,8 @@ const panelStyle = {
   border: "1px solid",
   borderColor: "divider",
   color: "text.primary",
-  background: (theme) => theme.fintrackMode === "soft"
-    ? "rgba(255, 253, 253, 0.96)"
-    : "linear-gradient(145deg, #ffffff, #f7fbfc)",
-  boxShadow: (theme) => theme.fintrackMode === "soft"
-    ? "0 5px 16px rgba(75, 52, 96, 0.07)"
-    : "0 14px 34px rgba(15, 23, 42, 0.07)"
+  background: "linear-gradient(145deg,#ffffff,#fbfcff)",
+  boxShadow: "0 12px 32px rgba(61,70,126,.07)"
 };
 
 const actionButtonStyle = {
@@ -441,7 +433,7 @@ const actionButtonStyle = {
 
 const primaryActionStyle = {
   ...actionButtonStyle,
-  background: "linear-gradient(90deg, #0d9488, #2563eb)"
+  background: "linear-gradient(90deg,#5b4ce4,#6d4df4)"
 };
 
 export default FinancialCommandCenter;

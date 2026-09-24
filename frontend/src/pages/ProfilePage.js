@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import AuthenticatorSettings from "../components/AuthenticatorSettings";
+import Navbar from "../components/Navbar";
+import Sidebar, { drawerWidth } from "../components/Sidebar";
 import { useNavigate } from "react-router-dom";
 import {
   Alert,
@@ -53,7 +55,7 @@ const emptyProfile = (auth) => ({
   creditScore: null
 });
 
-const ProfilePage = () => {
+const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => {
   const navigate = useNavigate();
   const currentAuth = getCurrentAuth() || {};
   const [profile, setProfile] = useState(() => emptyProfile(currentAuth));
@@ -66,6 +68,7 @@ const ProfilePage = () => {
   const [lastRefreshedAt, setLastRefreshedAt] = useState("");
   const [form, setForm] = useState({ fullName: "", mobile: "" });
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const loadProfileData = useCallback(async () => {
     setLoading(true);
@@ -177,14 +180,32 @@ const ProfilePage = () => {
   return (
     <>
       <CssBaseline />
+      <Navbar setDrawerOpen={setDrawerOpen} balance={0} themeMode={themeMode} onThemeModeChange={onThemeModeChange} role={profile.role || currentAuth.role} email={displayEmail} onLogout={handleLogout} />
+      <Sidebar
+        drawerOpen={drawerOpen}
+        setDrawerOpen={setDrawerOpen}
+        activeWorkspace="profile"
+        role={profile.role || currentAuth.role}
+        onOpenDashboard={() => navigate("/")}
+        onOpenExpense={() => navigate("/expense")}
+        onOpenLoans={() => navigate("/loans")}
+        onOpenPayments={() => navigate("/payments")}
+        onOpenApplications={() => navigate("/applications")}
+        onOpenInvestments={() => navigate("/investments")}
+        onOpenMarkets={() => navigate("/markets")}
+        onOpenAdmin={() => navigate("/admin")}
+        onOpenProfile={() => setDrawerOpen(false)}
+        onLogout={handleLogout}
+      />
       <Box
         sx={{
           minHeight: "100vh",
-          background: (theme) => theme.fintrackMode === "soft"
-            ? "radial-gradient(circle at top, rgba(205,159,204,0.20), transparent 28rem), linear-gradient(180deg, #fae8eb, #fff5e8 42rem, #edf5ff)"
-            : "linear-gradient(180deg, #ecfeff 0, #f8fafc 24rem, #ffffff 100%)",
+          width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` },
+          background: "radial-gradient(circle at 78% 3%, rgba(126,103,246,.18), transparent 24rem), linear-gradient(180deg,#f8f9ff,#f2f7ff 52%,#f7fbff)",
           px: { xs: 2, md: 4 },
-          py: { xs: 3, md: 4 }
+          pt: { xs: 10, md: 12 },
+          pb: 4
         }}
       >
         <Box sx={{ width: "100%", maxWidth: 1240, mx: "auto" }}>
@@ -203,7 +224,7 @@ const ProfilePage = () => {
                 px: { xs: 2.5, md: 4 },
                 py: { xs: 3, md: 3.5 },
                 color: "#ffffff",
-                background: "linear-gradient(110deg, #082f49, #0f766e 52%, #2563eb)"
+                background: "linear-gradient(110deg,#172554,#4338ca 52%,#6d4df4)"
               }}
             >
               <Stack

@@ -31,7 +31,7 @@ import InvestmentMarketHub from "../components/InvestmentMarketHub";
 import LoanSection from "../components/loans/LoanSection";
 import MonthlyExpenseChart from "../components/MonthlyExpenseChart";
 import Navbar from "../components/Navbar";
-import Sidebar from "../components/Sidebar";
+import Sidebar, { drawerWidth } from "../components/Sidebar";
 import TransactionTable from "../components/TransactionTable";
 import useExpenses from "../hooks/useExpenses";
 import { exportExpensesToCSV } from "../utils/exportCsv";
@@ -161,16 +161,16 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
   }, [activeWorkspace, loadOverviewAccount]);
   const pageMeta = {
     expense: {
-      title: "Expense Page",
-      subtitle: "Add expenses, review charts, and manage transaction records together."
+      title: "Expense & Budgets",
+      subtitle: "Track spending, manage budgets and understand where your money goes."
     },
     loans: {
       title: "Loan Marketplace",
       subtitle: "Browse backend loan offers and open the application flow."
     },
     payments: {
-      title: "Payment Gateway",
-      subtitle: "Pay with UPI, card, or net banking and record the payment in the expense ledger."
+      title: "Payments",
+      subtitle: "Use the secure demo gateway and keep every receipt connected to your ledger."
     },
     applications: {
       title: "Loan Application Center",
@@ -397,19 +397,19 @@ const Dashboard = ({ themeMode, activeMode, onThemeModeChange }) => {
           setDrawerOpen(false);
         }}
         onLogout={handleLogout}
+        activeWorkspace={activeWorkspace}
         role={role}
       />
 
       <Box
         sx={{
           minHeight: "100vh",
-          width: "100%",
+          width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` },
           background:
-            activeMode === "soft"
-              ? "radial-gradient(circle at top right, rgba(205, 159, 204, 0.24), transparent 28rem), linear-gradient(180deg, #fae8eb 0%, #fff5e8 36rem, #edf5ff 100%)"
-              : "linear-gradient(180deg, rgba(8, 47, 73, 0.16) 0%, rgba(13, 148, 136, 0.12) 18rem, rgba(255, 255, 255, 0) 34rem)",
-          pt: 11,
-          px: { xs: 2, md: 4 },
+            "radial-gradient(circle at 78% 3%, rgba(126,103,246,.18), transparent 24rem), linear-gradient(180deg,#f8f9ff 0%,#f2f7ff 48%,#f7fbff 100%)",
+          pt: { xs: 10, md: 12 },
+          px: { xs: 1.5, sm: 2.5, lg: 3.5 },
           pb: 4
         }}
       >

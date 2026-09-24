@@ -6,15 +6,20 @@ import {
   Chip,
   FormControl,
   IconButton,
+  InputAdornment,
   MenuItem,
   Select,
+  TextField,
   Toolbar,
   Typography
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import ColorLensIcon from "@mui/icons-material/ColorLens";
 import LogoutIcon from "@mui/icons-material/Logout";
+import SearchIcon from "@mui/icons-material/Search";
+import { drawerWidth } from "./Sidebar";
 
 const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, email, onLogout }) => {
   const today = new Date().toLocaleDateString("en-IN", {
@@ -28,25 +33,25 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, em
       position="fixed"
       elevation={0}
       sx={{
-        background: (theme) => theme.fintrackMode === "soft"
-          ? "linear-gradient(90deg, #21184f 0%, #5d477f 58%, #8a648d 100%)"
-          : "linear-gradient(90deg, #082f49 0%, #0f766e 58%, #134e4a 100%)",
+        ml: { md: `${drawerWidth}px` },
+        width: { md: `calc(100% - ${drawerWidth}px)` },
+        background: "linear-gradient(100deg,#4c3fa2 0%,#44369b 52%,#342978 100%)",
         borderBottom: "1px solid rgba(204, 251, 241, 0.22)",
         boxShadow: (theme) => theme.fintrackMode === "soft"
           ? "0 6px 18px rgba(44, 29, 74, 0.18)"
           : "0 12px 32px rgba(8, 47, 73, 0.22)"
       }}
     >
-      <Toolbar sx={{ gap: { xs: 0.5, sm: 1, md: 2 }, px: { xs: 1, sm: 2 } }}>
+      <Toolbar sx={{ gap: { xs: 0.5, sm: 1, md: 2 }, px: { xs: 1, sm: 2.5 }, minHeight: { xs: 64, md: 72 } }}>
         <IconButton
           edge="start"
           onClick={() => setDrawerOpen(true)}
-          sx={{ color: "#ffffff" }}
+          sx={{ color: "#ffffff", display: { md: "none" } }}
         >
           <MenuIcon />
         </IconButton>
 
-        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+        <Box sx={{ flexGrow: { xs: 1, md: 0 }, minWidth: 0, display: { xs: "block", md: "none" } }}>
           <Typography
             variant="h6"
             noWrap
@@ -58,6 +63,13 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, em
             FinTech Loan Aggregator workspace
           </Typography>
         </Box>
+
+        <TextField
+          size="small"
+          placeholder="Search loans, expenses, transactions..."
+          slotProps={{ htmlInput: { "aria-label": "Search workspace" }, input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: "#fff" }} /></InputAdornment> } }}
+          sx={{ display: { xs: "none", md: "block" }, width: "min(42vw, 520px)", mr: "auto", "& .MuiOutlinedInput-root": { color: "#fff", bgcolor: "rgba(255,255,255,.11)", borderRadius: 2.5, "& fieldset": { borderColor: "rgba(255,255,255,.08)" }, "&:hover fieldset": { borderColor: "rgba(255,255,255,.25)" } }, "& input::placeholder": { color: "#e0e7ff", opacity: 1 } }}
+        />
 
         <Chip
           icon={<AccountBalanceWalletIcon />}
@@ -72,12 +84,7 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, em
           }}
         />
 
-        <Typography
-          variant="body2"
-          sx={{ color: "#cbd5e1", display: { xs: "none", md: "block" } }}
-        >
-          {today}
-        </Typography>
+        <Box sx={{ color: "#fff", display: { xs: "none", lg: "flex" }, alignItems: "center", gap: 1 }}><CalendarMonthIcon /><Typography variant="body2" sx={{ fontWeight: 800 }}>{today}</Typography></Box>
 
         <FormControl size="small" sx={{ display: { xs: "none", md: "block" }, minWidth: 116 }}>
           <Select
