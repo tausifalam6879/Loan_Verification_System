@@ -122,7 +122,7 @@ test('renders the authenticated profile command center route', async () => {
 
   render(<App />);
 
-  expect(await screen.findByText(/Account command center/i)).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /Profile & Security/i })).toBeInTheDocument();
   expect(await screen.findByRole("heading", { name: /Financial snapshot/i })).toBeInTheDocument();
 });
 
