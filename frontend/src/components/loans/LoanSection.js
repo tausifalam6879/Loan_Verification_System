@@ -41,7 +41,7 @@ import SchoolIcon from "@mui/icons-material/School";
 import SecurityIcon from "@mui/icons-material/Security";
 import SmartphoneIcon from "@mui/icons-material/Smartphone";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { motion } from "framer-motion";
+import MarketplaceOffers from "./MarketplaceOffers";
 import PaymentWorkspace from "./PaymentWorkspace";
 import { paymentGatewayOptions } from "../../data/financialKnowledge";
 import { applyForLoan, getLoanApplications, getLoanOffer, getLoanOffers, payProcessingFee } from "../../services/loanService";
@@ -301,7 +301,6 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
     }),
     [applicationSearch, applicationSort, applicationStatusFilter, enrichedApplications]
   );
-  const comparisonOffers = marketplaceRows.slice(0, 4).map((row) => row.offer);
   const showLoanMarketplace = view === "loans" || view === "all";
   const showLoanDetails = view === "loans" || view === "all";
   const showPayments = view === "payments" || view === "all";
@@ -875,175 +874,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
         </Paper>
       )}
 
-      {showLoanMarketplace && (
-      <Paper
-        elevation={0}
-        sx={{
-          p: { xs: 2, md: 3 },
-          borderRadius: 4,
-          border: "1px solid rgba(148, 163, 184, 0.25)",
-          background: "transparent",
-          boxShadow: (theme) => theme.fintrackMode === "soft"
-            ? "none"
-            : "none"
-        }}
-      >
-        {loadingOffers ? (
-          <Box sx={{ py: 6, display: "grid", placeItems: "center", color: (theme) => theme.fintrackMode === "soft" ? theme.palette.text.primary : "#ffffff" }}>
-            <CircularProgress sx={{ color: (theme) => theme.fintrackMode === "soft" ? theme.palette.primary.main : "#a3e635" }} />
-            <Typography sx={{ mt: 2 }}>Loading loan offers from backend...</Typography>
-          </Box>
-        ) : (
-          <Grid container spacing={2.5}>
-            {marketplaceRows.length === 0 ? (
-              <Grid size={{ xs: 12 }}>
-                <Alert severity="info" sx={alertStyleBySeverity.info}>No offer matches these filters. Try another loan type, amount, tenure or credit score.</Alert>
-              </Grid>
-            ) : marketplaceRows.map(({ offer, eligibility, metrics }) => {
-              const loanType = offer.loanType;
-              const LoanIcon = iconMap[loanType.iconName] || AccountBalanceIcon;
-              const active = offer.id === selectedOffer?.id;
-              const color = loanType.color || "#2563eb";
-
-              return (
-                <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={offer.id}>
-                  <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
-                    <Card
-                      onClick={() => handleSelectOffer(offer)}
-                      elevation={0}
-                      sx={{
-                        cursor: "pointer",
-                        minHeight: 220,
-                        borderRadius: 3,
-                        border: active ? `2px solid ${color}` : `1px solid ${color}25`,
-                        background: active
-                          ? `linear-gradient(145deg, ${color}12, #ffffff)`
-                          : offerCardSurface(color),
-                        boxShadow: active
-                          ? "0 6px 20px rgba(90,80,180,.08)"
-                          : "0 4px 18px rgba(90,80,180,.04)",
-                        display: "flex",
-                        flexDirection: "column",
-                        height: "100%"
-                      }}
-                    >
-                      <CardContent sx={{ p: 2, pb: 0, display: "flex", flexDirection: "column", height: "100%", gap: 1.5 }}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                          <Box sx={iconBoxStyle(color)}>
-                            <LoanIcon />
-                          </Box>
-                          <Stack spacing={0.5} sx={{ alignItems: "flex-end" }}>
-                            <Chip size="small" label={`${offer.interestRate}%`} sx={{ bgcolor: "#0f172a", color: "#ffffff", fontWeight: 900 }} />
-                            <Chip size="small" label={eligibility.eligible ? "Eligible" : "Review"} color={eligibility.eligible ? "success" : "warning"} sx={{ fontWeight: 900 }} />
-                          </Stack>
-                        </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography sx={{ color: "#0f172a", fontWeight: 900, mb: 0.5, fontSize: "1rem" }}>
-                            {offer.bank.name}
-                          </Typography>
-                          <Typography variant="body2" sx={{ color: "#67729a", mb: 1 }}>{loanType.name}</Typography>
-                          <Typography variant="body2" sx={{ color: "#475569", minHeight: 0, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-                            {loanType.description}
-                          </Typography>
-                        </Box>
-                        <Box>
-                          <Typography sx={{ color, fontWeight: 900, mt: 1.5, fontSize: "0.95rem" }}>
-                            {offer.bank.shortName} | Rs. {Number(offer.maxAmount).toLocaleString("en-IN")}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 800 }}>
-                            {offer.minTenureMonths} - {offer.maxTenureMonths} months
-                          </Typography>
-                          <Typography variant="body2" sx={{ color: "#0f172a", fontWeight: 900, mt: 0.75 }}>
-                            EMI Rs. {metrics.emi.toLocaleString("en-IN")} · Interest Rs. {metrics.totalInterest.toLocaleString("en-IN")}
-                          </Typography>
-                          <Button
-                            fullWidth
-                            endIcon={<ArrowForwardIcon />}
-                            sx={{
-                              mt: 1.5,
-                              borderRadius: 2,
-                              textTransform: "none",
-                              fontWeight: 900,
-                              bgcolor: `${color}18`,
-                              color
-                            }}
-                          >
-                            View and Apply
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </Grid>
-              );
-            })}
-          </Grid>
-        )}
-      </Paper>
-      )}
-
-      {showLoanMarketplace && comparisonOffers.length > 0 && (
-        <Card sx={{ ...panelStyle, mt: 2.5 }}>
-          <CardContent sx={{ p: 2.5 }}>
-            <Typography variant="h6" sx={{ fontWeight: 900 }}>
-              Loan Comparison
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#475569", mb: 2 }}>
-              Compare available bank offers side-by-side before applying.
-            </Typography>
-            <Grid container spacing={1.5}>
-              {comparisonOffers.map((offer) => {
-                const metrics = calculateOfferMetrics(offer, requestedAmount, tenureMonths);
-                const eligibility = evaluateOfferEligibility(offer, { amount: requestedAmount, tenureMonths, creditScore });
-                return (
-                <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={`compare-${offer.id}`}>
-                  <Box
-                    sx={{
-                      height: "100%",
-                      p: 2,
-                      borderRadius: 2,
-                      bgcolor: "#ffffff",
-                      border: "1px solid rgba(15, 23, 42, 0.1)"
-                    }}
-                  >
-                    <Typography sx={{ fontWeight: 900, color: offer.bank.themeColor || "#2563eb" }}>
-                      {offer.bank.name}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "#64748b", mb: 1.5 }}>
-                      {offer.loanType.name}
-                    </Typography>
-                    <Chip size="small" label={eligibility.eligible ? "Eligible now" : "Needs review"} color={eligibility.eligible ? "success" : "warning"} sx={{ mb: 1.25, fontWeight: 900 }} />
-                    <ComparisonRow label="Interest" value={`${offer.interestRate}%`} />
-                    <ComparisonRow label="Your EMI" value={`Rs. ${metrics.emi.toLocaleString("en-IN")}`} />
-                    <ComparisonRow label="Total interest" value={`Rs. ${metrics.totalInterest.toLocaleString("en-IN")}`} />
-                    <ComparisonRow label="Total repayment" value={`Rs. ${metrics.totalPayable.toLocaleString("en-IN")}`} />
-                    <ComparisonRow label="Processing fee" value={`Rs. ${metrics.processingFee.toLocaleString("en-IN")}`} />
-                    <ComparisonRow
-                      label="Maximum"
-                      value={`Rs. ${Number(offer.maxAmount || 0).toLocaleString("en-IN")}`}
-                    />
-                    <ComparisonRow
-                      label="Tenure"
-                      value={`${offer.minTenureMonths}-${offer.maxTenureMonths} months`}
-                    />
-                    <ComparisonRow label="Credit score" value={`${offer.minCreditScore}+`} />
-                    <ComparisonRow label="Fee" value={offer.processingFee || "-"} />
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      onClick={() => handleSelectOffer(offer)}
-                      sx={{ mt: 1.5, textTransform: "none", fontWeight: 900 }}
-                    >
-                      Select Offer
-                    </Button>
-                  </Box>
-                </Grid>
-                );
-              })}
-            </Grid>
-          </CardContent>
-        </Card>
-      )}
+      {showLoanMarketplace && <MarketplaceOffers rows={marketplaceRows} loading={loadingOffers} selectedId={selectedOffer?.id} tenureMonths={tenureMonths} onSelect={handleSelectOffer} />}
 
       <Dialog
         open={applicationOpen}
@@ -2075,8 +1906,6 @@ const iconBoxStyle = (color, size = 48) => ({
   placeItems: "center"
 });
 
-const offerCardSurface = (color) =>
-  `linear-gradient(145deg, ${color}1f, rgba(255,255,255,0.9) 48%, ${color}12)`;
 
 const LoanFact = ({ label, value }) => (
   <Grid size={{ xs: 6, md: 3 }}>
