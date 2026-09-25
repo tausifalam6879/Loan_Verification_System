@@ -26,7 +26,6 @@ import {
 } from "@mui/material";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
-import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import BusinessCenterIcon from "@mui/icons-material/BusinessCenter";
 import CloseIcon from "@mui/icons-material/Close";
@@ -42,6 +41,7 @@ import SecurityIcon from "@mui/icons-material/Security";
 import SmartphoneIcon from "@mui/icons-material/Smartphone";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import MarketplaceOffers from "./MarketplaceOffers";
+import ApplicationsWorkspace from "./ApplicationsWorkspace";
 import PaymentWorkspace from "./PaymentWorkspace";
 import { paymentGatewayOptions } from "../../data/financialKnowledge";
 import { applyForLoan, getLoanApplications, getLoanOffer, getLoanOffers, payProcessingFee } from "../../services/loanService";
@@ -53,7 +53,6 @@ import {
   filterAndSortLoanOffers
 } from "../../utils/loanMarketplace";
 import {
-  applicationStatusGroup,
   enrichApplications,
   filterAndSortApplications,
   summarizeApplications
@@ -1381,196 +1380,16 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
       </Card>
       )}
 
-      {showSavedApplications && (
-      <Box id="loan-applications" sx={{ mt: 2.5 }}>
-        <Card sx={panelStyle}>
-          <CardContent sx={{ p: 3 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: { xs: "stretch", md: "center" },
-                flexDirection: { xs: "column", md: "row" },
-                gap: 2,
-                mb: 2
-              }}
-            >
-              <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
-                <Box sx={iconBoxStyle("#0d9488", 44)}>
-                  <AssignmentTurnedInIcon />
-                </Box>
-                <Box>
-                  <Typography variant="h6" sx={{ color: "#0f172a", fontWeight: 900 }}>
-                    Your applications
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "#64748b" }}>
-                    Track lender decisions, verification progress and processing-fee status.
-                  </Typography>
-                </Box>
-              </Box>
-              <Stack spacing={0.5} sx={{ alignItems: { xs: "flex-start", md: "flex-end" } }}>
-                <Button
-                  variant="outlined"
-                  onClick={loadApplications}
-                  disabled={loadingApplications}
-                  sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
-                >
-                  Refresh applications
-                </Button>
-                <Typography variant="caption" sx={{ color: "#64748b" }}>
-                  {applicationsRefreshedAt ? `Last refreshed ${new Date(applicationsRefreshedAt).toLocaleTimeString("en-IN")}` : "Waiting for first refresh"}
-                </Typography>
-              </Stack>
-            </Box>
-
-            <Grid container spacing={1.25} sx={{ mb: 2 }}>
-              <ApplicationSummaryCard label="Total" value={applicationSummary.total} color="#2563eb" />
-              <ApplicationSummaryCard label="Pre-approved" value={applicationSummary.approved} color="#16a34a" />
-              <ApplicationSummaryCard label="In review" value={applicationSummary.review} color="#d97706" />
-              <ApplicationSummaryCard label="Blocked" value={applicationSummary.blocked} color="#dc2626" />
-              <ApplicationSummaryCard label="Fee pending" value={applicationSummary.feePending} color="#7c3aed" />
-            </Grid>
-
-            <Grid container spacing={1.25} sx={{ mb: 2 }}>
-              <Grid size={{ xs: 12, md: 5 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Search application, lender or loan"
-                  value={applicationSearch}
-                  onChange={(event) => setApplicationSearch(event.target.value)}
-                  sx={marketplaceFilterStyle}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 3.5 }}>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  label="Status"
-                  value={applicationStatusFilter}
-                  onChange={(event) => setApplicationStatusFilter(event.target.value)}
-                  sx={marketplaceFilterStyle}
-                >
-                  <MenuItem value="all">All statuses</MenuItem>
-                  <MenuItem value="approved">Pre-approved / approved</MenuItem>
-                  <MenuItem value="review">In review</MenuItem>
-                  <MenuItem value="blocked">Blocked / rejected</MenuItem>
-                  <MenuItem value="paid">Fee paid</MenuItem>
-                  <MenuItem value="unpaid">Fee pending</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 3.5 }}>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  label="Sort"
-                  value={applicationSort}
-                  onChange={(event) => setApplicationSort(event.target.value)}
-                  sx={marketplaceFilterStyle}
-                >
-                  <MenuItem value="newest">Newest first</MenuItem>
-                  <MenuItem value="oldest">Oldest first</MenuItem>
-                  <MenuItem value="amount_high">Highest amount</MenuItem>
-                  <MenuItem value="amount_low">Lowest amount</MenuItem>
-                </TextField>
-              </Grid>
-            </Grid>
-
-            {loadingApplications ? (
-              <Box sx={{ py: 4, display: "grid", placeItems: "center" }}>
-                <CircularProgress />
-              </Box>
-            ) : enrichedApplications.length === 0 ? (
-              <Box
-                sx={{
-                  p: 3,
-                  borderRadius: 2,
-                  bgcolor: "#ecfeff",
-                  border: "1px dashed rgba(14, 116, 144, 0.28)",
-                  textAlign: "center"
-                }}
-              >
-                <Typography sx={{ color: "#0f172a", fontWeight: 900 }}>No applications yet</Typography>
-                <Typography variant="body2" sx={{ color: "#64748b" }}>
-                  Choose a loan offer and submit an application to start tracking its journey.
-                </Typography>
-              </Box>
-            ) : visibleApplications.length === 0 ? (
-              <Alert severity="info" sx={alertStyleBySeverity.info}>
-                No application matches the current search or status filter.
-              </Alert>
-            ) : (
-              <Stack spacing={1.5}>
-                {visibleApplications.map((application) => {
-                  const statusStyle = applicationStatusStyle(application.status);
-                  return (
-                    <Card
-                      key={application.id}
-                      sx={{
-                        borderRadius: 2,
-                        background: "#ffffff",
-                        border: "1px solid rgba(14, 116, 144, 0.16)",
-                        boxShadow: "0 3px 16px rgba(68,75,135,.04)"
-                      }}
-                    >
-                      <CardContent sx={{ p: 2.25 }}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: { xs: "flex-start", md: "center" }, gap: 1.5, flexDirection: { xs: "column", md: "row" } }}>
-                          <Box>
-                          <Typography sx={{ color: "#0f172a", fontWeight: 900 }}>
-                            #{application.id} {application.applicantName}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: "#64748b" }}>
-                            Created {formatApplicationDate(application.createdAt)}
-                          </Typography>
-                          </Box>
-                          <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap" }}>
-                            <Chip size="small" label={formatApplicationStatus(application.status)} sx={{ bgcolor: statusStyle.background, color: statusStyle.color, fontWeight: 900 }} />
-                            <Chip
-                              size="small"
-                              label={application.paymentStatus === "PAID" ? "Fee paid" : "Fee pending"}
-                              sx={{ bgcolor: application.paymentStatus === "PAID" ? "#dcfce7" : "#ede9fe", color: application.paymentStatus === "PAID" ? "#166534" : "#6d28d9", fontWeight: 900 }}
-                            />
-                          </Stack>
-                        </Box>
-
-                        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ my: 2, px: 1, py: 1.25, borderRadius: 2, bgcolor: "#f8f7ff", justifyContent: "space-between" }}>
-                          <Typography variant="body2" sx={{ color: "#087e60", fontWeight: 700 }}>● Submitted</Typography>
-                          <Typography variant="body2" sx={{ color: statusStyle.color, fontWeight: 700 }}>● {formatApplicationStatus(application.status)}</Typography>
-                          <Typography variant="body2" sx={{ color: application.paymentStatus === "PAID" ? "#087e60" : "#7d7898", fontWeight: 700 }}>{application.paymentStatus === "PAID" ? "● Processing fee paid" : "○ Processing fee pending"}</Typography>
-                        </Stack>
-
-                        <Grid container spacing={1} sx={{ my: 1.5 }}>
-                          <ApplicationFact label="Lender" value={application.loanOffer?.bank?.name || "Lender not recorded"} />
-                          <ApplicationFact label="Loan product" value={application.loanOffer?.loanType?.name || "Loan type not recorded"} />
-                          <ApplicationFact label="Requested amount" value={`Rs. ${Number(application.requestedAmount || 0).toLocaleString("en-IN")}`} />
-                          <ApplicationFact label="Risk check" value={`${application.fraudLevel || "-"} · Score ${application.fraudScore ?? "-"}`} />
-                        </Grid>
-
-                        <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                          <Button variant="contained" onClick={() => setSelectedApplication(application)} sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}>
-                            View details
-                          </Button>
-                          {application.paymentStatus !== "PAID" && (
-                            <Button variant="outlined" onClick={() => handleOpenSavedPayment(application)} disabled={!application.loanOffer} sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}>
-                              Pay processing fee
-                            </Button>
-                          )}
-                          <Button variant="text" onClick={() => handleDownloadApplicationSummary(application)} sx={{ textTransform: "none", fontWeight: 900 }}>
-                            Download summary
-                          </Button>
-                        </Stack>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </Stack>
-            )}
-          </CardContent>
-        </Card>
-      </Box>
-      )}
+      {showSavedApplications && <ApplicationsWorkspace
+        applications={enrichedApplications} visibleApplications={visibleApplications}
+        summary={applicationSummary} loading={loadingApplications}
+        search={applicationSearch} onSearch={setApplicationSearch}
+        status={applicationStatusFilter} onStatus={setApplicationStatusFilter}
+        sort={applicationSort} onSort={setApplicationSort}
+        onRefresh={loadApplications} refreshedAt={applicationsRefreshedAt}
+        onDetails={setSelectedApplication} onPayment={handleOpenSavedPayment}
+        onDownload={handleDownloadApplicationSummary}
+      />}
 
       <Dialog
         open={Boolean(selectedApplication)}
@@ -1938,32 +1757,6 @@ const formatApplicationDate = (value) => {
     : parsed.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 };
 
-const applicationStatusStyle = (status) => {
-  const group = applicationStatusGroup(status);
-  if (group === "approved") return { background: "#dcfce7", color: "#166534" };
-  if (group === "review") return { background: "#fef3c7", color: "#92400e" };
-  if (group === "blocked") return { background: "#fee2e2", color: "#991b1b" };
-  return { background: "#dbeafe", color: "#1d4ed8" };
-};
-
-const ApplicationSummaryCard = ({ label, value, color }) => (
-  <Grid size={{ xs: 6, sm: 4, md: 2.4 }}>
-    <Box sx={{ p: 2.25, minHeight: 120, borderRadius: 2, background: `linear-gradient(110deg,${color}10,#fff)`, border: `1px solid ${color}25`, position: "relative" }}>
-      <Box sx={{ position: "absolute", right: 14, top: 20, color, opacity: 0.65 }}><AssignmentTurnedInIcon sx={{ fontSize: 34 }} /></Box>
-      <Typography variant="h5" sx={{ color, fontWeight: 900 }}>{value}</Typography>
-      <Typography variant="caption" sx={{ color: "#475569", fontWeight: 800 }}>{label}</Typography>
-    </Box>
-  </Grid>
-);
-
-const ApplicationFact = ({ label, value }) => (
-  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-    <Box sx={{ height: "100%", p: 1.25, borderRadius: 1.5, bgcolor: "rgba(255,255,255,0.76)", border: "1px solid #dbeafe" }}>
-      <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 800 }}>{label}</Typography>
-      <Typography variant="body2" sx={{ color: "#0f172a", fontWeight: 900 }}>{value}</Typography>
-    </Box>
-  </Grid>
-);
 
 const ApplicationJourney = ({ application }) => {
   const status = application.status || "SUBMITTED";
