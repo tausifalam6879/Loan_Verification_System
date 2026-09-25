@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
   Alert,
   Box,
@@ -12,7 +12,6 @@ import {
   FormControlLabel,
   Grid,
   InputAdornment,
-  LinearProgress,
   MenuItem,
   Paper,
   Stack,
@@ -205,54 +204,25 @@ const InvestmentSection = () => {
           sx={{ justifyContent: "space-between", alignItems: { xs: "stretch", md: "center" }, mb: 2.5 }}
         >
           <Box>
-            <Typography variant="overline" sx={{ color: "#14b8a6", fontWeight: 900 }}>
-              Goal-based planning
-            </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 900 }}>
+            <Typography variant="h6" sx={{ fontSize: 16, color: "#65729e", fontWeight: 800 }}>
               Build and compare a savings plan
-            </Typography>
-            <Typography sx={{ color: "text.secondary", mt: 0.5 }}>
-              Calculate an FD estimate and a market-linked SIP range using your own amount, horizon and risk preference.
             </Typography>
           </Box>
           <Chip icon={<CalculateIcon />} label="Interactive projections" color="primary" sx={{ fontWeight: 900 }} />
         </Stack>
 
-        <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <TextField
-              select
-              fullWidth
-              label="Financial goal"
-              value={inputs.goal}
-              onChange={(event) => updateInput("goal", event.target.value)}
-            >
-              {["Emergency fund", "Short-term purchase", "Education", "Home", "Retirement", "Wealth creation"].map(
-                (goal) => (
-                  <MenuItem key={goal} value={goal}>{goal}</MenuItem>
-                )
-              )}
+        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mb: 2.5 }}>
+          {[
+            ["Financial goal", "What are you saving for?", "goal", ["Emergency fund", "Short-term purchase", "Education", "Home", "Retirement", "Wealth creation"], "#7848ff", <TrackChangesIcon />],
+            ["Risk preference", "Choose your comfort level.", "risk", ["Low", "Moderate", "High"], "#00a67d", <TrendingUpIcon />]
+          ].map(([label, note, field, options, color, icon]) => <Box key={field} sx={{ display: "flex", alignItems: "center", gap: 2, p: 2.5, bgcolor: "#fff", border: "1px solid #e3e8fc", borderRadius: 2.5 }}>
+            <Box sx={{ width: 54, height: 54, flexShrink: 0, borderRadius: 2, bgcolor: color + "15", color, display: "grid", placeItems: "center" }}>{icon}</Box>
+            <Box sx={{ flex: 1 }}><Typography sx={{ fontWeight: 900 }}>{label}</Typography><Typography variant="body2" color="text.secondary">{note}</Typography></Box>
+            <TextField select label={label} value={inputs[field]} onChange={(e) => updateInput(field, e.target.value)} size="small" sx={{ width: "46%" }}>
+              {options.map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}
             </TextField>
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <TextField
-              select
-              fullWidth
-              label="Risk preference"
-              value={inputs.risk}
-              onChange={(event) => updateInput("risk", event.target.value)}
-            >
-              {["Low", "Moderate", "High"].map((risk) => (
-                <MenuItem key={risk} value={risk}>{risk}</MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Alert icon={<TrackChangesIcon />} severity="info" sx={{ height: "100%", alignItems: "center" }}>
-              Suggested fund type: <strong>{suggestedCategory}</strong>
-            </Alert>
-          </Grid>
-        </Grid>
+          </Box>)}
+        </Box>
 
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, lg: 6 }}>
@@ -260,7 +230,7 @@ const InvestmentSection = () => {
               icon={<SavingsIcon />}
               title="Fixed Deposit estimate"
               subtitle="Predictable rate with an estimated post-tax maturity."
-              accent="#0d9488"
+              accent="#2463eb"
             >
               <Stack spacing={1.5}>
                 <TextField
@@ -339,7 +309,7 @@ const InvestmentSection = () => {
               icon={<TrendingUpIcon />}
               title="SIP projection range"
               subtitle="Illustrative low, base and high outcomes—not a guaranteed return."
-              accent="#2563eb"
+              accent="#ff991c"
             >
               <Stack spacing={1.5}>
                 <TextField
@@ -388,13 +358,7 @@ const InvestmentSection = () => {
                   ]}
                   accent="#2563eb"
                 />
-                <Box>
-                  <Stack direction="row" sx={{ justifyContent: "space-between", mb: 0.5 }}>
-                    <Typography variant="caption">{sipProjection.lowRate}% low</Typography>
-                    <Typography variant="caption">{sipProjection.highRate}% high</Typography>
-                  </Stack>
-                  <LinearProgress variant="determinate" value={60} sx={{ height: 7, borderRadius: 999 }} />
-                </Box>
+                <Typography variant="caption" color="text.secondary">Scenario assumptions: {sipProjection.lowRate}% low · {selectedFund.assumedAnnualReturn}% base · {sipProjection.highRate}% high per year</Typography>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>
                   {selectedFund.suitableFor}
                 </Typography>
@@ -403,26 +367,33 @@ const InvestmentSection = () => {
           </Grid>
         </Grid>
 
-        <Card sx={{ mt: 2.5 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, 2.1fr) minmax(280px, 1fr)", gap: 2.5, mt: 2.5 }}>
+        <Card sx={{ borderRadius: 2.5, border: "1px solid #e3e8fc" }}>
           <CardContent sx={{ p: 2.5 }}>
             <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 1 }}><TrendingUpIcon color="primary" /><Typography variant="h6">Growth comparison</Typography></Stack>
             <Typography variant="body2" color="text.secondary">Your selected amounts and assumptions. Each line ends at its selected tenure; FD is after estimated tax, SIP is a market-linked estimate.</Typography>
             <Box sx={{ height: 280, mt: 2, minWidth: 0 }}>
               <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 700, height: 280 }}>
-                <LineChart data={growthData} margin={{ left: 5, right: 15, top: 10, bottom: 5 }}>
+                <AreaChart data={growthData} margin={{ left: 5, right: 15, top: 10, bottom: 5 }}>
                   <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="#e6eaf7" />
                   <XAxis dataKey="year" type="number" domain={[0, "dataMax"]} tickFormatter={(value) => `${value}y`} />
                   <YAxis width={75} tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} />
                   <Tooltip formatter={(value) => formatIndianCurrency(value)} labelFormatter={(value) => `Year ${value}`} />
                   <Legend />
-                  <Line dataKey="fd" name="Fixed deposit" stroke="#0ba87a" strokeWidth={3} dot={false} />
-                  <Line dataKey="sip" name="SIP estimate" stroke="#7848ff" strokeWidth={3} dot={false} />
-                </LineChart>
+                  <Area fill="#0ba87a" fillOpacity={0.1} dataKey="fd" name="Fixed deposit" stroke="#0ba87a" strokeWidth={3} dot={false} />
+                  <Area fill="#7848ff" fillOpacity={0.1} dataKey="sip" name="SIP estimate" stroke="#7848ff" strokeWidth={3} dot={false} />
+                </AreaChart>
               </ResponsiveContainer>
             </Box>
           </CardContent>
         </Card>
 
+        <PlannerCard icon={<TrackChangesIcon />} title="Planning Insights" subtitle="Based on your goal and assumptions." accent="#7848ff">
+          <Stack spacing={2} sx={{ bgcolor: "#f6f2ff", p: 2, borderRadius: 2 }}>
+            {[[fit.label, fit.detail], ["Suggested fund category", suggestedCategory], ["Estimated SIP gains", formatIndianCurrency(sipProjection.estimatedGain) + " above your contributions at the base assumption."]].map(([title, detail], index) => <Box key={title} sx={{ display: "flex", gap: 1.5 }}><Box sx={{ width: 28, height: 28, flexShrink: 0, borderRadius: "50%", bgcolor: "#e7ddff", color: "#7045ed", display: "grid", placeItems: "center", fontWeight: 900 }}>{index + 1}</Box><Box><Typography variant="body2" sx={{ fontWeight: 800 }}>{title}</Typography><Typography variant="body2" color="text.secondary">{detail}</Typography></Box></Box>)}
+          </Stack>
+        </PlannerCard>
+        </Box>
         <Alert icon={<ShieldOutlinedIcon />} severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
           <strong>{fit.label}:</strong> {fit.detail} Rates and projections are indicative. Verify current rates, taxation,
           expense ratio, exit load and product documents with the provider before investing.
@@ -506,11 +477,12 @@ const InvestmentSection = () => {
   );
 };
 
+
 const PlannerCard = ({ icon, title, subtitle, accent, children }) => (
   <Card elevation={0} sx={{ height: "100%", borderRadius: 2.5, border: `1px solid ${accent}25`, background: `linear-gradient(135deg, ${accent}05, #fff 45%)` }}>
     <CardContent sx={{ p: { xs: 2, md: 2.25 } }}>
       <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", mb: 2 }}>
-        <Box sx={{ width: 42, height: 42, borderRadius: 2, display: "grid", placeItems: "center", color: accent, bgcolor: `${accent}16` }}>
+        <Box sx={{ width: 58, height: 58, flexShrink: 0, borderRadius: 2, display: "grid", placeItems: "center", color: accent, bgcolor: `${accent}16` }}>
           {icon}
         </Box>
         <Box>
@@ -524,10 +496,10 @@ const PlannerCard = ({ icon, title, subtitle, accent, children }) => (
 );
 
 const ResultGrid = ({ items, accent }) => (
-  <Grid container spacing={1}>
+  <Grid container spacing={0} sx={{ bgcolor: "#f5f7ff", borderRadius: 2, py: 1.5 }}>
     {items.map(([label, value]) => (
-      <Grid size={{ xs: 6 }} key={label}>
-        <Box sx={{ p: 1.25, borderRadius: 2, bgcolor: `${accent}0d`, border: `1px solid ${accent}24` }}>
+      <Grid size={{ xs: 6, lg: 3 }} key={label}>
+        <Box sx={{ px: 1.25, minHeight: 64, borderRight: `1px solid ${accent}16` }}>
           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 800 }}>{label}</Typography>
           <Typography sx={{ color: accent, fontWeight: 900 }}>{value}</Typography>
         </Box>
