@@ -219,6 +219,17 @@ export const getMarketOverviewPreview = async () => {
   });
 };
 
+// The overview chart reuses published history without triggering model training.
+export const getMarketTrendPreview = async () => {
+  const snapshot = await loadScheduledSnapshot();
+  const analysis = snapshot.analyses?.["^NSEI"];
+  return {
+    history: analysis?.history || [],
+    dataAsOf: analysis?.dataAsOf || snapshot.generatedAt,
+    source: "Published Nifty 50 snapshot"
+  };
+};
+
 export const getGlobalMarketOverview = (refresh = false) => requestWithFallback({
     cacheKey: "overview",
     liveRequest: () => getLive("/market/overview", { refresh }, QUOTE_REQUEST_TIMEOUT_MS),

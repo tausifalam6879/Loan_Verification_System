@@ -49,6 +49,7 @@ import {
   getCompanyResearch,
   getGlobalMarketOverview,
   getMarketOverviewPreview,
+  getMarketTrendPreview,
   getMarketAnalysis,
   getMarketBreadth,
   getMarketFactors,
@@ -336,7 +337,7 @@ const GlobalMarketSection = () => {
   };
 
   return (
-    <Box id="global-market-section" sx={{ mt: 1.5 }}>
+    <Box id="global-market-section" sx={{ mt: 1.5, "& .MuiPaper-outlined": { borderRadius: 3, borderColor: "rgba(99,102,241,.14)", boxShadow: "0 4px 20px rgba(30,41,90,.025)" }, "& .MuiTabs-root": { bgcolor: "rgba(99,102,241,.035)" }, "& .MuiTab-root": { minHeight: 58, textTransform: "none", fontWeight: 800 }, "& .MuiTab-root.Mui-selected": { color: "#5b35ee", bgcolor: "rgba(99,102,241,.08)" } }}>
       <WorkspaceHeading title="Global Markets & AI" subtitle="Track global markets, explore companies and understand what is moving them.">
         <Tooltip title="Refresh current view"><IconButton onClick={refreshCurrentView} disabled={loadingPulse || loadingAnalysis || loadingCompany}><RefreshIcon /></IconButton></Tooltip>
       </WorkspaceHeading>
@@ -407,7 +408,10 @@ const GlobalMarketSection = () => {
 };
 
 const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode, generatedAt, onOpenAnalysis, onOpenCompany }) => {
+  const [showAllIndices, setShowAllIndices] = useState(false);
   if (loading && !overview) return <LinearProgress />;
+  const indexOrder = ["^GSPC", "^NSEI", "^BSESN", "^IXIC"];
+  const sortedMarkets = [...(overview?.markets || [])].sort((a, b) => (indexOrder.includes(a.symbol) ? indexOrder.indexOf(a.symbol) : 99) - (indexOrder.includes(b.symbol) ? indexOrder.indexOf(b.symbol) : 99));
   const boardQuotes = overview?.watchlist?.length
     ? overview.watchlist
     : (overview?.markets || []).filter((market) => ["^NSEI", "^BSESN"].includes(market.symbol));
@@ -416,33 +420,28 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
       .map((quote) => [quote.symbol, quote])
   ).values());
   const openQuote = (quote) => quote.kind === "company" ? onOpenCompany(quote.symbol) : onOpenAnalysis(quote.symbol);
+  const leadFactor = (factors?.factors || [])[0];
+  const breadthTotal = Number(breadth?.advances || 0) + Number(breadth?.declines || 0) + Number(breadth?.unchanged || 0);
+  const breadthTone = !breadthTotal ? "unavailable" : Number(breadth?.advances || 0) > Number(breadth?.declines || 0) ? "positive" : Number(breadth?.advances || 0) < Number(breadth?.declines || 0) ? "cautious" : "balanced";
   return (
     <Stack spacing={2.5}>
-      <Box component="section">
+      <MarketTickerBoard quotes={boardQuotes} sourceMode={sourceMode} onOpenAnalysis={onOpenAnalysis} onOpenCompany={onOpenCompany} />
+      <Box component="section" sx={{ p: { md: 2 }, borderRadius: 3, background: "linear-gradient(135deg, rgba(79,70,229,.06), rgba(37,99,235,.02) 48%, rgba(16,185,129,.05))" }}>
         <SectionTitle
           icon={<PublicIcon />}
           title="Major Global Indices"
           detail={`${overview?.availableMarkets || 0}/${overview?.totalMarkets || 0} in ${isLiveQuoteSource(sourceMode) ? "live quote feed" : "analytics snapshot"}`}
         />
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(4, minmax(0, 1fr))" }, gap: 1.5 }}>
-          {(overview?.markets || []).map((market) => <IndexTile key={market.symbol} market={market} onClick={() => onOpenAnalysis(market.symbol)} />)}
+          {(showAllIndices ? sortedMarkets : sortedMarkets.slice(0, 4)).map((market) => <IndexTile key={market.symbol} market={market} onClick={() => onOpenAnalysis(market.symbol)} />)}
         </Box>
+        {sortedMarkets.length > 4 && <Button size="small" onClick={() => setShowAllIndices(!showAllIndices)} sx={{ mt: 1 }}>{showAllIndices ? "Show key indices" : `View all ${sortedMarkets.length} indices`}</Button>}
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
           Latest API response {formatTime(generatedAt)}. Every card shows its quote timestamp; select an index to open the FinTrack ML evidence view.
         </Typography>
       </Box>
 
-      <MarketTickerBoard
-        quotes={boardQuotes}
-        sourceMode={sourceMode}
-        onOpenAnalysis={onOpenAnalysis}
-        onOpenCompany={onOpenCompany}
-      />
-
-      <MarketAlertCenter quotes={alertQuotes} sourceMode={sourceMode} onOpenQuote={openQuote} />
-
-
-
+      <MarketTrendPreview onOpenAnalysis={onOpenAnalysis} />
       <Grid container spacing={1.5}>
         <Grid size={{ xs: 12, md: 4 }}>
           <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 2, height: "100%" }}>
@@ -452,6 +451,11 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
               <BreadthCount label="Declines" value={breadth?.declines} color="#dc2626" />
               <BreadthCount label="Flat" value={breadth?.unchanged} color="#64748b" />
             </Stack>
+            <Box aria-label="Share of advancing, declining and unchanged stocks" sx={{ display: "flex", height: 18, borderRadius: 2, overflow: "hidden", bgcolor: "action.hover", my: 2.5 }}>
+              {[[breadth?.advances, "#10b981"], [breadth?.declines, "#f43f5e"], [breadth?.unchanged, "#94a3b8"]].map(([value, color]) => (
+                <Box key={color} sx={{ width: breadthTotal ? `${Number(value || 0) / breadthTotal * 100}%` : 0, bgcolor: color }} />
+              ))}
+            </Box>
             <Typography variant="caption" color="text.secondary">{breadth?.disclaimer || "Breadth data unavailable."}</Typography>
           </Paper>
         </Grid>
@@ -462,6 +466,38 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
               {(factors?.factors || []).map((factor) => <FactorTile key={factor.symbol} factor={factor} onClick={() => onOpenAnalysis(factor.symbol)} />)}
             </Grid>
           </Box>
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={1.5}>
+        <Grid size={{ xs: 12, lg: 8 }}>
+          <Paper component="section" variant="outlined" sx={{ p: 2, borderRadius: 3, height: "100%", background: "linear-gradient(135deg, #ffffff, #f8faff)" }}>
+            <SectionTitle icon={<InsightsIcon />} title="Evidence Summary" detail="Calculated from the current market response" compact />
+            <Typography variant="h6" sx={{ fontWeight: 900, color: breadthTone === "positive" ? "success.main" : breadthTone === "cautious" ? "warning.main" : "primary.main", mb: 0.75 }}>
+              India breadth is {breadthTone}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+              {breadthTotal
+                ? `${breadth?.advances || 0} of ${breadthTotal} tracked stocks are advancing and ${breadth?.declines || 0} are declining.`
+                : "Breadth evidence is not available in the current response."}
+              {leadFactor ? ` ${leadFactor.name} is ${signed(leadFactor.changePercent)}% in the available snapshot.` : ""}
+            </Typography>
+            <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: "wrap", gap: 1 }}>
+              <Chip size="small" label={isLiveQuoteSource(sourceMode) ? "Live quote evidence" : sourceMode === "loading" ? "Evidence unavailable" : "Snapshot / cached evidence"} color="primary" />
+              <Chip size="small" variant="outlined" label={`Updated ${formatTime(generatedAt)}`} />
+            </Stack>
+          </Paper>
+        </Grid>
+        <Grid size={{ xs: 12, lg: 4 }}>
+          <Paper component="section" variant="outlined" sx={{ p: 2, borderRadius: 3, height: "100%", bgcolor: "#faf8ff", borderColor: "rgba(124,58,237,.2)" }}>
+            <SectionTitle icon={<AutoAwesomeIcon />} title="AI Research Workspace" compact />
+            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.65, mb: 1.5 }}>
+              Open the ML + AI Agent for probability, chronological validation, macro evidence and grounded answers.
+            </Typography>
+            <Button variant="contained" fullWidth onClick={() => onOpenAnalysis("^NSEI")} endIcon={<ChevronRightIcon />} sx={{ borderRadius: 2, py: 1, background: "linear-gradient(90deg, #4f46e5, #7c3aed)" }}>
+              Open Nifty evidence
+            </Button>
+          </Paper>
         </Grid>
       </Grid>
 
@@ -494,7 +530,32 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
           </Paper>
         </Grid>
       </Grid>
+      <MarketAlertCenter quotes={alertQuotes} sourceMode={sourceMode} onOpenQuote={openQuote} />
     </Stack>
+  );
+};
+
+const MarketTrendPreview = ({ onOpenAnalysis }) => {
+  const [trend, setTrend] = useState(null);
+  const [period, setPeriod] = useState(22);
+  useEffect(() => {
+    let active = true;
+    getMarketTrendPreview().then((result) => { if (active) setTrend(result); }).catch(() => { if (active) setTrend({ history: [] }); });
+    return () => { active = false; };
+  }, []);
+  const history = (trend?.history || []).slice(-period);
+  return (
+    <Paper component="section" variant="outlined" sx={{ p: 2.5 }}>
+      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+        <Box><SectionTitle icon={<TrendingUpIcon />} title="Market Trend" compact /><Typography variant="body2" color="text.secondary">Nifty 50 · published daily closing prices</Typography></Box>
+        <Stack direction="row" spacing={0.75}>{[[5, "1W"], [22, "1M"], [66, "3M"], [252, "All"]].map(([value, label]) => <Button key={value} size="small" variant={period === value ? "contained" : "text"} onClick={() => setPeriod(value)} sx={{ minWidth: 48, borderRadius: 2 }}>{label}</Button>)}</Stack>
+      </Stack>
+      {history.length > 1 ? <PriceChart data={history} color="#10b981" /> : <Box sx={{ py: 7, textAlign: "center" }}><Typography color="text.secondary">{trend ? "Published price history is currently unavailable." : "Loading published price history…"}</Typography></Box>}
+      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mt: 1 }}>
+        <Typography variant="caption" color="text.secondary">Snapshot as of {formatTime(trend?.dataAsOf)} · {history.length} sessions shown</Typography>
+        <Button size="small" endIcon={<ChevronRightIcon />} onClick={() => onOpenAnalysis("^NSEI")}>Open full ML evidence</Button>
+      </Stack>
+    </Paper>
   );
 };
 
@@ -924,6 +985,8 @@ const ModelWorkspace = ({ analysis, quotePreview, symbol, setSymbol, loading, on
             </Grid>
           </Grid>
 
+          <ModelOpsEvidence analysis={analysis} />
+
           <Paper component="section" variant="outlined" sx={{ p: 1.5, borderRadius: 1 }}>
             <SectionTitle title="Why the Macro Overlay Moved" detail={analysis.macroFactor?.method} compact />
             <Grid container spacing={1}>
@@ -989,6 +1052,43 @@ const ModelWorkspace = ({ analysis, quotePreview, symbol, setSymbol, loading, on
   );
 };
 
+const ModelOpsEvidence = ({ analysis }) => {
+  const model = analysis?.model || {};
+  const accuracy = model.backtestAccuracy == null ? NaN : Number(model.backtestAccuracy);
+  const accuracyAvailable = Number.isFinite(accuracy);
+  const reliability = model.reliabilityWeight == null ? NaN : Number(model.reliabilityWeight);
+  return (
+    <Paper component="section" variant="outlined" sx={{ p: 2, borderRadius: 3, borderColor: "rgba(79,70,229,.24)", background: "linear-gradient(135deg, rgba(79,70,229,.055), #fff 55%, rgba(16,185,129,.045))" }}>
+      <Stack direction={{ xs: "column", md: "row" }} sx={{ justifyContent: "space-between", alignItems: { md: "center" }, gap: 1, mb: 1.5 }}>
+        <Box>
+          <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+            <ShieldOutlinedIcon color="primary" />
+            <Typography variant="h6" sx={{ fontWeight: 900 }}>Model Validation &amp; MLOps Evidence</Typography>
+          </Stack>
+          <Typography variant="body2" color="text.secondary">Training data, holdout performance and calibration for this analysis.</Typography>
+        </Box>
+        <Chip size="small" color={model.quality === "useful" ? "success" : "warning"} label={`${model.quality || "unknown"} signal quality`} sx={{ textTransform: "capitalize", fontWeight: 800 }} />
+      </Stack>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0,1fr))", lg: "repeat(4, minmax(0,1fr))" }, gap: 1 }}>
+        <EvidenceCell label="Pipeline" value={model.type || "Not reported"} />
+        <EvidenceCell label="Validation" value={model.validation || "Not reported"} />
+        <EvidenceCell label="Dataset split" value={`${model.trainingRows ?? "N/A"} train / ${model.testRows ?? "N/A"} test`} />
+        <EvidenceCell label="Holdout accuracy" value={accuracyAvailable ? `${accuracy}%` : "Not reported"} tone={accuracyAvailable && accuracy >= 55 ? "success" : "warning"} />
+        <EvidenceCell label="Raw technical probability" value={model.rawTechnicalProbabilityUp == null ? "Not reported" : `${model.rawTechnicalProbabilityUp}%`} />
+        <EvidenceCell label="Reliability weight" value={Number.isFinite(reliability) ? `${formatNumber(reliability * 100, 1)}%` : "Not reported"} />
+        <EvidenceCell label="Calibration" value={model.calibration || "Not reported"} wide />
+      </Box>
+    </Paper>
+  );
+};
+
+const EvidenceCell = ({ label, value, tone, wide = false }) => (
+  <Box sx={{ p: 1.25, borderRadius: 2, bgcolor: "rgba(255,255,255,.86)", border: "1px solid", borderColor: "divider", gridColumn: wide ? { sm: "span 2" } : undefined }}>
+    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800 }}>{label}</Typography>
+    <Typography variant="body2" sx={{ mt: 0.35, fontWeight: 900, color: tone === "success" ? "success.main" : tone === "warning" ? "warning.main" : "text.primary", lineHeight: 1.35 }}>{value}</Typography>
+  </Box>
+);
+
 const SearchBar = ({ symbol, setSymbol, onSubmit, onQuick, buttonLabel }) => (
   <Paper component="form" onSubmit={onSubmit} variant="outlined" sx={{ p: 1.5, borderRadius: 1 }}>
     <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
@@ -1010,23 +1110,26 @@ const IndexTile = ({ market, onClick }) => {
       disabled={!available}
       aria-label={`Open ${market.name} research`}
       sx={{
-        p: 1.5,
+        p: 2,
         minWidth: 0,
-        minHeight: 124,
+        minHeight: 155,
         width: "100%",
         display: "block",
         textAlign: "left",
         border: "1px solid",
-        borderColor: "divider",
+        borderColor: positive ? "rgba(16,185,129,.2)" : "rgba(244,63,94,.18)",
         borderRadius: 2,
-        bgcolor: "background.paper",
+        background: positive ? "linear-gradient(145deg, #fff, rgba(16,185,129,.065))" : "linear-gradient(145deg, #fff, rgba(244,63,94,.055))",
         boxShadow: "0 2px 8px rgba(15, 23, 42, 0.08)",
         transition: "border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease",
         "&:hover": { borderColor: "primary.main", boxShadow: "0 6px 16px rgba(15, 23, 42, 0.14)", transform: "translateY(-1px)" }
       }}
     >
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-        <Typography variant="body2" sx={{ fontWeight: 900 }}>{market.name}</Typography>
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+          <Box sx={{ display: "grid", placeItems: "center", width: 42, height: 42, borderRadius: 2, color: positive ? "#059669" : "#f43f5e", bgcolor: positive ? "rgba(16,185,129,.12)" : "rgba(244,63,94,.1)" }}><InsightsIcon /></Box>
+          <Typography variant="body2" sx={{ fontWeight: 900 }}>{market.name}</Typography>
+        </Stack>
         <Stack direction="row" spacing={0.25} sx={{ alignItems: "center" }}>
           {available && (positive ? <TrendingUpIcon fontSize="small" color="success" /> : <TrendingDownIcon fontSize="small" color="error" />)}
           {available && <ChevronRightIcon fontSize="small" color="action" />}
@@ -1034,7 +1137,7 @@ const IndexTile = ({ market, onClick }) => {
       </Stack>
       <Typography variant="caption" color="text.secondary">{market.region} | {market.symbol}</Typography>
       <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "baseline", columnGap: 1, mt: 0.75 }}>
-        <Typography sx={{ fontWeight: 900 }}>{available ? formatNumber(market.price) : "Unavailable"}</Typography>
+        <Typography sx={{ fontWeight: 900, fontSize: 24 }}>{available ? formatNumber(market.price) : "Unavailable"}</Typography>
         {available && (
           <Box sx={{ px: 0.8, py: 0.25, borderRadius: 0.75, bgcolor: positive ? "success.50" : "error.50" }}>
             <Typography variant="body2" sx={{ color: directionColor(market.changePercent), fontWeight: 900, whiteSpace: "nowrap" }}>{signed(market.changePercent)}%</Typography>
@@ -1131,7 +1234,7 @@ const QuoteFact = ({ label, value }) => (
 const SectionTitle = ({ icon, title, detail, compact = false }) => (
   <Box sx={{ display: "grid", gridTemplateColumns: detail ? "minmax(0, 1fr) auto" : "1fr", alignItems: "center", columnGap: 1.5, mb: compact ? 1 : 1.25 }}>
     <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", minWidth: 0, overflow: "hidden" }}>
-      {icon && <Box sx={{ color: "#0d9488", display: "flex" }}>{icon}</Box>}
+      {icon && <Box sx={{ color: "#6d3cff", display: "flex" }}>{icon}</Box>}
       <Typography variant={compact ? "subtitle1" : "h6"} sx={{ fontWeight: 900, lineHeight: 1.25 }}>{title}</Typography>
     </Stack>
     {detail && <Typography variant="caption" color="text.secondary" sx={{ textAlign: "right", pl: 1, maxWidth: { xs: 130, sm: 260 }, lineHeight: 1.3 }}>{detail}</Typography>}
