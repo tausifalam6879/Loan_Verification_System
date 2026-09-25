@@ -211,14 +211,6 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
       >
         <Box className="fintrack-workspace" sx={{ width: "100%", maxWidth: 1440, mx: "auto" }}>
           <WorkspaceHeading title="Profile & Security" subtitle="Manage your personal information, account security and preferences." />
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/")}
-            sx={{ mb: 2, textTransform: "none", fontWeight: 800 }}
-          >
-            Back to dashboard
-          </Button>
-
           <Card elevation={0} sx={{ ...panelStyle, mb: 2 }}>
             <Box
               sx={{
@@ -235,21 +227,18 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
                 <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
                   <Avatar
                     sx={{
-                      width: 76,
-                      height: 76,
-                      bgcolor: "#f59e0b",
-                      color: "#0f172a",
+                      width: 100,
+                      height: 100,
+                      background: "linear-gradient(135deg,#ffc43b,#ff9e13)",
+                      color: "#ffffff",
                       fontSize: 30,
                       fontWeight: 900,
                       border: "4px solid rgba(255,255,255,0.28)"
                     }}
                   >
-                    {displayName.slice(0, 1).toUpperCase()}
+                    {displayName.split(/\s+/).map(part => part[0]).slice(0, 2).join("").toUpperCase()}
                   </Avatar>
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="overline" sx={{ color: "#7565b0", fontWeight: 900 }}>
-                      Account command center
-                    </Typography>
                     <Typography variant="h4" sx={{ fontWeight: 900, lineHeight: 1.15 }}>
                       {displayName}
                     </Typography>
@@ -277,7 +266,7 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
                     variant="contained"
                     startIcon={<EditIcon />}
                     onClick={handleEdit}
-                    sx={{ ...heroButtonStyle, bgcolor: "#ffffff", color: "#0f172a", "&:hover": { bgcolor: "#e2e8f0" } }}
+                    sx={{ ...heroButtonStyle, bgcolor: "#eee8ff", color: "#7040ef", border: "1px solid #d5c8ff", boxShadow: "none", "&:hover": { bgcolor: "#e4dbff" } }}
                   >
                     Edit profile
                   </Button>
@@ -307,16 +296,13 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
           {applicationWarning && <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>{applicationWarning}</Alert>}
 
           <Grid container spacing={1.5} sx={{ mb: 2 }}>
-            <ProfileMetric icon={<CreditScoreIcon />} label="Submitted score" value={profile.creditScore ?? "—"} meta={scoreBand.label} color={scoreBand.color} />
             <ProfileMetric icon={<AssignmentTurnedInIcon />} label="Applications" value={totalApplications} meta="Your records" color="#2563eb" />
             <ProfileMetric icon={<CheckCircleIcon />} label="Pre-approved" value={applicationSummary.approved} meta="Positive decisions" color="#16a34a" />
             <ProfileMetric icon={<PaymentsIcon />} label="Fee pending" value={applicationSummary.feePending} meta="Action required" color="#7c3aed" />
           </Grid>
 
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, lg: 7 }}>
-              <Stack spacing={2}>
-                <Card sx={panelStyle}>
+            <Grid size={{ xs: 12, lg: 4 }}><Card sx={panelStyle}>
                   <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
                     <SectionHeading
                       icon={<BadgeIcon />}
@@ -354,15 +340,61 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
                     ) : (
                       <Stack divider={<Divider flexItem />} spacing={0} sx={{ mt: 1.5 }}>
                         <DetailRow icon={<BadgeIcon />} label="Display name" value={displayName} />
-                        <DetailRow icon={<EmailIcon />} label="Email address" value={displayEmail} tag="Verified login" />
-                        <DetailRow icon={<PhoneIcon />} label="Mobile number" value={profile.mobile || "Not added"} tag={profile.mobile ? "Contact ready" : "Add number"} />
+                        <DetailRow icon={<EmailIcon />} label="Email address" value={displayEmail}  />
+                        <DetailRow icon={<PhoneIcon />} label="Mobile number" value={profile.mobile || "Not added"}  />
                         <DetailRow icon={<SecurityIcon />} label="Account role" value={profile.role || "USER"} />
                       </Stack>
                     )}
                   </CardContent>
-                </Card>
-
-                <Card sx={panelStyle}>
+                </Card></Grid>
+            <Grid size={{ xs: 12, lg: 4 }}><Card sx={panelStyle}>
+                  <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
+                    <SectionHeading
+                      icon={<SecurityIcon />}
+                      title="Account security"
+                      subtitle="Authentication and current session information."
+                    />
+                    <Button size="small" onClick={() => document.getElementById("authenticator-settings")?.scrollIntoView({ behavior: "smooth", block: "start" })} sx={{ mt: 1.5, textTransform: "none", fontWeight: 800 }}>Manage two-factor authentication →</Button>
+                    <Stack divider={<Divider flexItem />} sx={{ mt: 1.5 }}>
+                      <SecurityFact label="Session" value={session.label} positive={session.status === "active"} />
+                      <SecurityFact label="Signed-in email" value={displayEmail} positive={session.status === "active"} />
+                      <SecurityFact label="Session expiry" value={session.expiresAt ? session.expiresAt.toLocaleString("en-IN") : "Managed by current login"} positive={session.status === "active"} />
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
+                      Your JWT token is used only for authenticated API requests and is never displayed here.
+                    </Typography>
+                    <Button color="error" variant="outlined" startIcon={<LogoutIcon />} onClick={handleLogout} sx={{ ...actionButtonStyle, mt: 2 }}>
+                      Logout securely
+                    </Button>
+                  </CardContent>
+                </Card></Grid>
+            <Grid size={{ xs: 12, lg: 4 }}><Card sx={panelStyle}>
+                  <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
+                    <SectionHeading
+                      icon={<CheckCircleIcon />}
+                      title="Profile completeness"
+                      subtitle={`${completeness.completed} of ${completeness.total} key details available.`}
+                    />
+                    <Box sx={{ position: "relative", width: 136, height: 136, mx: "auto", mt: 2.5 }}>
+                      <CircularProgress variant="determinate" value={100} size={136} thickness={4} sx={{ color: "#e7f5ef", position: "absolute" }} />
+                      <CircularProgress variant="determinate" value={completeness.percent} size={136} thickness={4} sx={{ color: "#19b98f", position: "absolute" }} />
+                      <Box sx={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                        <Typography variant="h4">{completeness.percent}%</Typography>
+                        <Typography variant="caption" color="text.secondary">Complete</Typography>
+                      </Box>
+                    </Box>
+                    <Stack spacing={.75} sx={{ mt: 2 }}>{[["Full name", !completeness.missing.includes("full name")], ["Email address", !completeness.missing.includes("email")], ["Mobile number", !completeness.missing.includes("mobile number")], ["Submitted credit profile", !completeness.missing.includes("credit profile")]].map(([label, done]) => <Box key={label} sx={{ display: "flex", gap: 1, alignItems: "center" }}><CheckCircleIcon sx={{ fontSize: 18, color: done ? "#16ad83" : "#c7cde0" }} /><Typography variant="body2">{label}{!done ? " · Not added" : ""}</Typography></Box>)}</Stack>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1.25 }}>
+                      {completeness.missing.length
+                        ? `Add ${completeness.missing.join(" and ")} to complete your profile.`
+                        : "Your core profile information is complete."}
+                    </Typography>
+                    {completeness.missing.includes("mobile number") && !editing && (
+                      <Button startIcon={<EditIcon />} onClick={handleEdit} sx={{ mt: 1, textTransform: "none", fontWeight: 900 }}>Complete profile</Button>
+                    )}
+                  </CardContent>
+                </Card></Grid>
+            <Grid size={{ xs: 12 }}><Card sx={panelStyle}>
                   <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
                     <Box sx={{ display: "flex", alignItems: { xs: "flex-start", sm: "center" }, justifyContent: "space-between", gap: 1.5, flexDirection: { xs: "column", sm: "row" } }}>
                       <SectionHeading
@@ -387,13 +419,8 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
                       </Stack>
                     )}
                   </CardContent>
-                </Card>
-              </Stack>
-            </Grid>
-
-            <Grid size={{ xs: 12, lg: 5 }}>
-              <Stack spacing={2}>
-                <Card sx={panelStyle}>
+                </Card></Grid>
+            <Grid size={{ xs: 12 }}><Card sx={panelStyle}>
                   <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
                     <SectionHeading
                       icon={<CreditScoreIcon />}
@@ -419,59 +446,18 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
                       This is the highest self-reported score from your submitted loan applications—not a live CIBIL or Experian bureau pull.
                     </Alert>
                   </CardContent>
-                </Card>
-
-                <Card sx={panelStyle}>
-                  <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
-                    <SectionHeading
-                      icon={<CheckCircleIcon />}
-                      title="Profile completeness"
-                      subtitle={`${completeness.completed} of ${completeness.total} key details available.`}
-                    />
-                    <Box sx={{ position: "relative", width: 136, height: 136, mx: "auto", mt: 2.5 }}>
-                      <CircularProgress variant="determinate" value={100} size={136} thickness={4} sx={{ color: "#e7f5ef", position: "absolute" }} />
-                      <CircularProgress variant="determinate" value={completeness.percent} size={136} thickness={4} sx={{ color: "#19b98f", position: "absolute" }} />
-                      <Box sx={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                        <Typography variant="h4">{completeness.percent}%</Typography>
-                        <Typography variant="caption" color="text.secondary">Complete</Typography>
-                      </Box>
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1.25 }}>
-                      {completeness.missing.length
-                        ? `Add ${completeness.missing.join(" and ")} to complete your profile.`
-                        : "Your core profile information is complete."}
-                    </Typography>
-                    {completeness.missing.includes("mobile number") && !editing && (
-                      <Button startIcon={<EditIcon />} onClick={handleEdit} sx={{ mt: 1, textTransform: "none", fontWeight: 900 }}>Complete profile</Button>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card sx={panelStyle}>
-                  <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
-                    <SectionHeading
-                      icon={<SecurityIcon />}
-                      title="Account security"
-                      subtitle="Authentication and current session information."
-                    />
-                    <Stack divider={<Divider flexItem />} sx={{ mt: 1.5 }}>
-                      <SecurityFact label="Session" value={session.label} positive={session.status === "active"} />
-                      <SecurityFact label="Signed-in email" value={displayEmail} positive />
-                      <SecurityFact label="Session expiry" value={session.expiresAt ? session.expiresAt.toLocaleString("en-IN") : "Managed by current login"} positive={session.status === "active"} />
-                    </Stack>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
-                      Your JWT token is used only for authenticated API requests and is never displayed here.
-                    </Typography>
-                    <Button color="error" variant="outlined" startIcon={<LogoutIcon />} onClick={handleLogout} sx={{ ...actionButtonStyle, mt: 2 }}>
-                      Logout securely
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Stack>
-            </Grid>
+                </Card></Grid>
           </Grid>
 
-          <Box sx={{ mt: 2.5 }}><AuthenticatorSettings email={currentAuth.email} /></Box>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/")}
+            sx={{ mb: 2, textTransform: "none", fontWeight: 800 }}
+          >
+            Back to dashboard
+          </Button>
+
+          <Box id="authenticator-settings" sx={{ mt: 2.5, scrollMarginTop: 90 }}><AuthenticatorSettings email={currentAuth.email} /></Box>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right", mt: 1.5 }}>
             {lastRefreshedAt ? `Last refreshed ${new Date(lastRefreshedAt).toLocaleString("en-IN")}` : "Waiting for profile refresh"}
           </Typography>
@@ -493,11 +479,11 @@ const ProfilePage = ({ themeMode = "system", onThemeModeChange = () => {} }) => 
 };
 
 const panelStyle = {
-  borderRadius: 3,
-  border: "1px solid",
-  borderColor: "divider",
+  height: "100%",
+  borderRadius: 2,
+  border: "1px solid #e2e7fb",
   bgcolor: "background.paper",
-  boxShadow: "0 16px 36px rgba(15, 23, 42, 0.1)"
+  boxShadow: "0 4px 18px rgba(68,75,135,.04)"
 };
 
 const heroButtonStyle = {
@@ -517,15 +503,16 @@ const actionButtonStyle = {
 };
 
 const ProfileMetric = ({ icon, label, value, meta, color }) => (
-  <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+  <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
     <Card sx={{ ...panelStyle, height: "100%", background: `linear-gradient(120deg, ${color}0b, #fff)`, borderColor: `${color}25` }}>
       <CardContent sx={{ p: 2.25, display: "flex", gap: 1.5, alignItems: "center", "&:last-child": { pb: 2.25 } }}>
         <Box sx={{ width: 46, height: 46, borderRadius: 2, display: "grid", placeItems: "center", bgcolor: `${color}18`, color }}>{icon}</Box>
-        <Box>
+        <Box sx={{ flex: 1 }}>
           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800 }}>{label}</Typography>
-          <Typography variant="h5" sx={{ fontWeight: 900, lineHeight: 1.15 }}>{value}</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 900, lineHeight: 1.3, color }}>{value}</Typography>
           <Typography variant="caption" sx={{ color, fontWeight: 800 }}>{meta}</Typography>
         </Box>
+        <Box aria-hidden="true" sx={{ display: "flex", alignItems: "flex-end", gap: .6, opacity: .35 }}>{[18, 28, 40, 52].map(height => <Box key={height} sx={{ height, width: 7, bgcolor: color, borderRadius: 2 }} />)}</Box>
       </CardContent>
     </Card>
   </Grid>
@@ -533,20 +520,20 @@ const ProfileMetric = ({ icon, label, value, meta, color }) => (
 
 const SectionHeading = ({ icon, title, subtitle }) => (
   <Box sx={{ display: "flex", gap: 1.25, alignItems: "flex-start" }}>
-    <Box sx={{ width: 42, height: 42, flexShrink: 0, borderRadius: 2, display: "grid", placeItems: "center", bgcolor: "rgba(13,148,136,0.12)", color: "#0d9488" }}>{icon}</Box>
+    <Box sx={{ width: 42, height: 42, flexShrink: 0, borderRadius: 2, display: "grid", placeItems: "center", bgcolor: "#eee8ff", color: "#7848ff" }}>{icon}</Box>
     <Box>
       <Typography variant="h6" sx={{ fontWeight: 900 }}>{title}</Typography>
-      <Typography variant="body2" color="text.secondary">{subtitle}</Typography>
+      <Typography variant="caption" color="text.secondary">{subtitle}</Typography>
     </Box>
   </Box>
 );
 
 const DetailRow = ({ icon, label, value, tag }) => (
-  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "36px 1fr", sm: "36px 170px minmax(0, 1fr) auto" }, alignItems: "center", gap: 1.25, py: 1.75 }}>
+  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "36px 1fr", sm: "28px 100px minmax(0, 1fr)" }, alignItems: "center", gap: 1, py: 1.25 }}>
     <Box sx={{ color: "primary.main", display: "flex" }}>{icon}</Box>
     <Typography color="text.secondary" sx={{ fontWeight: 700 }}>{label}</Typography>
-    <Typography sx={{ gridColumn: { xs: "2", sm: "auto" }, fontWeight: 900, overflowWrap: "anywhere" }}>{value}</Typography>
-    {tag && <Chip size="small" label={tag} variant="outlined" sx={{ gridColumn: { xs: "2", sm: "auto" }, justifySelf: "start", fontWeight: 800 }} />}
+    <Typography sx={{ gridColumn: { xs: "2", sm: "auto" }, fontWeight: 600, fontSize: 14, overflowWrap: "anywhere" }}>{value}</Typography>
+    {tag && <Chip size="small" label={tag} variant="outlined" sx={{ gridColumn: { xs: "2", sm: "3" }, justifySelf: "start", fontWeight: 800 }} />}
   </Box>
 );
 
