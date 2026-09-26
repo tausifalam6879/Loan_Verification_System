@@ -19,6 +19,22 @@ body {
 .fintrack-workspace .MuiLinearProgress-bar { border-radius: 8px; }
 .workspace-card-button { width: 100%; text-align: left; }
 @media (max-width: 600px) { .workspace-heading { align-items: flex-start; flex-direction: column; } .workspace-heading-art { width: 150px; } }
+@media (max-width: 899px) {
+  .fintrack-workspace { min-width: 0; }
+  .fintrack-workspace .MuiGrid-root,
+  .fintrack-workspace .MuiCard-root,
+  .fintrack-workspace .MuiStack-root { min-width: 0; }
+  .fintrack-workspace .MuiTypography-root { overflow-wrap: anywhere; }
+  .fintrack-workspace .MuiTableContainer-root { max-width: 100%; overflow-x: auto; }
+  .fintrack-workspace .MuiButton-root { min-height: 44px; }
+  .workspace-heading { min-height: 0; margin-bottom: 20px; gap: 12px; }
+  .workspace-heading h1 { font-size: clamp(1.65rem, 6vw, 2.15rem); line-height: 1.2; }
+}
+@media (max-width: 599px) {
+  .fintrack-workspace .MuiCardContent-root { padding: 16px; }
+  .fintrack-workspace .MuiOutlinedInput-input { font-size: 16px; }
+  .fintrack-workspace [id] { scroll-margin-top: 80px; }
+}
 @media (prefers-reduced-motion: reduce) { .fintrack-workspace *, .fintrack-workspace *::before { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
 #root {

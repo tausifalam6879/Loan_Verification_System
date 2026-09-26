@@ -23,7 +23,7 @@ export default function MarketplaceOffers({ rows = [], loading, selectedId, tenu
   if (loading) return <Box sx={{ py: 5, textAlign: "center" }}><CircularProgress /><Typography>Loading loan offers from backend...</Typography></Box>;
   return <Stack spacing={2.5}>
     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><Typography variant="h5" sx={{ fontWeight: 900 }}>Top Loan Offers</Typography><Typography variant="body2" color="text.secondary">{rows.length} offers in current filters · demo offers</Typography></Box>
-    {!rows.length ? <Alert severity="info">No offers match this loan type. Try another filter.</Alert> : <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 2 }}>
+    {!rows.length ? <Alert severity="info">No offers match this loan type. Try another filter.</Alert> : <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" }, gap: 2 }}>
       {rows.map(({ offer, metrics, eligibility }, index) => {
         const color = colors[index % colors.length];
         return <Card key={offer.id} elevation={0} sx={{ ...panel, background: "linear-gradient(130deg," + color + "08,#fff)", borderColor: offer.id === selectedId ? color : color + "28" }}>
@@ -39,14 +39,14 @@ export default function MarketplaceOffers({ rows = [], loading, selectedId, tenu
         </Card>;
       })}
     </Box>}
-    {preview && <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0,1.65fr) minmax(0,1fr)", gap: 2 }}>
+    {preview && <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0,1.65fr) minmax(0,1fr)" }, gap: 2 }}>
       <Card elevation={0} sx={panel}>
         <Typography variant="h6" sx={{ fontWeight: 900, display: "flex", gap: 1, alignItems: "center" }}><CompareArrowsIcon sx={{ color: "#7545ef" }} />Loan Comparison</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>First {comparison.length} offers in your current sort · EMI for {tenureMonths} months</Typography>
-        <Box component="table" sx={{ width: "100%", borderCollapse: "collapse", fontSize: 13, "& th, & td": { p: 1.25, border: "1px solid #e8ecf8", textAlign: "left" }, "& th": { bgcolor: "#f5f6ff", fontWeight: 800 }, "& td:not(:first-of-type)": { fontWeight: 700 } }}>
+        <Box role="region" aria-label="Loan comparison" tabIndex={0} sx={{ overflowX: "auto" }}><Box component="table" sx={{ minWidth: 540, width: "100%", borderCollapse: "collapse", fontSize: 13, "& th, & td": { p: 1.25, border: "1px solid #e8ecf8", textAlign: "left" }, "& th": { bgcolor: "#f5f6ff", fontWeight: 800 }, "& td:not(:first-of-type)": { fontWeight: 700 } }}>
           <thead><tr><th>Feature</th>{comparison.map(row => <th key={row.offer.id}>{row.offer.bank?.name}<Typography variant="caption" sx={{ display: "block", fontWeight: 400 }}>{row.offer.loanType?.name}</Typography></th>)}</tr></thead>
           <tbody>{features.map(([label, getValue]) => <tr key={label}><td>{label}</td>{comparison.map(row => <td key={row.offer.id}>{getValue(row)}</td>)}</tr>)}</tbody>
-        </Box>
+        </Box></Box>
       </Card>
       <Stack spacing={2}>
         <Card elevation={0} sx={panel}>

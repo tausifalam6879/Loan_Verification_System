@@ -211,14 +211,14 @@ const InvestmentSection = () => {
           <Chip icon={<CalculateIcon />} label="Interactive projections" color="primary" sx={{ fontWeight: 900 }} />
         </Stack>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mb: 2.5 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "1fr 1fr" }, gap: 2, mb: 2.5 }}>
           {[
             ["Financial goal", "What are you saving for?", "goal", ["Emergency fund", "Short-term purchase", "Education", "Home", "Retirement", "Wealth creation"], "#7848ff", <TrackChangesIcon />],
             ["Risk preference", "Choose your comfort level.", "risk", ["Low", "Moderate", "High"], "#00a67d", <TrendingUpIcon />]
-          ].map(([label, note, field, options, color, icon]) => <Box key={field} sx={{ display: "flex", alignItems: "center", gap: 2, p: 2.5, bgcolor: "#fff", border: "1px solid #e3e8fc", borderRadius: 2.5 }}>
+          ].map(([label, note, field, options, color, icon]) => <Box key={field} sx={{ display: "flex", flexWrap: { xs: "wrap", sm: "nowrap" }, alignItems: "center", gap: 2, p: 2.5, bgcolor: "#fff", border: "1px solid #e3e8fc", borderRadius: 2.5 }}>
             <Box sx={{ width: 54, height: 54, flexShrink: 0, borderRadius: 2, bgcolor: color + "15", color, display: "grid", placeItems: "center" }}>{icon}</Box>
             <Box sx={{ flex: 1 }}><Typography sx={{ fontWeight: 900 }}>{label}</Typography><Typography variant="body2" color="text.secondary">{note}</Typography></Box>
-            <TextField select label={label} value={inputs[field]} onChange={(e) => updateInput(field, e.target.value)} size="small" sx={{ width: "46%" }}>
+            <TextField select label={label} value={inputs[field]} onChange={(e) => updateInput(field, e.target.value)} size="small" sx={{ width: { xs: "100%", sm: "46%" } }}>
               {options.map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}
             </TextField>
           </Box>)}
@@ -367,7 +367,7 @@ const InvestmentSection = () => {
           </Grid>
         </Grid>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, 2.1fr) minmax(280px, 1fr)", gap: 2.5, mt: 2.5 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 2.1fr) minmax(280px, 1fr)" }, gap: 2.5, mt: 2.5 }}>
         <Card sx={{ borderRadius: 2.5, border: "1px solid #e3e8fc" }}>
           <CardContent sx={{ p: 2.5 }}>
             <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 1 }}><TrendingUpIcon color="primary" /><Typography variant="h6">Growth comparison</Typography></Stack>

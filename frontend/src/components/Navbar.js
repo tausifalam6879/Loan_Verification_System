@@ -45,6 +45,7 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, em
       <Toolbar sx={{ gap: { xs: 0.5, sm: 1, md: 2 }, px: { xs: 1, sm: 2.5 }, minHeight: { xs: 64, md: 72 } }}>
         <IconButton
           edge="start"
+          aria-label="Open navigation menu"
           onClick={() => setDrawerOpen(true)}
           sx={{ color: "#ffffff", display: { md: "none" } }}
         >
@@ -57,7 +58,7 @@ const Navbar = ({ setDrawerOpen, balance, themeMode, onThemeModeChange, role, em
             noWrap
             sx={{ color: "#ffffff", fontWeight: 900, lineHeight: 1.1, fontSize: { xs: "1rem", sm: "1.15rem", md: "1.25rem" } }}
           >
-            FinTech Dashboard
+            FinTrack
           </Typography>
           <Typography variant="caption" sx={{ color: "#94a3b8", display: { xs: "none", md: "block" } }}>
             FinTech Loan Aggregator workspace

@@ -28,7 +28,7 @@ export default function PaymentWorkspace({ paymentMethod, setPaymentMethod, onSt
     </Stepper>
     <Box>
       <Typography sx={{ fontWeight: 900, mb: 1.2 }}>Select Payment Method</Typography>
-      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 1.5 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(3, minmax(0, 1fr))", xl: "repeat(5, minmax(0, 1fr))" }, gap: 1.5 }}>
         {paymentGatewayOptions.map(method => {
           const selected = method.id === paymentMethod;
           const Icon = method.id === "card" ? CreditCardIcon : method.id === "netbanking" ? AccountBalanceIcon : SmartphoneIcon;
@@ -43,13 +43,13 @@ export default function PaymentWorkspace({ paymentMethod, setPaymentMethod, onSt
         })}
       </Box>
     </Box>
-    <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1.8fr) minmax(0, 1fr)", gap: 2.5 }}>
+    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 1.8fr) minmax(0, 1fr)" }, gap: 2.5 }}>
       <Card elevation={0} sx={panel}>
         <Typography variant="h6" sx={{ display: "flex", alignItems: "center", gap: 1.5, fontWeight: 900, mb: 2.5 }}><CreditCardIcon sx={{ color: "#7040ff" }} />Payment Details</Typography>
         <Box component="form" onSubmit={start}>
           <TextField fullWidth required label="Send to (recipient)" placeholder="Enter recipient or merchant name" value={recipient} onChange={event => setRecipient(event.target.value)} slotProps={{ htmlInput: { maxLength: 120 } }} sx={{ mb: 2 }} />
           <Box sx={{ mb: 2, p: 1.5, borderRadius: 1.5, bgcolor: "#f7f8ff", border: "1px solid #e8ecfa" }}><Typography variant="caption" color="text.secondary">Purpose</Typography><Typography variant="body2" sx={{ fontWeight: 700 }}>General demo payment</Typography></Box>
-          <Stack direction="row" spacing={2}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             <TextField required label="Amount (Rs.)" type="number" value={amount} onChange={event => setAmount(event.target.value)} slotProps={{ htmlInput: { min: .01, step: .01 } }} sx={{ flex: 1 }} />
             <Button type="submit" disabled={!ready} variant="contained" endIcon={<ArrowForwardIcon />} sx={{ flex: 1.5, textTransform: "none", fontWeight: 800, borderRadius: 2, background: "linear-gradient(90deg,#6044ef,#8252ff)" }}>Continue to checkout</Button>
           </Stack>
@@ -71,7 +71,7 @@ export default function PaymentWorkspace({ paymentMethod, setPaymentMethod, onSt
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}><Typography variant="h6" sx={{ fontWeight: 900, display: "flex", gap: 1.5, alignItems: "center" }}><HistoryIcon sx={{ color: "#7040ff" }} />Recent Payments</Typography>{paymentHistory.length > 4 && <Button size="small" onClick={() => setShowAll(value => !value)}>{showAll ? "Show recent" : "View all"}</Button>}</Box>
       <Typography variant="caption" color="text.secondary">Device-local demo receipts · raw card and CVV details are never stored.</Typography>
       {!paymentHistory.length ? <Alert severity="info" sx={{ mt: 2 }}>No payments yet. Complete a demo checkout to create a receipt.</Alert> :
-        <Box component="table" sx={{ width: "100%", borderCollapse: "collapse", mt: 1.5, fontSize: 14, "& th": { bgcolor: "#f4f2ff", color: "#64719d", textAlign: "left" }, "& th, & td": { p: 1.3, borderBottom: "1px solid #edf0fa" } }}>
+        <Box role="region" aria-label="Payment history" tabIndex={0} sx={{ overflowX: "auto" }}><Box component="table" sx={{ minWidth: 650, width: "100%", borderCollapse: "collapse", mt: 1.5, fontSize: 14, "& th": { bgcolor: "#f4f2ff", color: "#64719d", textAlign: "left" }, "& th, & td": { p: 1.3, borderBottom: "1px solid #edf0fa" } }}>
           <thead><tr><th>Date</th><th>Recipient</th><th>Purpose / Method</th><th>Amount</th><th>Status</th><th>Receipt</th></tr></thead>
           <tbody>{(showAll ? paymentHistory : paymentHistory.slice(0, 4)).map(receipt => <tr key={receipt.reference}>
             <td>{new Date(receipt.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</td>
@@ -80,7 +80,7 @@ export default function PaymentWorkspace({ paymentMethod, setPaymentMethod, onSt
             <td style={{ fontWeight: 800 }}>Rs. {money(receipt.amount)}</td><td><Chip size="small" label={receipt.status} color={receipt.status === "SUCCESS" ? "success" : receipt.status === "FAILED" ? "error" : "warning"} variant="outlined" /></td>
             <td>{receipt.status === "SUCCESS" ? <Button size="small" onClick={() => onDownloadReceipt(receipt)}>Download</Button> : "—"}</td>
           </tr>)}</tbody>
-        </Box>}
+        </Box></Box>}
     </Card>
   </Stack>;
 }

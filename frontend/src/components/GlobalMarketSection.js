@@ -546,12 +546,12 @@ const MarketTrendPreview = ({ onOpenAnalysis }) => {
   const history = (trend?.history || []).slice(-period);
   return (
     <Paper component="section" variant="outlined" sx={{ p: 2.5 }}>
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+      <Stack direction={{ xs: "column", sm: "row" }} sx={{ justifyContent: "space-between", alignItems: { xs: "stretch", sm: "center" }, gap: 1.5, mb: 1 }}>
         <Box><SectionTitle icon={<TrendingUpIcon />} title="Market Trend" compact /><Typography variant="body2" color="text.secondary">Nifty 50 · published daily closing prices</Typography></Box>
         <Stack direction="row" spacing={0.75}>{[[5, "1W"], [22, "1M"], [66, "3M"], [252, "All"]].map(([value, label]) => <Button key={value} size="small" variant={period === value ? "contained" : "text"} onClick={() => setPeriod(value)} sx={{ minWidth: 48, borderRadius: 2 }}>{label}</Button>)}</Stack>
       </Stack>
       {history.length > 1 ? <PriceChart data={history} color="#10b981" /> : <Box sx={{ py: 7, textAlign: "center" }}><Typography color="text.secondary">{trend ? "Published price history is currently unavailable." : "Loading published price history…"}</Typography></Box>}
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mt: 1 }}>
+      <Stack direction={{ xs: "column", sm: "row" }} sx={{ justifyContent: "space-between", alignItems: { xs: "stretch", sm: "center" }, gap: 1, mt: 1 }}>
         <Typography variant="caption" color="text.secondary">Snapshot as of {formatTime(trend?.dataAsOf)} · {history.length} sessions shown</Typography>
         <Button size="small" endIcon={<ChevronRightIcon />} onClick={() => onOpenAnalysis("^NSEI")}>Open full ML evidence</Button>
       </Stack>
@@ -1232,19 +1232,19 @@ const QuoteFact = ({ label, value }) => (
 );
 
 const SectionTitle = ({ icon, title, detail, compact = false }) => (
-  <Box sx={{ display: "grid", gridTemplateColumns: detail ? "minmax(0, 1fr) auto" : "1fr", alignItems: "center", columnGap: 1.5, mb: compact ? 1 : 1.25 }}>
+  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", sm: detail ? "minmax(0, 1fr) auto" : "1fr" }, alignItems: "center", gap: .75, mb: compact ? 1 : 1.25 }}>
     <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", minWidth: 0, overflow: "hidden" }}>
       {icon && <Box sx={{ color: "#6d3cff", display: "flex" }}>{icon}</Box>}
       <Typography variant={compact ? "subtitle1" : "h6"} sx={{ fontWeight: 900, lineHeight: 1.25 }}>{title}</Typography>
     </Stack>
-    {detail && <Typography variant="caption" color="text.secondary" sx={{ textAlign: "right", pl: 1, maxWidth: { xs: 130, sm: 260 }, lineHeight: 1.3 }}>{detail}</Typography>}
+    {detail && <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: "left", sm: "right" }, maxWidth: { sm: 260 }, lineHeight: 1.3 }}>{detail}</Typography>}
   </Box>
 );
 
 const FactRow = ({ label, value }) => (
   <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "center", columnGap: 2, py: 0.8, borderBottom: "1px solid", borderColor: "divider" }}>
     <Typography variant="body2" color="text.secondary" sx={{ minWidth: 0 }}>{label}</Typography>
-    <Typography variant="body2" sx={{ fontWeight: 900, textAlign: "right", whiteSpace: "nowrap" }}>{value ?? "N/A"}</Typography>
+    <Typography variant="body2" sx={{ fontWeight: 900, textAlign: "right", overflowWrap: "anywhere" }}>{value ?? "N/A"}</Typography>
   </Box>
 );
 
