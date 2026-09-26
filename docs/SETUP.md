@@ -7,10 +7,14 @@ This guide explains how to run the Loan Verification System locally.
 - Java 21 or newer
 - Maven Wrapper included in the repository
 - Node.js and npm
-- MySQL Server
+- No database installation is needed for the default H2 mode; MySQL is optional.
 - Python 3.10+ for the optional fraud service
 
 ## Backend Setup
+
+The default backend uses in-memory H2. Start it directly with the command in step 3; its data resets on restart.
+
+For the optional MySQL profile only:
 
 1. Create the database:
 
@@ -18,13 +22,12 @@ This guide explains how to run the Loan Verification System locally.
 CREATE DATABASE loan_db;
 ```
 
-2. Check database credentials in `src/main/resources/application.properties`:
+2. Set the profile and credentials in your terminal (do not put passwords in tracked files):
 
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/loan_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-spring.datasource.username=root
-spring.datasource.password=root123
-server.port=8081
+```powershell
+$env:SPRING_PROFILES_ACTIVE="mysql"
+$env:MYSQL_USERNAME="root"
+$env:MYSQL_PASSWORD="your-local-password"
 ```
 
 3. Run the backend:
@@ -86,7 +89,7 @@ http://localhost:8000/health
 
 ## Optional Email and OTP Setup
 
-OTP endpoints exist, but OTP enforcement is disabled by default for local demos.
+The default configuration enables OTP and console fallback. Real delivery requires a configured provider. Never enable console fallback in production.
 
 For local OTP testing without SMTP, enable OTP and keep the console fallback on:
 
@@ -164,4 +167,4 @@ Confirm backend is running on port `8081` and frontend API services point to `ht
 
 ### MySQL connection fails
 
-Check that MySQL is running, the `loan_db` database exists, and the username/password in `application.properties` match your local machine.
+Check that MySQL is running, the `loan_db` database exists, and the `MYSQL_USERNAME` / `MYSQL_PASSWORD` environment variables match your local machine.

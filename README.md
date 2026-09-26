@@ -1,390 +1,119 @@
-# Loan Verification System
+# FinTrack — Loan Verification System
 
-A full-stack fintech-style loan verification platform built with Spring Boot, React, MySQL, JWT authentication, fraud-risk scoring, admin review workflows, charts, audit logs, and optional OTP/email/document-upload integrations.
+A full-stack application for managing expenses, comparing loan offers and tracking loan applications. Users manage their finances; administrators review applications with risk signals and an audit trail.
 
-Repository: https://github.com/tausifalam6879/Loan_Verification_System
+[Open the application](https://tausifalam6879.github.io/Loan_Verification_System/) · [System design](docs/SYSTEM_DESIGN.md) · [Setup guide](docs/SETUP.md) · [API guide](docs/API.md)
 
-Live demo: https://tausifalam6879.github.io/Loan_Verification_System
+## What you can do
 
-## What This Project Does
+- **Account:** register, sign in, manage your profile and use configured verification methods.
+- **Expenses:** record spending, review categories and track budgets.
+- **Loans:** compare offers, submit application details/documents and track review status.
+- **Admin review:** inspect applications, approve or reject them, and review audit logs.
+- **Insights:** explore savings estimates, expense analysis, market research and AI explanations.
 
-Loan Verification System helps users register, manage expenses, compare loan offers, submit loan applications with document data, track application status, and view profile/application metrics. Admin users can review applications, inspect full application details, approve or reject loans, monitor risk levels, view analytics charts, and track admin activity through audit logs.
+Payments are a **simulation**, not real money transfers. Seeded loan offers and risk scores are project features, not bank approval guarantees.
 
-Public registration is locked to the `USER` role. Admin access must be assigned manually from the database or backend side, which matches safer real-world behavior.
-
-## Key Features
-
-- JWT-based login and protected frontend routes.
-- Secure registration flow where users cannot self-register as admin.
-- Profile page showing name, email, role, total applications, and credit score.
-- User dashboard with expense tracking, transactions, investments, loan marketplace, loan applications, and AI assistant.
-- Loan marketplace with seeded banks and offers, including SBI, HDFC, ICICI, and Axis comparisons.
-- Loan application workflow with Aadhaar, PAN, nominee mobile validation, passport photo/document data, risk signals, status tracking, and payment marker.
-- Admin dashboard with application table, details modal, status timeline, approval/rejection actions, charts, fraud-risk monitoring, and audit logs.
-- Recharts analytics for loan status, risk distribution, and monthly expenses.
-- Optional OTP verification endpoints for account flows.
-- OTP controls are hidden in local mode until backend OTP settings are enabled.
-- Local OTP development fallback logs the OTP in the backend console when SMTP is not enabled.
-- Optional email notifications for account and loan-status events.
-- Optional Cloudinary document upload support with base64 fallback for local demos.
-- Separate FastAPI AI/Data Science service for loan-risk scoring, ML expense categorization, expense forecasting, anomaly detection, and saving recommendations.
-- Global market workspace covering major US, European, Indian, and Asian indices plus custom Yahoo Finance symbols.
-- Next-session probabilistic outlook using technical features, Logistic Regression, chronological backtesting, news factors, and an Ollama research agent.
-- API documentation and setup docs included in `docs/`.
-
-## Live Demo
-
-GitHub Pages hosts the React frontend in one of two explicit modes. If the repository variable `REACT_APP_API_BASE_URL` is not configured, the workflow publishes the account-scoped browser demo. If a valid Spring Boot API URL is configured, the workflow validates its health endpoint before publishing a full-stack build. Market screens also include a Yahoo Finance snapshot refreshed during frontend deployments plus a browser last-known-good cache, so a sleeping or unavailable cloud backend does not leave the interview demo blank.
-
-Demo URL:
-
-```text
-https://tausifalam6879.github.io/Loan_Verification_System
-```
-
-In the default GitHub Pages browser-demo mode, register an account and then sign in with the same email/mobile and password or verified demo OTP. Private routes validate a short-lived browser session before rendering, and saved demo data is isolated by registered account. The market workspace still uses the timestamped public snapshot without requiring Java, Python or a database. Browser storage is for portfolio demonstrations, not production identity storage. A separately deployed backend is required for persistent multi-user accounts and arbitrary live research requests.
-
-## Tech Stack
-
-| Layer | Technology |
-| --- | --- |
-| Frontend | React, React Router, Material UI, Recharts, Axios |
-| Backend | Java, Spring Boot, Spring Security, Spring Data JPA, Validation |
-| Database | H2 (local default), MySQL (optional local profile), PostgreSQL (production) |
-| Auth | JWT |
-| AI/Data Science Service | Python, FastAPI, Pandas, Scikit-learn, TF-IDF, Logistic Regression, Joblib |
-| Optional Integrations | SMTP/Resend/Gmail API email, Twilio SMS/WhatsApp, Cloudinary unsigned uploads |
-| Market GenAI | yfinance market history, Scikit-learn model, Ollama/Gemini/OpenAI-compatible backend provider |
-| Build/Test | Maven Wrapper, npm, React Testing Library |
-
-## Architecture
+## System at a glance
 
 ```mermaid
 flowchart LR
-    user["User/Admin Browser"] --> react["React Frontend"]
-    react --> api["Spring Boot REST API"]
-    api --> database["H2 / MySQL / PostgreSQL"]
-    api -.optional.-> notifications["Resend / Gmail API / SMTP / Twilio"]
-    react -.optional.-> cloudinary["Cloudinary Upload API"]
-    api --> ai["FastAPI AI/Data Science Service"]
-    ai -.optional.-> llm["Ollama / Gemini / OpenAI-compatible LLM"]
+    Browser["User / Admin"] --> UI["React frontend"]
+    UI --> API["Spring Boot API"]
+    API --> DB[("PostgreSQL / Neon")]
+    API --> AI["FastAPI analytics"]
+    API -.-> Mail["Email / OTP provider"]
+    AI -.-> Data["Market data and optional LLM"]
 ```
 
-## Project Structure
+React displays the interface. Spring Boot owns authentication, permissions and business data. FastAPI provides analytics; it does not replace the application's review workflow.
 
-```text
-VerificationSystem/
-  src/main/java/com/loan/VerificationSystem/
-    controller/        REST controllers
-    service/           Business logic
-    repository/        Spring Data repositories
-    entity/            JPA entities
-    dto/               Request/response DTOs
-    config/            Security, CORS, seed data
-    security/          JWT and user-details integration
-  src/main/resources/
-    application.properties
-  frontend/
-    src/components/    Dashboard widgets and shared UI
-    src/pages/         Auth, dashboard, admin, profile pages
-    src/services/      Axios API services
-    src/utils/         Upload helpers
-  ai-fraud-service/    Optional Python FastAPI ML service
-  docs/                Setup, API, and feature documentation
-```
+See the [system design](docs/SYSTEM_DESIGN.md) for request flows, database relationships, deployment and security boundaries.
 
-## Quick Start
+## Technology
 
-### 1. Database
+| Part | Technology |
+| --- | --- |
+| Interface | React, Material UI, Recharts |
+| Application API | Java 21, Spring Boot, Spring Security, JWT, JPA |
+| Database | H2 locally; PostgreSQL/Neon in the cloud; optional MySQL profile |
+| Analytics | Python, FastAPI, pandas, scikit-learn |
+| Hosting | GitHub Pages frontend; Google Cloud Run services |
 
-By default the backend uses an in-memory H2 database so the project runs without MySQL password setup.
+## Run locally
 
-If you want MySQL, create a MySQL database:
+Install Java 21, Node.js/npm and, for analytics, Python. Run each service in a separate terminal from the repository root.
 
-```sql
-CREATE DATABASE loan_db;
-```
-
-Then run the backend with the `mysql` profile and set credentials:
-
-```powershell
-$env:MYSQL_USERNAME="root"
-$env:MYSQL_PASSWORD="your-mysql-password"
-java -jar target\VerificationSystem-0.0.1-SNAPSHOT.jar --spring.profiles.active=mysql
-```
-
-### 2. Backend
+**1. Start the backend**
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-Backend runs on:
+The API runs on port **8081**. The default H2 database is in memory: local data is lost when the backend stops. No MySQL installation is required for this mode.
 
-```text
-http://localhost:8081
-```
-
-Health check:
-
-```text
-GET http://localhost:8081/api/users/test
-```
-
-For local demo without MySQL, build once and run:
-
-```powershell
-.\mvnw.cmd package -DskipTests
-.\start-backend.ps1
-```
-
-To enable email OTP in local mode, start the backend with OTP enabled. If SMTP is not configured, the OTP is written to `target/backend-run.log`:
-
-```powershell
-$env:APP_OTP_ENABLED="true"
-.\start-backend.ps1
-```
-
-For real Gmail email OTP delivery, use a Gmail App Password:
-
-```powershell
-$env:APP_OTP_ENABLED="true"
-$env:APP_MAIL_ENABLED="true"
-$env:SMTP_USERNAME="yourgmail@gmail.com"
-$env:SMTP_PASSWORD="your-gmail-app-password"
-.\start-backend.ps1
-```
-
-For real SMS/WhatsApp OTP delivery, configure a Twilio-compatible account:
-
-```powershell
-$env:APP_OTP_ENABLED="true"
-$env:APP_SMS_ENABLED="true"
-$env:APP_WHATSAPP_ENABLED="true"
-$env:TWILIO_ACCOUNT_SID="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-$env:TWILIO_AUTH_TOKEN="your_twilio_auth_token"
-$env:TWILIO_SMS_FROM="+1234567890"
-$env:TWILIO_WHATSAPP_FROM="whatsapp:+14155238886"
-.\start-backend.ps1
-```
-
-For a no-cold-start presentation, double-click `Start-FinTrack-Instant-Demo.cmd`.
-It starts the backend on port `8090`, waits until it is healthy, starts the
-frontend on port `3000`, and only then opens the login page. The local H2 data
-is file-backed, so accounts created in this mode survive computer restarts.
-Keep the launcher-started processes running throughout the presentation.
-
-The public Render service must use an HTTPS email provider because Render Free blocks outbound SMTP ports. `render.yaml` supports Resend and a domain-free Gmail API OAuth provider. Add only the secrets for the selected provider, then set `APP_MAIL_PROVIDER` to `resend` or `gmail-api`. The same Blueprint prompts for the four Twilio values required by Mobile and WhatsApp OTP. See [Email OTP Setup](docs/EMAIL_OTP.md).
-
-### 3. Frontend
+**2. Start the frontend**
 
 ```powershell
 cd frontend
 npm install
+$env:REACT_APP_DEMO_MODE="false"
+$env:REACT_APP_API_BASE_URL="http://localhost:8081/api"
 npm start
 ```
 
-Frontend runs on:
+Open [the local frontend](http://localhost:3000/Loan_Verification_System/).
 
-```text
-http://localhost:3000
-```
-
-### 4. Optional AI/Data Science Service
-
-```powershell
-.\start-ai-service.bat
-```
-
-Or run it manually:
+**3. Start analytics (optional for basic account/loan screens)**
 
 ```powershell
 cd ai-fraud-service
 python -m venv .venv
-.\.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-AI service runs on:
+Database profiles, email setup and troubleshooting are in the [setup guide](docs/SETUP.md).
 
-```text
-http://localhost:8000
-```
+## Deployment and demo modes
 
-Spring Boot calls it through:
+- **Full stack:** GitHub Pages calls the Cloud Run API, which stores accounts and application data in Neon.
+- **Browser demo:** when built in demo mode, data stays in browser storage. This is not production authentication or shared database storage.
+- **Cloud deployment:** [deploy_google_cloud.sh](scripts/deploy_google_cloud.sh) deploys the API and analytics services. Review its project/database defaults before running it in Cloud Shell.
+- Set the frontend's `REACT_APP_API_BASE_URL` to the deployed API URL ending in `/api`. Keep database passwords, JWT secrets and provider keys server-side.
 
-```text
-POST http://localhost:8081/api/ai/expenses/category
-```
+The deployment script creates billable cloud resources. Its minimum-instance settings can incur charges even when the site is idle.
 
-### 5. Local Ollama Market Agent
+## Project map
 
-Install Ollama, then download the model once:
+| Directory | Contents |
+| --- | --- |
+| `frontend/` | Pages, components and API clients |
+| `src/main/java/com/loan/VerificationSystem/` | Controllers, services, entities, repositories and security |
+| `src/main/resources/` | Runtime configuration and database profiles |
+| `ai-fraud-service/` | Analytics, market research and model code |
+| `scripts/` | Deployment and maintenance helpers |
+| `docs/` | Setup, API and system documentation |
 
-```powershell
-ollama pull llama3.2:3b
-```
-
-Confirm `http://localhost:11434` reports that Ollama is running, then start the Python service, Spring Boot backend and React frontend. Default values are already applied by `start-ai-service.bat`:
-
-```env
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-LLM_MODEL=llama3.2:3b
-LLM_TIMEOUT_MS=60000
-```
-
-Open:
-
-```text
-http://localhost:3000/Loan_Verification_System#/markets
-```
-
-React calls only `/api/market/*` on Spring Boot. Spring Boot proxies the request to FastAPI, and only FastAPI calls the configured LLM. Local Ollama needs no paid API token.
-
-Market endpoints:
-
-```text
-GET  /api/market/overview
-GET  /api/market/analysis?symbol=^NSEI
-GET  /api/market/news?symbol=AAPL
-GET  /api/market/factors
-GET  /api/market/breadth
-GET  /api/market/company?symbol=RELIANCE.NS
-GET  /api/market/news-feed
-POST /api/market/agent
-```
-
-The market page fetches Yahoo Finance research data through `yfinance` when it opens. Its native Current Market Board covers indices plus technology, banking, automobile, energy, consumer, healthcare, telecom and media companies, with sector filters and a continuous ticker. When a backend is available, quote cards poll it every 30 seconds and the backend reuses each minute quote for up to 15 seconds to avoid upstream rate-limit bursts. Supporting breadth, factors, news and research refresh every two minutes and whenever the browser tab becomes active. The Refresh control retries the newest source immediately. It shows whether the displayed data came from the live backend, browser cache, or scheduled public snapshot, together with its timestamp. Quote and index cards stay inside FinTrack and open an internal research view when selected; only explicit verification/news links open another website. This is not an exchange-grade streaming feed; official NSE real-time redistribution requires a licensed data provider.
-
-For interview reliability, `.github/workflows/deploy-frontend.yml` refreshes the public snapshot whenever the frontend is deployed and publishes `frontend/public/data/market-snapshot.json` with the Pages artifact. The page rechecks the published snapshot every minute, and its preference order is live backend, newest successful browser cache/deployment snapshot, then a clear unavailable message. A provider timeout cannot silently produce fake zeroes or `N/A` cards. Popular indices, multi-sector quotes, macro factors, displayed movers, company research and deterministic market-agent evidence are included in the snapshot. Arbitrary tickers and a real LLM response still require the cloud backend.
-
-The Market Risk Alerts section derives transparent large-move signals from timestamped percentage changes. In-app alerts are always visible; users can explicitly enable HTTPS browser notifications while the page remains open. Critical downside signals show a source-verification and exit-risk checklist, but the application does not place trades or issue personalized sell/withdraw instructions because it does not know a user's holdings, tax position or risk capacity.
-
-The market workspace includes compact global index quotes, gold/crude/USD-INR/yield/VIX drivers, representative India-watchlist breadth and movers, multi-asset news, company quote/fundamental research, and a next-session model. The model combines technical features, headline tone and a capped macro overlay. Weak holdout accuracy shrinks probability toward 50% so the UI does not present false confidence. All outputs remain educational probabilities, not guaranteed forecasts or personalized investment advice.
-
-## Public Deployment
-
-The complete public application needs three running layers. GitHub Pages alone cannot execute Java or Python server code.
-
-```text
-GitHub Pages (React)
-        |
-        v
-Render fintrack-api (Spring Boot) ---> Render PostgreSQL
-        |
-        v
-Render fintrack-market-ai (FastAPI + yfinance + ML)
-        |
-        v
-Gemini/OpenAI-compatible LLM (optional explanation layer)
-```
-
-This repository includes `render.yaml`, `Dockerfile`, `application-production.properties`, and a production GitHub Pages workflow.
-
-### Deploy backend services on Render
-
-1. Push the deployment files to GitHub.
-2. In Render, choose **New > Blueprint** and connect this repository.
-3. Render reads `render.yaml` and creates `fintrack-api`, `fintrack-market-ai`, and `fintrack-db`.
-4. Enter `GEMINI_API_KEY` when Render prompts for the secret. It is stored only on the Python backend. Without a key, live quotes, company research, news, ML outlook and verified tool answers still work; only hosted LLM phrasing falls back.
-5. Wait until `/health` on the Python service and `/api/users/test` on Spring Boot are healthy.
-
-The Blueprint defaults the public agent to Gemini because a local laptop Ollama server is not reachable from public hosting. To use hosted Ollama instead, deploy Ollama on a suitable server and set these variables on `fintrack-market-ai`:
-
-```env
-LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=https://your-ollama-server.example
-LLM_MODEL=llama3.2:3b
-```
-
-### Connect GitHub Pages to Spring Boot
-
-After Render gives the Spring service URL, open GitHub repository **Settings > Secrets and variables > Actions > Variables** and create:
-
-```text
-Name:  REACT_APP_API_BASE_URL
-Value: https://YOUR-SPRING-SERVICE.onrender.com/api
-```
-
-Then run **Actions > Deploy frontend to GitHub Pages > Run workflow**, or push a frontend/workflow change. The workflow checks `${REACT_APP_API_BASE_URL}/users/test` before it publishes full-stack mode. If the variable is absent, it intentionally publishes the self-contained browser demo instead of silently calling an unrelated or unavailable service.
-
-### Expected public behavior
-
-- Market data is fetched from the live backend when available. If it sleeps or fails, the newest browser cache or scheduled GitHub snapshot is displayed instead of an empty page.
-- A source badge identifies `Live backend`, `Last successful cache`, or `Deployment snapshot`; every mode shows its generation timestamp.
-- GitHub Actions refreshes the snapshot on frontend deployments. If Yahoo Finance has a transient symbol failure, the generator retains the previous successful value for that symbol.
-- Data can be delayed and is not an exchange-licensed tick-by-tick NSE feed.
-- PostgreSQL keeps accounts, expenses and applications across backend restarts.
-- Free hosting can sleep when idle, so the first request may be slower than local development.
-- React never receives an Ollama, Gemini or OpenAI key.
-- Browser-demo accounts stay inside that browser and are not a substitute for server-side production accounts.
-
-## Configuration
-
-Local defaults are in `src/main/resources/application.properties`; production database settings are in `application-production.properties` and come from environment variables.
-
-```env
-PORT=8081
-SPRING_PROFILES_ACTIVE=production
-DB_HOST=database-host
-DB_PORT=5432
-DB_NAME=fintrack
-DB_USER=fintrack
-DB_PASSWORD=secret
-JWT_SECRET=long-random-secret
-APP_CORS_ALLOWED_ORIGIN_PATTERNS=https://tausifalam6879.github.io
-```
-
-Optional frontend Cloudinary config can be copied from `frontend/.env.example`:
-
-```env
-REACT_APP_CLOUDINARY_CLOUD_NAME=
-REACT_APP_CLOUDINARY_UPLOAD_PRESET=
-```
-
-When Cloudinary is not configured, the frontend keeps document previews as local base64 data for demo use.
-
-## Documentation
-
-- [Setup Guide](docs/SETUP.md)
-- [API Reference](docs/API.md)
-- [Feature Documentation](docs/FEATURES.md)
-- [Email OTP Setup](docs/EMAIL_OTP.md)
-- [Fraud Service README](ai-fraud-service/README.md)
-- [Postman Auth and OTP Collection](docs/postman-auth-otp-collection.json)
-
-## Verification Commands
-
-Backend:
+## Tests
 
 ```powershell
+# From the repository root
 .\mvnw.cmd test
-.\mvnw.cmd package
-```
 
-Frontend:
-
-```powershell
-cd frontend
+# From frontend/
 npm test -- --watchAll=false
 npm run build
 ```
 
-AI/Data Science service:
+## More documentation
 
-```powershell
-python -m pytest ai-fraud-service/tests -q
-```
+- [System design](docs/SYSTEM_DESIGN.md) — architecture, data ownership and main flows.
+- [Setup](docs/SETUP.md) — local services and configuration.
+- [API](docs/API.md) — endpoints and request examples.
+- [Email OTP](docs/EMAIL_OTP.md) — delivery configuration.
+- [Authenticator setup](docs/AUTHENTICATOR_SETUP.md) — authenticator integration.
+- [AI service](ai-fraud-service/README.md) — analytics implementation.
 
-## Security Notes
-
-- Public registration always creates `USER` accounts.
-- Admin accounts should be created or promoted manually by an owner/developer.
-- Keep JWT/database credentials, SMTP passwords, Resend/Twilio keys, and Cloudinary settings out of commits.
-- Local OTP can use the console fallback. Production disables the fallback and exposes a channel only after its HTTPS/SMTP provider is fully configured.
-- CORS is open for local development; restrict origins before production deployment.
-
-## Current Status
-
-Core application flow is implemented: authentication, user dashboard, profile, loan marketplace, application submission, admin review, charts, audit logs, provider-aware Email/Mobile/WhatsApp OTP, document upload helper, fraud scoring and market intelligence. GitHub Pages remains interview-ready in browser-demo mode without a backend. A complete public multi-user deployment still requires healthy Spring Boot, PostgreSQL and FastAPI services plus a configured `REACT_APP_API_BASE_URL`; Resend/Twilio, Cloudinary and hosted LLM features require their own credentials.
+Market insights and investment projections are educational estimates, not financial advice.
