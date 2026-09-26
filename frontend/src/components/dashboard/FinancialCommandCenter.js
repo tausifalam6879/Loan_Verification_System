@@ -102,7 +102,7 @@ const FinancialCommandCenter = ({
 
   return (
     <Stack spacing={2.5}>
-      <WorkspaceHeading title="FinTrack Dashboard" subtitle="Simple overview of your finances, loans and next actions.">
+      <WorkspaceHeading title="FinTech Dashboard" subtitle="Simple overview of your finances, loans and next actions.">
         <Typography sx={{ color: "primary.main", maxWidth: 165, fontSize: 14, display: { xs: "none", lg: "block" } }}>Small steps<br />towards bigger goals</Typography>
       </WorkspaceHeading>
 

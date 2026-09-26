@@ -35,7 +35,7 @@ store_secret_version verification-gmail-client-secret \
 store_secret_version verification-gmail-refresh-token \
   "Paste Render GMAIL_REFRESH_TOKEN (hidden), then press Enter: "
 store_secret_version verification-mail-from \
-  "Paste APP_MAIL_FROM as FinTrack <your-email@gmail.com> (hidden), then press Enter: "
+  "Paste APP_MAIL_FROM as FinTech <your-email@gmail.com> (hidden), then press Enter: "
 
 PROJECT_NUMBER="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
 RUNTIME_SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"

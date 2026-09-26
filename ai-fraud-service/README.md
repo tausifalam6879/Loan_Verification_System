@@ -1,4 +1,4 @@
-# FinTrack AI/Data Science Service
+# FinTech AI/Data Science Service
 
 Standalone Python FastAPI service for ML-backed fintech features.
 

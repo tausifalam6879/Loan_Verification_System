@@ -55,7 +55,7 @@ const Sidebar = ({ drawerOpen, setDrawerOpen, handleExportCSV, onOpenDashboard, 
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, px: 2.25, pt: 2.2, pb: 1.8 }}>
         <Box sx={{ width: 40, height: 40, borderRadius: 2.2, display: "grid", placeItems: "center", background: "linear-gradient(145deg,#2f80ff,#7456f5)", boxShadow: "0 8px 22px rgba(47,128,255,.35)" }}><VerifiedUserIcon sx={{ color: "#fff" }} /></Box>
-        <Box><Typography sx={{ color: "#fff", fontWeight: 900, fontSize: 20, lineHeight: 1.05 }}>FinTrack</Typography><Typography variant="caption" sx={{ color: "#aebce0" }}>Loan Verification System</Typography></Box>
+        <Box><Typography sx={{ color: "#fff", fontWeight: 900, fontSize: 20, lineHeight: 1.05 }}>FinTech</Typography><Typography variant="caption" sx={{ color: "#aebce0" }}>Loan Verification System</Typography></Box>
       </Box>
       <Divider sx={{ borderColor: "rgba(255,255,255,.09)", mx: 2 }} />
       <Box sx={{ mt: 1 }}>{navigation(primaryItems)}</Box>

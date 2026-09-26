@@ -42,7 +42,7 @@ export const buildPaymentReceipt = ({
 });
 
 export const receiptToText = (receipt) => [
-  "FINTRACK PAYMENT RECEIPT",
+  "FINTECH PAYMENT RECEIPT",
   "Demo transaction - no real money moved",
   "",
   `Status: ${receipt.status}`,

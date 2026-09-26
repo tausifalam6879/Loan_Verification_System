@@ -114,7 +114,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="FinTrack AI/Data Science Service",
+    title="FinTech AI/Data Science Service",
     version="0.2.0",
     description="Python ML service for loan fraud scoring, expense categorization, forecasting, anomaly detection, and saving advice.",
     lifespan=lifespan,

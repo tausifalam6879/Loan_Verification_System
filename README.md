@@ -1,4 +1,4 @@
-# FinTrack — Loan Verification System
+# FinTech — Loan Verification System
 
 A full-stack application for managing expenses, comparing loan offers and tracking loan applications. Users manage their finances; administrators review applications with risk signals and an audit trail.
 

@@ -49,7 +49,7 @@ test("shows an account brief and sends contextual questions to the secure chat s
   });
   renderCopilot({ onOpen });
 
-  fireEvent.click(screen.getByRole("button", { name: /FinTrack Copilot/i }));
+  fireEvent.click(screen.getByRole("button", { name: /FinTech Copilot/i }));
   expect(screen.getByText(/Account brief/i)).toBeInTheDocument();
   expect(screen.getByText(/1 pending application/i)).toBeInTheDocument();
 
@@ -70,7 +70,7 @@ test("falls back to local screen analytics when the backend is unavailable", asy
   sendAiChatMessage.mockRejectedValue(new Error("offline"));
   renderCopilot({ page: "overview" });
 
-  fireEvent.click(screen.getByRole("button", { name: /FinTrack Copilot/i }));
+  fireEvent.click(screen.getByRole("button", { name: /FinTech Copilot/i }));
   fireEvent.click(screen.getByText("Where can I save money?"));
 
   expect(await screen.findByText("Local analytics fallback")).toBeInTheDocument();

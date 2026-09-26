@@ -21,9 +21,9 @@ class EmailNotificationServiceTest {
 
     @Test
     void enablesResendOnlyWhenApiKeyAndSenderArePresent() {
-        EmailNotificationService configured = service(true, "resend", "FinTrack <login@fintrack.example>", "re_secret");
+        EmailNotificationService configured = service(true, "resend", "FinTech <login@fintrack.example>", "re_secret");
         EmailNotificationService missingSender = service(true, "resend", "", "re_secret");
-        EmailNotificationService missingKey = service(true, "resend", "FinTrack <login@fintrack.example>", "");
+        EmailNotificationService missingKey = service(true, "resend", "FinTech <login@fintrack.example>", "");
 
         assertThat(configured.isMailEnabled()).isTrue();
         assertThat(missingSender.isMailEnabled()).isFalse();
@@ -77,7 +77,7 @@ class EmailNotificationServiceTest {
                     "",
                     "",
                     true,
-                    "FinTrack <login@fintrack.example>",
+                    "FinTech <login@fintrack.example>",
                     "re_test_key",
                     "http://127.0.0.1:" + server.getAddress().getPort(),
                     "",
@@ -89,13 +89,13 @@ class EmailNotificationServiceTest {
                     1000
             );
 
-            service.sendRequired("user@example.com", "FinTrack OTP Verification", "Your login OTP is 123456.");
+            service.sendRequired("user@example.com", "FinTech OTP Verification", "Your login OTP is 123456.");
 
             assertThat(authorization.get()).isEqualTo("Bearer re_test_key");
             assertThat(requestBody.get())
-                    .contains("\"from\":\"FinTrack <login@fintrack.example>\"")
+                    .contains("\"from\":\"FinTech <login@fintrack.example>\"")
                     .contains("\"to\":[\"user@example.com\"]")
-                    .contains("\"subject\":\"FinTrack OTP Verification\"")
+                    .contains("\"subject\":\"FinTech OTP Verification\"")
                     .contains("\"text\":\"Your login OTP is 123456.\"");
         } finally {
             server.stop(0);
@@ -105,10 +105,10 @@ class EmailNotificationServiceTest {
     @Test
     void enablesGmailApiOnlyWhenOauthCredentialsAndSenderArePresent() {
         EmailNotificationService configured = gmailService(
-                "FinTrack <owner@gmail.com>", "client-id", "client-secret", "refresh-token", "https://example.com"
+                "FinTech <owner@gmail.com>", "client-id", "client-secret", "refresh-token", "https://example.com"
         );
         EmailNotificationService missingRefreshToken = gmailService(
-                "FinTrack <owner@gmail.com>", "client-id", "client-secret", "", "https://example.com"
+                "FinTech <owner@gmail.com>", "client-id", "client-secret", "", "https://example.com"
         );
 
         assertThat(configured.isMailEnabled()).isTrue();
@@ -147,15 +147,15 @@ class EmailNotificationServiceTest {
         try {
             String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
             EmailNotificationService service = gmailService(
-                    "FinTrack <owner@gmail.com>",
+                    "FinTech <owner@gmail.com>",
                     "client-id",
                     "client-secret",
                     "refresh-token",
                     baseUrl
             );
 
-            service.sendRequired("first@example.com", "FinTrack OTP Verification", "Your login OTP is 123456.");
-            service.sendRequired("second@example.com", "FinTrack OTP Verification", "Your login OTP is 654321.");
+            service.sendRequired("first@example.com", "FinTech OTP Verification", "Your login OTP is 123456.");
+            service.sendRequired("second@example.com", "FinTech OTP Verification", "Your login OTP is 654321.");
 
             assertThat(tokenRequests.get()).isEqualTo(1);
             assertThat(emailRequests.get()).isEqualTo(2);
@@ -169,7 +169,7 @@ class EmailNotificationServiceTest {
             String rawMessage = gmailRequestBody.get().replaceFirst("^\\{\"raw\":\"", "").replaceFirst("\"}$", "");
             String mimeMessage = new String(Base64.getUrlDecoder().decode(rawMessage), StandardCharsets.UTF_8);
             assertThat(mimeMessage)
-                    .contains("From: FinTrack <owner@gmail.com>")
+                    .contains("From: FinTech <owner@gmail.com>")
                     .contains("To: second@example.com")
                     .contains("Subject: =?UTF-8?B?")
                     .contains("Content-Type: text/plain; charset=UTF-8");
@@ -203,7 +203,7 @@ class EmailNotificationServiceTest {
                     "",
                     "",
                     true,
-                    "FinTrack <login@fintrack.example>",
+                    "FinTech <login@fintrack.example>",
                     "re_test_key",
                     "http://127.0.0.1:" + server.getAddress().getPort(),
                     "",
@@ -216,7 +216,7 @@ class EmailNotificationServiceTest {
             );
 
             assertThatThrownBy(() -> service.sendRequired(
-                    "user@example.com", "FinTrack OTP Verification", "Your login OTP is 123456."
+                    "user@example.com", "FinTech OTP Verification", "Your login OTP is 123456."
             ))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("HTTP 403")

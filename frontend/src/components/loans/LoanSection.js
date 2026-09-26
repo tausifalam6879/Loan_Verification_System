@@ -724,7 +724,7 @@ const LoanSection = ({ balance = 0, onRecordPayment, onOpenApplications, view = 
   const handleDownloadApplicationSummary = (application) => {
     const offer = application.loanOffer;
     const summary = [
-      "FINTRACK LOAN APPLICATION SUMMARY",
+      "FINTECH LOAN APPLICATION SUMMARY",
       "",
       `Application ID: #${application.id}`,
       `Applicant: ${application.applicantName || "-"}`,

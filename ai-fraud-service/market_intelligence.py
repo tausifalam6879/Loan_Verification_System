@@ -1275,7 +1275,7 @@ async def market_agent(request: FastApiRequest):
         ]
 
     system_prompt = (
-        "You are FinTrack Market Agent, a cautious market intelligence assistant. "
+        "You are FinTech Market Agent, a cautious market intelligence assistant. "
         "Use only the supplied tool results. Explain factors, uncertainty, model backtest and data timestamp. "
         "Never invent prices or news. Never guarantee direction, profit or return. Do not issue personalized "
         "buy/sell instructions. changePct means the asset's daily price change, never buying or selling volume. "

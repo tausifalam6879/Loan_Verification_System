@@ -16,7 +16,7 @@ function Test-Url([string]$Url, [int]$TimeoutSeconds = 2) {
     }
 }
 
-Write-Host "FinTrack instant demo launcher" -ForegroundColor Cyan
+Write-Host "FinTech instant demo launcher" -ForegroundColor Cyan
 Write-Host "Preparing the services before opening Login..."
 
 $needsBuild = -not (Test-Path $jarPath)

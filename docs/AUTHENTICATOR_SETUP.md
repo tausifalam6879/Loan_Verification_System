@@ -3,7 +3,7 @@
 No SMS/WhatsApp provider or new dependency is used. Sign in, open Profile, select
 Manage authenticator, enter the current account password and create a setup key.
 In a compatible TOTP app choose manual setup, enter the key and select time-based
-codes (SHA-1, six digits, 30 seconds). Confirm a code in FinTrack to enable it.
+codes (SHA-1, six digits, 30 seconds). Confirm a code in FinTech to enable it.
 Do not share or screenshot the setup key. No external QR-generation service is used.
 
 After enabling, password sign-in requires a fresh authenticator code. Existing
@@ -27,7 +27,7 @@ be deployed before setup is usable. Existing password/email sign-in must be chec
 after deployment. Test enrollment with a dedicated non-production account, not by
 automatically changing a real user's authentication settings.
 
-Codes generate offline on the phone; FinTrack still needs internet for server login.
+Codes generate offline on the phone; FinTech still needs internet for server login.
 Pilot limitations: manual setup key (no QR), no recovery-code list, no enforced MFA
 on alternative OTP channels, and existing password/OTP abuse protections remain
 separate from the authenticator's code-attempt lockout.

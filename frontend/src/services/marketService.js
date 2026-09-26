@@ -125,7 +125,7 @@ const requestWithFallback = async ({ cacheKey, liveRequest, selectSnapshot, isUs
     writeCache(cacheKey, data);
     return withMeta(data, {
       mode: "live",
-      source: data.source || "FinTrack cloud backend",
+      source: data.source || "FinTech cloud backend",
       fetchedAt: data.generatedAt || data.dataAsOf || new Date().toISOString()
     });
   } catch (liveError) {

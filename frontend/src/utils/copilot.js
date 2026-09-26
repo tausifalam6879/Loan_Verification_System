@@ -170,7 +170,7 @@ export const buildCopilotFallbackAnswer = ({
   if (/emi|afford/.test(text)) {
     const freeCashflow = Math.max(0, Number(totalIncome || 0) - Number(totalExpense || 0));
     if (!totalIncome) {
-      return "Set monthly income and record current expenses before estimating an affordable EMI. FinTrack will not recommend borrowing without verified cash-flow inputs.";
+      return "Set monthly income and record current expenses before estimating an affordable EMI. FinTech will not recommend borrowing without verified cash-flow inputs.";
     }
     const safeEmi = Math.round(freeCashflow * 0.3);
     return `Based on the locally entered income and current-month expenses, a cautious EMI ceiling is about ${formatCopilotCurrency(safeEmi)} (30% of free cash flow). This is an affordability estimate—not an approval decision.`;
@@ -224,7 +224,7 @@ export const buildCopilotFallbackAnswer = ({
 
   if (/save|saving|top|category|most/.test(text)) {
     if (!expenses.length) {
-      return "Add a few categorized expenses first. FinTrack needs account activity before it can identify a top category or a realistic saving opportunity.";
+      return "Add a few categorized expenses first. FinTech needs account activity before it can identify a top category or a realistic saving opportunity.";
     }
     const top = brief.topCategory;
     const recommendation = intelligence.recommendations[0];
@@ -232,11 +232,11 @@ export const buildCopilotFallbackAnswer = ({
   }
 
   if (/fd|sip|invest/.test(text) || page === "investments") {
-    return "Use the Savings Planner to compare an FD maturity estimate with SIP projection ranges. Verify current rate, tax, expense ratio and exit load with the regulated provider before investing; FinTrack does not place an order.";
+    return "Use the Savings Planner to compare an FD maturity estimate with SIP projection ranges. Verify current rate, tax, expense ratio and exit load with the regulated provider before investing; FinTech does not place an order.";
   }
 
   if (/payment|upi|card/.test(text) || page === "payments") {
-    return "Before recording a payment, verify the recipient, amount and rail. A successful entry is added to the signed-in expense ledger; FinTrack Copilot never authorizes or sends money.";
+    return "Before recording a payment, verify the recipient, amount and rail. A successful entry is added to the signed-in expense ledger; FinTech Copilot never authorizes or sends money.";
   }
 
   if (!expenses.length) {

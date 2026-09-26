@@ -82,7 +82,7 @@ const ExpenseBudgetPlanner = ({ expenses = [], budgets = {}, onBudgetsChange }) 
     alertRows.forEach((item) => {
       const notificationKey = `${item.key}-${item.percentage >= 100 ? "over" : "warning"}`;
       if (!notifiedRef.current.has(notificationKey)) {
-        new window.Notification("FinTrack budget alert", {
+        new window.Notification("FinTech budget alert", {
           body: `${title(item.key)} is at ${item.percentage}% of its monthly budget.`
         });
         notifiedRef.current.add(notificationKey);

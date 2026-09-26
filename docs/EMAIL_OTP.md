@@ -58,7 +58,7 @@ APP_OTP_ENABLED=true
 APP_OTP_CONSOLE_FALLBACK_ENABLED=false
 APP_MAIL_ENABLED=true
 APP_MAIL_PROVIDER=resend
-APP_MAIL_FROM=FinTrack <login@your-verified-domain.com>
+APP_MAIL_FROM=FinTech <login@your-verified-domain.com>
 RESEND_API_KEY=re_your_api_key
 ```
 
@@ -89,7 +89,7 @@ The Gmail API provider sends from one authorized Gmail account to arbitrary reci
    APP_OTP_CONSOLE_FALLBACK_ENABLED=false
    APP_MAIL_ENABLED=true
    APP_MAIL_PROVIDER=gmail-api
-   APP_MAIL_FROM=FinTrack <yourgmail@gmail.com>
+   APP_MAIL_FROM=FinTech <yourgmail@gmail.com>
    GMAIL_CLIENT_ID=your-google-oauth-client-id
    GMAIL_CLIENT_SECRET=your-google-oauth-client-secret
    GMAIL_REFRESH_TOKEN=your-google-oauth-refresh-token

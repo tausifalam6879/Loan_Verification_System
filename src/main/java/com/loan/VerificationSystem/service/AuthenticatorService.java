@@ -37,7 +37,7 @@ public class AuthenticatorService {
         repository.save(credential);
         String setupKey = TotpCrypto.base32(secret);
         java.util.Arrays.fill(secret, (byte)0);
-        return Map.of("setupKey", setupKey, "account", email, "issuer", "FinTrack", "expiresInSeconds", 600);
+        return Map.of("setupKey", setupKey, "account", email, "issuer", "FinTech", "expiresInSeconds", 600);
     }
     // Return failures instead of throwing: commit attempt counters and consumed steps.
     @Transactional

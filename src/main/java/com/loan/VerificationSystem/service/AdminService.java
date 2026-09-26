@@ -115,7 +115,7 @@ public class AdminService {
 
     private void notifyApplicant(LoanApplication application, String subject, String body) {
         if (application.getEmail() != null && !application.getEmail().isBlank()) {
-            emailNotificationService.send(application.getEmail(), "FinTrack " + subject, body);
+            emailNotificationService.send(application.getEmail(), "FinTech " + subject, body);
         }
     }
 }

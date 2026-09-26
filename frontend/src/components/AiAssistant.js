@@ -150,18 +150,18 @@ const AiAssistant = ({
           onClick={() => setOpen(true)}
           sx={launcherStyle}
         >
-          FinTrack Copilot
+          FinTech Copilot
         </Button>
       )}
 
       {open && (
-        <Card sx={panelStyle} aria-label="FinTrack Copilot panel">
+        <Card sx={panelStyle} aria-label="FinTech Copilot panel">
           <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
             <Box sx={headerStyle}>
               <Stack direction="row" spacing={1} sx={{ alignItems: "center", minWidth: 0 }}>
                 <Box sx={copilotIconStyle}><PsychologyIcon /></Box>
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ fontWeight: 900, lineHeight: 1.1 }}>FinTrack Copilot</Typography>
+                  <Typography sx={{ fontWeight: 900, lineHeight: 1.1 }}>FinTech Copilot</Typography>
                   <Typography variant="caption" color="text.secondary">{pageLabel} · account-aware guidance</Typography>
                 </Box>
               </Stack>
@@ -173,7 +173,7 @@ const AiAssistant = ({
                     </IconButton>
                   </span>
                 </Tooltip>
-                <IconButton onClick={() => setOpen(false)} size="small" aria-label="Close FinTrack Copilot">
+                <IconButton onClick={() => setOpen(false)} size="small" aria-label="Close FinTech Copilot">
                   <CloseIcon />
                 </IconButton>
               </Stack>
@@ -298,7 +298,7 @@ const AiAssistant = ({
                   }
                 }}
               />
-              <IconButton color="primary" onClick={() => sendMessage()} disabled={sending || !message.trim()} aria-label="Send message to FinTrack Copilot">
+              <IconButton color="primary" onClick={() => sendMessage()} disabled={sending || !message.trim()} aria-label="Send message to FinTech Copilot">
                 <SendIcon />
               </IconButton>
             </Box>

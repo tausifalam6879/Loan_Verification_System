@@ -312,7 +312,7 @@ const GlobalMarketSection = () => {
   const generatedAt = dataMeta?.fetchedAt || overview?.generatedAt || factors?.generatedAt || breadth?.generatedAt;
   const sourceMode = dataMeta?.mode || "loading";
   const sourcePresentation = sourceMode === "loading"
-    ? { label: "Checking data source", color: "default", background: "action.hover", border: "divider", action: "Check now", message: "Checking the FinTrack backend and latest published analytics snapshot." }
+    ? { label: "Checking data source", color: "default", background: "action.hover", border: "divider", action: "Check now", message: "Checking the FinTech backend and latest published analytics snapshot." }
     : sourceMode === "browser-live"
     ? { label: "Live browser quote feed", color: "success", background: "success.50", border: "success.100", action: "Refresh live quotes", message: `Direct Yahoo Finance quote check ${formatTime(generatedAt)}. The board polls every 30 seconds while this page is open; exchange and provider delays may apply.` }
     : sourceMode === "live"
@@ -437,7 +437,7 @@ const MarketPulse = ({ overview, factors, breadth, newsFeed, loading, sourceMode
         </Box>
         {sortedMarkets.length > 4 && <Button size="small" onClick={() => setShowAllIndices(!showAllIndices)} sx={{ mt: 1 }}>{showAllIndices ? "Show key indices" : `View all ${sortedMarkets.length} indices`}</Button>}
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-          Latest API response {formatTime(generatedAt)}. Every card shows its quote timestamp; select an index to open the FinTrack ML evidence view.
+          Latest API response {formatTime(generatedAt)}. Every card shows its quote timestamp; select an index to open the FinTech ML evidence view.
         </Typography>
       </Box>
 
@@ -642,7 +642,7 @@ const MarketTickerBoard = ({ quotes, sourceMode, onOpenAnalysis, onOpenCompany }
         </Box>
       </Paper>
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
-        Select a sector, pause the ticker on hover, or open a quote inside FinTrack. Data remains timestamped and may be delayed or unchanged while its exchange is closed.
+        Select a sector, pause the ticker on hover, or open a quote inside FinTech. Data remains timestamped and may be delayed or unchanged while its exchange is closed.
       </Typography>
     </Box>
   );
@@ -683,7 +683,7 @@ const MarketAlertCenter = ({ quotes, sourceMode, onOpenQuote }) => {
       const lastSentAt = Number(notifiedAt[alert.id] || 0);
       if (now - lastSentAt < 30 * 60 * 1000) return;
       try {
-        const notification = new window.Notification(`FinTrack: ${alert.title}`, {
+        const notification = new window.Notification(`FinTech: ${alert.title}`, {
           body: `${alert.detail} Verify the timestamp and source before taking action.`,
           tag: `fintrack-${alert.id}`
         });
@@ -776,7 +776,7 @@ const MarketAlertCenter = ({ quotes, sourceMode, onOpenQuote }) => {
             <li>Review position size, planned stop-loss, liquidity, taxes and your original investment horizon.</li>
             <li>If reducing risk fits your pre-decided plan, consider a staged exit or consult a SEBI-registered adviser instead of panic selling.</li>
           </Box>
-          <Typography variant="caption">FinTrack does not know the user's holdings or risk capacity and therefore does not place trades or issue personalized withdrawal commands.</Typography>
+          <Typography variant="caption">FinTech does not know the user's holdings or risk capacity and therefore does not place trades or issue personalized withdrawal commands.</Typography>
         </Alert>
       )}
     </Paper>
@@ -805,7 +805,7 @@ const LiveQuoteButton = ({ quote, onClick, tabIndex = 0 }) => {
       disabled={!available}
       tabIndex={tabIndex}
       onClick={available ? onClick : undefined}
-      aria-label={available ? `Open ${quote.name} in FinTrack` : `${quote.name} quote unavailable`}
+      aria-label={available ? `Open ${quote.name} in FinTech` : `${quote.name} quote unavailable`}
       sx={{
         minWidth: { xs: 178, sm: 205 },
         px: 1.5,

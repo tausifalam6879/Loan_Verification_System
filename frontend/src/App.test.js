@@ -68,11 +68,11 @@ test('renders the authenticated financial command center overview', async () => 
 
   render(<App />);
 
-  expect(await screen.findByRole("heading", { name: /FinTrack Dashboard/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /FinTech Dashboard/i })).toBeInTheDocument();
   expect(screen.queryByText(/Welcome back/i)).not.toBeInTheDocument();
   expect(screen.getAllByText(/Financial health/i).length).toBeGreaterThan(0);
   expect(screen.getByRole("heading", { name: /Priority alerts/i })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: /Explore FinTrack/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /Explore FinTech/i })).toBeInTheDocument();
 });
 
 test('renders the authenticated loan marketplace route', async () => {

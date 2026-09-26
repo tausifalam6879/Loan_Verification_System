@@ -24,7 +24,7 @@ import java.util.Map;
 public class AiChatService {
 
     private static final String SYSTEM_PROMPT = """
-            You are FinTrack Copilot inside a private financial dashboard. Use only the authenticated, server-provided expense and loan-application context plus cautious general financial reasoning. Never invent transactions, income, balances, eligibility, approvals, market prices or forecasts. Clearly identify missing or unverified data. Do not claim to send money, submit a loan, place an investment or provide a guaranteed financial outcome. Give short, practical next steps and use Indian Rupees when amounts are present.
+            You are FinTech Copilot inside a private financial dashboard. Use only the authenticated, server-provided expense and loan-application context plus cautious general financial reasoning. Never invent transactions, income, balances, eligibility, approvals, market prices or forecasts. Clearly identify missing or unverified data. Do not claim to send money, submit a loan, place an investment or provide a guaranteed financial outcome. Give short, practical next steps and use Indian Rupees when amounts are present.
             """;
 
     private final AiDashboardContextService contextService;
@@ -334,7 +334,7 @@ public class AiChatService {
 
         if (containsAny(message, "loan", "emi", "risk", "afford")) {
             if (loanApplications.isEmpty()) {
-                return "Loan/EMI assessment ke liye saved application data missing hai. Loan form me requested amount, income, existing EMI aur credit score submit karo; FinTrack guaranteed approval nahi deta.";
+                return "Loan/EMI assessment ke liye saved application data missing hai. Loan form me requested amount, income, existing EMI aur credit score submit karo; FinTech guaranteed approval nahi deta.";
             }
             Map<String, Object> latest = loanApplications.get(0);
             return "Latest saved application ka status " + latest.getOrDefault("status", "PENDING")

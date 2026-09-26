@@ -78,8 +78,8 @@ public class UserService {
         User savedUser = userRepository.save(user);
         emailNotificationService.send(
                 savedUser.getEmail(),
-                "FinTrack account created",
-                "Your FinTrack account has been created successfully."
+                "FinTech account created",
+                "Your FinTech account has been created successfully."
         );
 
         return mapToResponse(savedUser);

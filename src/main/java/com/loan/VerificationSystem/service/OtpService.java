@@ -67,7 +67,7 @@ public class OtpService {
 
         try {
             if ("EMAIL".equals(normalizedChannel) && emailNotificationService.isMailEnabled()) {
-                emailNotificationService.sendRequired(destination, "FinTrack OTP Verification", body);
+                emailNotificationService.sendRequired(destination, "FinTech OTP Verification", body);
                 return new OtpDeliveryResult(true, "email", null);
             }
 

@@ -61,7 +61,7 @@ const LiveExchangeRatesCard = ({ onOpenMarkets }) => {
       if (!Array.isArray(payload?.currencies) || !payload.currencies.length) throw new Error("Currency service returned no rates.");
       const nextState = {
         currencies: payload.currencies, referenceRates: payload.referenceRates || {}, updatedAt: payload.generatedAt || new Date().toISOString(), loading: false,
-        source: payload.source || "FinTrack currency service",
+        source: payload.source || "FinTech currency service",
         error: payload.currencies.some((currency) => currency.quoteMode !== "intraday") ? "Some featured pairs are temporarily using a labelled reference rate." : ""
       };
       saveRates(nextState);
